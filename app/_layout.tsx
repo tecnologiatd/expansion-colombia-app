@@ -1,16 +1,26 @@
-import { View, Text } from "react-native";
-import React from "react";
+import { Slot, SplashScreen } from "expo-router";
+import { Stack } from "expo-router/stack";
+import { useEffect } from "react";
+import { useFonts } from "expo-font";
 import "./global.css";
 
-const RootLayout = () => {
-  return (
-    <View>
-      <Text className="text-cyan-500 text-3xl text-center">
-        If You see this text center and with cyan color its working
-        NativeWindCSS
-      </Text>
-    </View>
-  );
-};
+export default function Layout() {
+  const [fontsLoaded, error] = useFonts({
+    FortunaDotRegular: require("../assets/fonts/FortunaDotRegular.ttf"),
+    DesignSystemC: require("../assets/fonts/DesignSystemC-500R.ttf"),
+  });
 
-export default RootLayout;
+  useEffect(() => {
+    if (error) throw error;
+
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded, error]);
+
+  if (!fontsLoaded && !error) return null;
+
+  return (
+    <Stack>
+      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+    </Stack>
+  );
+}
