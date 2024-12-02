@@ -10,6 +10,7 @@ module.exports = {
 
       colors: {
         primary: '#1D1D1B',
+        secondary: '#F9B233',
         medellin: '#292750',
         caribe: '#008D36',
         bogota: '#BE1622',

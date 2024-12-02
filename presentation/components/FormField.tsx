@@ -1,26 +1,53 @@
-import { View, Text, TextInputProps, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TextInputProps,
+  TouchableOpacity,
+} from "react-native";
 import React from "react";
+import ThemedTextInput from "../theme/components/ThemedTextInput";
+import { ThemedText } from "../theme/components/ThemedText";
+import { Ionicons } from "@expo/vector-icons"; // Asegúrate de instalar @expo/vector-icons
 
 interface Props extends TextInputProps {
   title: string;
   value: string;
 }
 
-const FormField = ({ title, value, onChangeText, ...props }: Props) => {
-  const [showPassword, setShowPassword] = React.useState(false);
+const FormField = ({
+  title,
+  value,
+  onChangeText,
+  secureTextEntry,
+  ...props
+}: Props) => {
+  const [showPassword, setShowPassword] = React.useState(secureTextEntry);
 
   return (
     <View className="space-y-2 mt-7">
-      <Text className="text-base text-gray-100 font-medium">{title}</Text>
-      <View className="border-2 border-black-200 w-full h-16 px-4 bg-black rounded-2xl focus:border-yellow-500 active:border-yellow-500">
+      <ThemedText className="text-base font-medium mb-3">{title}</ThemedText>
+      <View className="border-black-200 h-16 relative">
         <TextInput
-          className="flex-1 text-white text-base font-semibold"
+          className="flex-1 w-full p-4 text-base font-semibold dark:border-white text-black dark:text-white focus:border-yellow-500 active:border-yellow-500 border-2 rounded-2xl"
           value={value}
-          secureTextEntry={showPassword}
+          secureTextEntry={secureTextEntry ? showPassword : false}
           placeholderTextColor="#7b7b8b"
           onChangeText={onChangeText}
           {...props}
-        ></TextInput>
+        />
+        {secureTextEntry && (
+          <TouchableOpacity
+            className="absolute right-4 w-8 h-full justify-center items-center"
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off-outline" : "eye-outline"}
+              size={24}
+              color="#7b7b8b"
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

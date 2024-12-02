@@ -19,8 +19,23 @@ export default function Layout() {
   if (!fontsLoaded && !error) return null;
 
   return (
-    <Stack>
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#F9B233",
+        },
+        headerTintColor: "white",
+      }}
+    >
+      <Stack.Screen name="auth" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: true, headerTitle: "Expansion Colombia" }}
+      />
+      <Stack.Screen
+        name="event/[id]"
+        options={{ headerTitle: "Concierto CALI" }}
+      />
     </Stack>
   );
 }

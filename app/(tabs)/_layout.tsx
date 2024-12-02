@@ -7,9 +7,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: "Eventos",
+          headerTitle: "sdfa",
+          headerTintColor: "white",
+          headerStyle: {
+            backgroundColor: "#F9B233",
+          },
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="home" color={color} />
+            <FontAwesome size={28} name="ticket" color={color} />
           ),
         }}
       />

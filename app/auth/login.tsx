@@ -4,6 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
 import { Link, router } from "expo-router";
+import { ThemedView } from "@/presentation/theme/components/ThemedView";
+import { ThemedText } from "@/presentation/theme/components/ThemedText";
+import ExpansionHeader from "@/presentation/components/ExpansionHeader";
 
 const login = () => {
   const [form, setForm] = React.useState({
@@ -12,17 +15,19 @@ const login = () => {
   });
 
   return (
-    <SafeAreaView className="bg-primary h-full flex-1">
+    <ThemedView className="bg-primary h-full flex-1">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="w-full flex-1 justify-between px-4 my-6">
-          <View>
-            <Text className="font-fortuna text-center text-4xl mt-10 text-white">
-              EXPANSION
-            </Text>
-            <Text className="font-design-systemc text-center text-2xl text-white">
-              COLOMBIA
-            </Text>
-            <Text className="text-2xl mt-16 text-white">Inicias sesión</Text>
+        <View className="w-full flex-1 justify-between px-6 pb-8">
+          <View className="flex-1 justify-center px-6 py-8">
+            <View className="items-center mb-10">
+              <ExpansionHeader />
+              <ThemedText className="text-3xl font-bold mt-4">
+                Bienvenido de nuevo
+              </ThemedText>
+              <ThemedText className="text-lg text-gray-500 mt-2">
+                Inicia sesión para continuar
+              </ThemedText>
+            </View>
             <FormField
               title="Correo"
               placeholder="usuario@expansionm.co"
@@ -32,32 +37,30 @@ const login = () => {
             />
             <FormField
               title="Contraseña"
+              placeholder="Crea una contraseña"
               value={form.password}
               onChangeText={(e) => setForm({ ...form, password: e })}
               secureTextEntry
             />
           </View>
-          <View id="hola">
+          <View>
             <CustomButton
               title="Iniciar sesión"
               className="mt-5"
               onPress={() => router.push("/(tabs)/home")}
             />
             <View className="justify-center pt-5 flex-row gap-5">
-              <Text className="text-white text-center mt-4">
+              <ThemedText className="text-center mt-4">
                 ¿No tienes una cuenta?{" "}
-                <Link
-                  className="text-lg text-yellow-500"
-                  href="/(auth)/register"
-                >
+                <Link className="text-lg text-yellow-500" href="/auth/register">
                   Registrate
                 </Link>
-              </Text>
+              </ThemedText>
             </View>
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ThemedView>
   );
 };
 
