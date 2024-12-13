@@ -5,14 +5,51 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
+  StatusBar, ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import EventCard from "@/presentation/components/EventCard";
+import { getProductsActions } from "@/core/actions/get-products.action";
+import {useProducts} from "@/presentation/hooks/useProducts";
+import {ThemedText} from "@/presentation/theme/components/ThemedText";
 
 export default function Tab() {
+  const {productsQuery} = useProducts();
+  console.log(productsQuery.data);
+  if (productsQuery.isLoading) {
+    return (
+        <View className="justify-center items-center flex-1">
+          <ActivityIndicator color="purple" size={40} />
+        </View>
+    );
+  }
+
+  if (productsQuery.isError) {
+    // TODO: Make and error Component
+    return (
+        <View className="justify-center items-center flex-1">
+          <Text className="text-black">
+            Error
+          </Text>
+        </View>
+    );
+  }
+
+  if (productsQuery.data?.length === 0) {
+    return (
+        <View className="justify-center items-center flex-1">
+          <Text className="text-black">
+            No events found.
+          </Text>
+        </View>
+    );
+  }
+
+
+
+
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
       <ScrollView>
@@ -48,9 +85,10 @@ export default function Tab() {
           </TouchableOpacity>
         </View>
         {/* Cards */}
-        <EventCard />
-        <EventCard />
-        <EventCard />
+        {productsQuery.data &&
+        productsQuery.data.map((item, index) => (
+            <EventCard product={item} key={index} />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

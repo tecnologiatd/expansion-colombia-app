@@ -2,6 +2,7 @@ import { Slot, SplashScreen } from "expo-router";
 import { Stack } from "expo-router/stack";
 import { useEffect } from "react";
 import { useFonts } from "expo-font";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import "./global.css";
 
 export default function Layout() {
@@ -18,24 +19,32 @@ export default function Layout() {
 
   if (!fontsLoaded && !error) return null;
 
+  const queryClient = new QueryClient();
+
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: "#F9B233",
-        },
-        headerTintColor: "white",
-      }}
-    >
-      <Stack.Screen name="auth" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="(tabs)"
-        options={{ headerShown: true, headerTitle: "Expansion Colombia" }}
-      />
-      <Stack.Screen
-        name="event/[id]"
-        options={{ headerTitle: "Concierto CALI" }}
-      />
-    </Stack>
+      <QueryClientProvider client={queryClient}>
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: "",
+            },
+            headerTintColor: "white",
+          }}
+        >
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: true, headerTitle: "Expansion Colombia" }}
+          />
+          <Stack.Screen
+            name="event/[id]"
+            options={{ headerTitle: "Concierto CALI" }}
+          />
+          <Stack.Screen
+            name="payment"
+            options={{ headerTitle: "Pagos" }}
+          />
+        </Stack>
+      </QueryClientProvider>
   );
 }
