@@ -59,7 +59,7 @@ const Register = () => {
             <View className="justify-center pt-5 flex-row gap-5">
               <ThemedText className="text-center mt-4">
                 ¿Ya tienes una cuenta?{" "}
-                <Link className="text-lg text-yellow-500" href="/auth/login">
+                <Link className="text-lg text-purple-500" href="/auth/login">
                   Inicia sesión
                 </Link>
               </ThemedText>

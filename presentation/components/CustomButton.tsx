@@ -15,7 +15,7 @@ interface Props extends TouchableOpacityProps {
 const CustomButton = ({ title, className, ...props }: Props) => {
   return (
     <TouchableOpacity
-      className={`bg-cafetero rounded-xl min-h-16 justify-center items-center ${className}`}
+      className={`bg-secondary rounded-xl min-h-16 justify-center items-center ${className}`}
       {...props}
     >
       <Text className="font-bold text-lg">{title}</Text>

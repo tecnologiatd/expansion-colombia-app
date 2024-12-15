@@ -29,7 +29,7 @@ const FormField = ({
       <ThemedText className="text-base font-medium mb-3">{title}</ThemedText>
       <View className="border-black-200 h-16 relative">
         <TextInput
-          className="flex-1 w-full p-4 text-base font-semibold dark:border-white text-black dark:text-white focus:border-yellow-500 active:border-yellow-500 border-2 rounded-2xl"
+          className="flex-1 w-full p-4 text-base font-semibold dark:border-white text-black dark:text-white focus:border-secondary  active:border-secondary border-2 rounded-2xl"
           value={value}
           secureTextEntry={secureTextEntry ? showPassword : false}
           placeholderTextColor="#7b7b8b"

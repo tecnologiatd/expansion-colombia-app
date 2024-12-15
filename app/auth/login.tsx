@@ -1,6 +1,5 @@
-import { View, Text, ScrollView } from "react-native";
+import { ScrollView, View } from "react-native";
 import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
 import { Link, router } from "expo-router";
@@ -52,7 +51,7 @@ const login = () => {
             <View className="justify-center pt-5 flex-row gap-5">
               <ThemedText className="text-center mt-4">
                 ¿No tienes una cuenta?{" "}
-                <Link className="text-lg text-yellow-500" href="/auth/register">
+                <Link className="text-lg text-purple-500" href="/auth/register">
                   Registrate
                 </Link>
               </ThemedText>

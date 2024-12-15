@@ -11,8 +11,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import { useState, useEffect } from "react";
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useProduct } from "@/presentation/hooks/useProduct";
+import { useCartStore } from "@/core/stores/cart-store";
 
 const DetailScreen = () => {
   const { id } = useLocalSearchParams();
@@ -27,6 +28,25 @@ const DetailScreen = () => {
     }
   }, [productQuery.data]);
 
+  const { addToCart } = useCartStore();
+
+  const handleAddToCart = () => {
+    if (productQuery.data) {
+      const productToAdd = {
+        id: productQuery.data.id, // Use actual product ID
+        name: productQuery.data.name,
+        price: parseFloat(productQuery.data.price), // Ensure price is a number
+        imageUrl: productQuery.data.images?.[0]?.src || "", // Use first image or empty string
+      };
+
+      // Add to cart
+      addToCart(productToAdd);
+
+      // Navigate to cart screen
+      router.push("/(tabs)/cart");
+    }
+  };
+
   const handleImagePress = () => {
     setShowModal(true);
   };
@@ -37,9 +57,9 @@ const DetailScreen = () => {
 
   if (productQuery.isLoading) {
     return (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size={30} />
-        </View>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size={30} />
+      </View>
     );
   }
 
@@ -50,62 +70,68 @@ const DetailScreen = () => {
   const product = productQuery.data;
 
   return (
-      <SafeAreaView className="flex-1 bg-gray-900">
-        <ScrollView>
-          <View className="relative">
-            <TouchableOpacity onPress={handleImagePress}>
-              <Image
-                  source={{ uri: product?.images?.[0]?.src ?? "" }}
-                  style={{
-                    width: "100%",
-                    height: 300,
-                    resizeMode: "cover",
-                  }}
-              />
+    <SafeAreaView className="flex-1 bg-gray-900">
+      <ScrollView>
+        <View className="relative">
+          <TouchableOpacity onPress={handleImagePress}>
+            <Image
+              source={{ uri: product?.images?.[0]?.src ?? "" }}
+              style={{
+                width: "100%",
+                height: 300,
+                resizeMode: "cover",
+              }}
+            />
+          </TouchableOpacity>
+          <View className="absolute top-4 left-4 bg-purple-500 px-3 py-1 rounded-md">
+            <Text className="text-white font-medium">{product.name}</Text>
+          </View>
+        </View>
+        <View className="p-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-white text-2xl font-bold">
+              {product.name}
+            </Text>
+            <TouchableOpacity className="bg-gray-800 rounded-lg p-2">
+              <Feather name="share" size={24} color="white" />
             </TouchableOpacity>
-            <View className="absolute top-4 left-4 bg-purple-500 px-3 py-1 rounded-md">
-              <Text className="text-white font-medium">{product.name}</Text>
-            </View>
           </View>
-          <View className="p-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-white text-2xl font-bold">
-                {product.name}
-              </Text>
-              <TouchableOpacity className="bg-gray-800 rounded-lg p-2">
-                <Feather name="share" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-            <View className="flex-row items-center justify-between mt-4">
-              <Text className="text-gray-400 font-medium">${product.price}</Text>
-              <Text className="text-gray-400 font-medium">Nov 4-6</Text>
-              <Text className="text-gray-400 font-medium">Manahan</Text>
-            </View>
-            <View className="mt-8">
-              <Text className="text-gray-400 mt-8">{product.description}</Text>
-            </View>
+          <View className="flex-row items-center justify-between mt-4">
+            <Text className="text-gray-400 font-medium">${product.price}</Text>
+            <Text className="text-gray-400 font-medium">Nov 4-6</Text>
+            <Text className="text-gray-400 font-medium">Manahan</Text>
           </View>
-        </ScrollView>
-        <Modal visible={showModal} transparent>
-          <View style={styles.modalContainer}>
+          <View className="mt-8">
+            <Text className="text-gray-400 mt-8">{product.description}</Text>
+          </View>
+        </View>
+      </ScrollView>
+      <Modal visible={showModal} transparent>
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalContent}
+            onPress={() => setShowModal(false)}
+          >
+            <Image source={{ uri: imageUri }} style={styles.modalImage} />
             <TouchableOpacity
-                style={styles.modalContent}
-                onPress={() => setShowModal(false)}
+              style={styles.downloadButton}
+              onPress={handleDownload}
             >
-              <Image source={{ uri: imageUri }} style={styles.modalImage} />
-              <TouchableOpacity
-                  style={styles.downloadButton}
-                  onPress={handleDownload}
-              >
-                <Feather name="download" size={24} color="white" />
-              </TouchableOpacity>
+              <Feather name="download" size={24} color="white" />
             </TouchableOpacity>
-          </View>
-        </Modal>
-        <TouchableOpacity className="bg-purple-500 rounded-lg py-4 mt-8 justify-center items-center">
-          <Text className="text-white font-bold text-lg">Comprar Voleto</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+      <TouchableOpacity
+        className="bg-purple-500 rounded-lg py-4 mt-8 justify-center items-center"
+        onPress={handleAddToCart}
+        disabled={!productQuery.data} // Disable if product is not loaded
+      >
+        <Text className="text-white font-bold text-lg">
+          {productQuery.isLoading ? "Cargando..." : "Comprar Voleto"}
+        </Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 };
 

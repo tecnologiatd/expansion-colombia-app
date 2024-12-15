@@ -1,54 +1,44 @@
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
+  ActivityIndicator,
   ScrollView,
+  Text,
+  TextInput,
   TouchableOpacity,
-  StatusBar, ActivityIndicator,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import EventCard from "@/presentation/components/EventCard";
-import { getProductsActions } from "@/core/actions/get-products.action";
-import {useProducts} from "@/presentation/hooks/useProducts";
-import {ThemedText} from "@/presentation/theme/components/ThemedText";
+import { useProducts } from "@/presentation/hooks/useProducts";
 
 export default function Tab() {
-  const {productsQuery} = useProducts();
+  const { productsQuery } = useProducts();
   console.log(productsQuery.data);
   if (productsQuery.isLoading) {
     return (
-        <View className="justify-center items-center flex-1">
-          <ActivityIndicator color="purple" size={40} />
-        </View>
+      <View className="justify-center items-center flex-1">
+        <ActivityIndicator color="purple" size={40} />
+      </View>
     );
   }
 
   if (productsQuery.isError) {
     // TODO: Make and error Component
     return (
-        <View className="justify-center items-center flex-1">
-          <Text className="text-black">
-            Error
-          </Text>
-        </View>
+      <View className="justify-center items-center flex-1">
+        <Text className="text-black">Error</Text>
+      </View>
     );
   }
 
   if (productsQuery.data?.length === 0) {
     return (
-        <View className="justify-center items-center flex-1">
-          <Text className="text-black">
-            No events found.
-          </Text>
-        </View>
+      <View className="justify-center items-center flex-1">
+        <Text className="text-black">No events found.</Text>
+      </View>
     );
   }
-
-
-
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
@@ -86,9 +76,9 @@ export default function Tab() {
         </View>
         {/* Cards */}
         {productsQuery.data &&
-        productsQuery.data.map((item, index) => (
+          productsQuery.data.map((item, index) => (
             <EventCard product={item} key={index} />
-        ))}
+          ))}
       </ScrollView>
     </SafeAreaView>
   );

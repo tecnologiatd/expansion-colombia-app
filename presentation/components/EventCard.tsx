@@ -3,11 +3,12 @@ import {
   Text,
   TouchableOpacity,
   Image,
-  useWindowDimensions, TouchableOpacityProps,
+  useWindowDimensions,
+  TouchableOpacityProps,
 } from "react-native";
 import React from "react";
-import {Link, router} from "expo-router";
-import { type Product} from "@/core/interfaces/product.interface";
+import { Link, router } from "expo-router";
+import { type Product } from "@/core/interfaces/product.interface";
 
 interface Props extends TouchableOpacityProps {
   product?: Product; //Avoid using ?
@@ -19,8 +20,8 @@ const EventCard = ({ product }: Props) => {
       activeOpacity={0.7}
       className="mb-8 bg-gray-800 w-full rounded-2xl shadow-lg self-center"
       style={{ maxWidth: width - 32 }}
-      onPress={() => router.push({pathname: `/event/${product.id}`})}>
-
+      onPress={() => router.push({ pathname: `/event/${product.id}` })}
+    >
       <View className="relative">
         <Image
           className="rounded-t-2xl"
@@ -44,7 +45,6 @@ const EventCard = ({ product }: Props) => {
           <Text className="text-gray-400 font-medium">Cali</Text>
         </View>
       </View>
-
     </TouchableOpacity>
   );
 };

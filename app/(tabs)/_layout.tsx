@@ -4,7 +4,10 @@ import TabBar from "@/presentation/components/TabBar";
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: "blue", headerShown: false }} tabBar={props => <TabBar {...props}/> }>
+    <Tabs
+      screenOptions={{ tabBarActiveTintColor: "blue", headerShown: false }}
+      tabBar={(props) => <TabBar {...props} />}
+    >
       <Tabs.Screen
         name="cart"
         options={{
@@ -14,21 +17,21 @@ export default function TabLayout() {
           ),
         }}
       />
-        <Tabs.Screen
-            name="home"
-            options={{
-                title: "Eventos",
-                headerTitle: "sdfa",
-                headerTintColor: "white",
-                headerStyle: {
-                    backgroundColor: "#F9B233",
-                },
-                tabBarIcon: ({ color }) => (
-                    <FontAwesome size={28} name="ticket" color={color} />
-                ),
-            }}
-        />
-        <Tabs.Screen
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: "Eventos",
+          headerTitle: "sdfa",
+          headerTintColor: "white",
+          headerStyle: {
+            backgroundColor: "#F9B233",
+          },
+          tabBarIcon: ({ color }) => (
+            <FontAwesome size={28} name="ticket" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Perfil",
