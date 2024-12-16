@@ -51,3 +51,6 @@ app-example
 
 #Release
 android/
+ios/
+/atd-exapansion-colombia-firebase-adminsdk.json
+/google-services.json

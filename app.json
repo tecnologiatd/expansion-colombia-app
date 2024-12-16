@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "expansion-colombia-app",
-    "slug": "Expansion Colombia ",
+    "slug": "expansion-colombia",
     "version": "0.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,14 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.expansion.colombia"
     },
     "android": {
       "package": "com.expansion.colombia",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +39,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4c646e1d-0c03-4042-bb68-84aae1f356bb"
+      }
+    },
+    "owner": "camiloatd"
   }
 }

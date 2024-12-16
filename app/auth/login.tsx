@@ -6,6 +6,7 @@ import { Link, router } from "expo-router";
 import { ThemedView } from "@/presentation/theme/components/ThemedView";
 import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import ExpansionHeader from "@/presentation/components/ExpansionHeader";
+import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
 
 const login = () => {
   const [form, setForm] = React.useState({
