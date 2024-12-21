@@ -1,26 +1,37 @@
 import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  Modal,
-  StyleSheet,
   ActivityIndicator,
+  Image,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
+import RenderHtml from "react-native-render-html";
 import { useProduct } from "@/presentation/hooks/useProduct";
 import { useCartStore } from "@/core/stores/cart-store";
 
 const DetailScreen = () => {
+  const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams();
   const { productQuery } = useProduct(`${id}`);
 
   const [showModal, setShowModal] = useState(false);
   const [imageUri, setImageUri] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  async function onRefresh() {
+    setIsRefreshing(true);
+    await productQuery.refetch();
+    setIsRefreshing(false);
+  }
 
   useEffect(() => {
     if (productQuery.data?.images?.[0]?.src) {
@@ -71,7 +82,11 @@ const DetailScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+        }
+      >
         <View className="relative">
           <TouchableOpacity onPress={handleImagePress}>
             <Image
@@ -101,8 +116,16 @@ const DetailScreen = () => {
             <Text className="text-gray-400 font-medium">Nov 4-6</Text>
             <Text className="text-gray-400 font-medium">Manahan</Text>
           </View>
-          <View className="mt-8">
-            <Text className="text-gray-400 mt-8">{product.description}</Text>
+          <View className="mt-8 ">
+            <RenderHtml
+              tagsStyles={{
+                p: {
+                  color: "white",
+                },
+              }}
+              contentWidth={width}
+              source={{ html: product.description }}
+            />
           </View>
         </View>
       </ScrollView>

@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -11,10 +12,60 @@ import Entypo from "@expo/vector-icons/Entypo";
 import Feather from "@expo/vector-icons/Feather";
 import EventCard from "@/presentation/components/EventCard";
 import { useProducts } from "@/presentation/hooks/useProducts";
+import { useEffect, useState, useCallback } from "react";
+import debounce from "lodash.debounce";
+import * as SecureStore from "expo-secure-store";
 
 export default function Tab() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [categories, setCategories] = useState([
+    "Musica",
+    "Festivales",
+    "Deportes",
+  ]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
   const { productsQuery } = useProducts();
-  console.log(productsQuery.data);
+
+  // Debounced search handler
+  const onSearch = useCallback(
+    debounce((text) => {
+      setSearchTerm(text);
+    }, 500),
+    [],
+  );
+
+  // Filter products by search and category
+  useEffect(() => {
+    if (productsQuery.data) {
+      let products = productsQuery.data;
+
+      if (searchTerm) {
+        products = products.filter((product) =>
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()),
+        );
+      }
+
+      if (selectedCategory) {
+        products = products.filter(
+          (product) => product.category === selectedCategory,
+        );
+      }
+
+      setFilteredProducts(products);
+    }
+  }, [productsQuery.data, searchTerm, selectedCategory]);
+
+  // Handle refresh
+  const onRefresh = () => {
+    productsQuery.refetch();
+  };
+
+  const toke = SecureStore.getItem("token");
+  console.log("HOME", toke);
+
+  // Loading state
   if (productsQuery.isLoading) {
     return (
       <View className="justify-center items-center flex-1">
@@ -23,32 +74,49 @@ export default function Tab() {
     );
   }
 
+  // Error state
   if (productsQuery.isError) {
-    // TODO: Make and error Component
     return (
       <View className="justify-center items-center flex-1">
-        <Text className="text-black">Error</Text>
+        <Text className="text-white">
+          Something went wrong. Please try again.
+        </Text>
+        <TouchableOpacity
+          className="bg-red-600 rounded-lg mt-4 px-4 py-2"
+          onPress={onRefresh}
+        >
+          <Text className="text-white">Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
-  if (productsQuery.data?.length === 0) {
+  // No data state
+  if (!filteredProducts || filteredProducts.length === 0) {
     return (
       <View className="justify-center items-center flex-1">
-        <Text className="text-black">No events found.</Text>
+        <Text className="text-white">No hay eventos disponibles</Text>
       </View>
     );
   }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={productsQuery.isFetching}
+            onRefresh={onRefresh}
+          />
+        }
+      >
         <View className="mt-8 mb-4 mx-4">
           <Text className="text-3xl font-bold text-white">
             Eventos en <Text className="text-secondary">Colombia</Text>
           </Text>
         </View>
-        {/* Search */}
+
+        {/* Search Bar */}
         <View className="mx-4 mb-8 flex-row justify-between items-center">
           <View className="flex-1 p-2 bg-gray-800 rounded-lg flex-row items-center">
             <Entypo name="magnifying-glass" size={24} color="gray" />
@@ -56,29 +124,37 @@ export default function Tab() {
               placeholder="Search any event..."
               placeholderTextColor="gray"
               className="flex-1 text-white ml-2"
+              onChangeText={onSearch}
             />
           </View>
           <TouchableOpacity className="bg-gray-800 rounded-lg p-2 ml-4">
             <Feather name="filter" size={24} color="white" />
           </TouchableOpacity>
         </View>
+
         {/* Categories */}
         <View className="mx-4 mb-8 flex-row justify-between">
-          <TouchableOpacity className="bg-gray-800 rounded-lg py-3 px-4 flex-1 mr-2">
-            <Text className="text-white font-medium">Musica</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="bg-gray-800 rounded-lg py-3 px-4 flex-1 mx-2">
-            <Text className="text-white font-medium">Festivales</Text>
-          </TouchableOpacity>
-          <TouchableOpacity className="bg-gray-800 rounded-lg py-3 px-4 flex-1 ml-2">
-            <Text className="text-white font-medium">Deportes</Text>
-          </TouchableOpacity>
-        </View>
-        {/* Cards */}
-        {productsQuery.data &&
-          productsQuery.data.map((item, index) => (
-            <EventCard product={item} key={index} />
+          {categories.map((category, idx) => (
+            <TouchableOpacity
+              key={idx}
+              className={`py-3 px-4 flex-1 mx-1 rounded-lg ${
+                selectedCategory === category ? "bg-secondary" : "bg-gray-800"
+              }`}
+              onPress={() =>
+                setSelectedCategory(
+                  selectedCategory === category ? null : category,
+                )
+              }
+            >
+              <Text className="text-white font-medium">{category}</Text>
+            </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Event Cards */}
+        {filteredProducts.map((item) => (
+          <EventCard product={item} key={item.id} />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,5 +1,17 @@
+import { SecureStorageAdapter } from "@/helpers/adapters/secure-storage.adapter";
 import axios from "axios";
 
-export const backendApi = axios.create({
+const backendApi = axios.create({
   baseURL: process.env.EXPO_PUBLIC_BACKEND_URL,
 });
+
+backendApi.interceptors.request.use(async (config) => {
+  const token = await SecureStorageAdapter.getItem("token");
+  console.log("Token en interceptor:", token); // Debug
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export { backendApi };
