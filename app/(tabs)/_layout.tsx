@@ -5,7 +5,10 @@ import TabBar from "@/presentation/components/TabBar";
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={{ tabBarActiveTintColor: "blue", headerShown: false }}
+      screenOptions={{
+        tabBarActiveTintColor: "#7B3DFF",
+        headerShown: false,
+      }}
       tabBar={(props) => <TabBar {...props} />}
     >
       <Tabs.Screen
@@ -13,7 +16,7 @@ export default function TabLayout() {
         options={{
           title: "Carrito",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="shopping-cart" color={color} />
+            <FontAwesome size={24} name="shopping-cart" color={color} />
           ),
         }}
       />
@@ -27,7 +30,7 @@ export default function TabLayout() {
             backgroundColor: "#F9B233",
           },
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="ticket" color={color} />
+            <FontAwesome size={24} name="ticket" color={color} />
           ),
         }}
       />
@@ -36,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: "Perfil",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="user-circle" color={color} />
+            <FontAwesome size={24} name="user" color={color} />
           ),
         }}
       />

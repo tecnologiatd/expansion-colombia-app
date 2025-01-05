@@ -1,153 +1,116 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Platform, Pressable, TouchableOpacity
-} from 'react-native';
-import {
-  PlatformPressable
-} from '@react-navigation/elements';
-import {
-  useLinkBuilder
-} from '@react-navigation/native';
-import {
-  BlurView
-} from 'expo-blur';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import * as Linking from "expo-linking";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
-const { width } = Dimensions.get('window');
-
-const TabBar = ({ state, descriptors, navigation }) => {
-  const { buildHref } = useLinkBuilder();
-
+const TabBar: React.FC<BottomTabBarProps> = ({
+  state,
+  descriptors,
+  navigation,
+}) => {
   return (
-      <View style={styles.container}>
-        <BlurView
-            intensity={Platform.OS === 'ios' ? 80 : 50}
-            style={styles.tabBar}
-        >
-          {state.routes.map((route, index) => {
-            const { options } = descriptors[route.key];
-            const label =
-                options.tabBarLabel !== undefined
-                    ? options.tabBarLabel
-                    : options.title !== undefined
-                        ? options.title
-                        : route.name;
+    <View style={styles.container}>
+      <View style={styles.tabBar}>
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const label: string =
+            options.tabBarLabel !== undefined
+              ? String(options.tabBarLabel)
+              : options.title !== undefined
+                ? options.title
+                : route.name;
 
-            const isFocused = state.index === index;
+          const isFocused = state.index === index;
 
-            const onPress = () => {
-              const event = navigation.emit({
-                type: "tabPress",
-                target: route.key,
-                canPreventDefault: true,
-              });
+          const onPress = () => {
+            const event = navigation.emit({
+              type: "tabPress",
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-              if (!isFocused && !event.defaultPrevented) {
-                navigation.navigate(route.name, route.params);
-              }
-            };
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
 
-            const onLongPress = () => {
-              navigation.emit({
-                type: "tabLongPress",
-                target: route.key,
-              });
-            };
+          const href = Linking.createURL(route.name, {
+            queryParams: route.params,
+          });
 
-            return (
-                <TouchableOpacity
-                    key={route.name}
-                    href={buildHref(route.name, route.params)}
-                    accessibilityState={isFocused ? { selected: true } : {}}
-                    accessibilityLabel={options.tabBarAccessibilityLabel}
-                    testID={options.tabBarButtonTestID}
-                    onPress={onPress}
-                    onLongPress={onLongPress}
-                    style={[
-                      styles.tabBarItem,
-                      isFocused && styles.focusedTabItem
-                    ]}
+          return (
+            <TouchableOpacity
+              key={route.key}
+              href={href}
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              testID={options.tabBarButtonTestID}
+              onPress={onPress}
+              style={styles.tabBarItem}
+            >
+              {options.tabBarIcon && (
+                <View
+                  style={[
+                    styles.iconContainer,
+                    isFocused && styles.focusedIconContainer,
+                  ]}
                 >
-                  {options.tabBarIcon && (
-                      <View style={[
-                        styles.iconContainer,
-                        isFocused && styles.focusedIconContainer
-                      ]}>
-                        {options.tabBarIcon({
-                          color: isFocused ? '#FFFFFF' : '#8E8E93',
-                          size: 24
-                        })}
-                      </View>
-                  )}
-                  <Text
-                      style={[
-                        styles.tabLabel,
-                        isFocused && styles.focusedTabLabel
-                      ]}
-                  >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-            );
-          })}
-        </BlurView>
+                  {options.tabBarIcon({
+                    focused: false,
+                    color: isFocused ? "#FFFFFF" : "#666666",
+                    size: 24,
+                  })}
+                </View>
+              )}
+              <Text
+                style={[styles.tabLabel, isFocused && styles.focusedTabLabel]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 10,
-    left: 20,
-    right: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#111111",
+    borderTopWidth: 1,
+    borderTopColor: "#222222",
   },
   tabBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 1)',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
     paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-    overflow: 'hidden',
+    paddingHorizontal: 16,
   },
   tabBarItem: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 10,
-
-  },
-  focusedTabItem: {
-    // Additional styling for focused state can be added here
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
   },
   iconContainer: {
     padding: 8,
-    borderRadius: 15,
+    borderRadius: 8,
   },
   focusedIconContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderRadius: 25,
-    borderWidth: 1,
+    backgroundColor: "#7B3DFF",
   },
   tabLabel: {
-    color: '#8E8E93',
+    color: "#666666",
     fontSize: 12,
-    fontWeight: '500',
+    marginTop: 4,
   },
   focusedTabLabel: {
-    color: '#007AFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
   },
 });
 

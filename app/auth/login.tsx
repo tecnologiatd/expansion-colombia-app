@@ -16,8 +16,6 @@ const login = () => {
 
   const { login } = useAuthStore();
 
-  // const { height } = useWindowDimensions();
-
   const [isPosting, setIsPosting] = useState(false);
 
   const onLogin = async () => {
@@ -46,6 +44,11 @@ const login = () => {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View className="w-full flex-1 justify-between px-6 pb-8">
           <View className="flex-1 justify-center px-6 py-8">
+            <CustomButton
+              title="Ver eventos"
+              className="bg-primary dark:bg-white"
+              onPress={() => router.replace("/(tabs)/home")}
+            ></CustomButton>
             <View className="items-center mb-10">
               <ExpansionHeader />
               <ThemedText className="text-3xl font-bold mt-4">
@@ -85,13 +88,7 @@ const login = () => {
                 </Link>
               </ThemedText>
             </View>
-            <View className="px-8 py-2">
-              <CustomButton
-                title="Ver eventos sin crear una cuenta"
-                className="bg-amber-200"
-                onPress={() => router.replace("/(tabs)/home")}
-              ></CustomButton>
-            </View>
+            <View className="px-8 py-2"></View>
           </View>
         </View>
       </ScrollView>

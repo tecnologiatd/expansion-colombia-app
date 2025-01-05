@@ -4,6 +4,7 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { router } from "expo-router";
+import { DeviceService } from "@/core/auth/actions/register-device.action";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -89,6 +90,8 @@ async function registerForPushNotificationsAsync() {
         })
       ).data;
       console.log({ [Platform.OS]: pushTokenString });
+      await DeviceService.savePushToken(pushTokenString);
+      await DeviceService.registerDevice(); //Guardar PushTOKEN
       return pushTokenString;
     } catch (e: unknown) {
       handleRegistrationError(`${e}`);

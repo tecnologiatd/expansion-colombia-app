@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { AuthStore, User } from "@/core/interfaces/auth";
-import { authCheckStatus, authLogin } from "@/core/auth/actions/auth-actions";
+import {authCheckStatus, authLogin, authRegister} from "@/core/auth/actions/auth-actions";
 import { SecureStorageAdapter } from "@/helpers/adapters/secure-storage.adapter";
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
@@ -33,7 +33,13 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   login: async (username: string, password: string) => {
     const resp = await authLogin(username, password);
-    console.log("resp: ", resp);
+    console.log("login: ", resp);
+
+    return get().changeStatus(resp?.token, resp?.user);
+  },
+  register: async (username: string, email: string, password: string) => {
+    const resp = await authRegister(username, email, password);
+    console.log("register: ", resp);
 
     return get().changeStatus(resp?.token, resp?.user);
   },

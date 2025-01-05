@@ -13,6 +13,7 @@ export interface AuthStore {
   user?: User;
 
   login: (username: string, password: string) => Promise<boolean>;
+  register: (username: string, email: string, password: string) => Promise<boolean>;
   checkStatus: () => Promise<void>;
   logout: () => Promise<void>;
   changeStatus: (token?: string, user?: User) => Promise<boolean>;

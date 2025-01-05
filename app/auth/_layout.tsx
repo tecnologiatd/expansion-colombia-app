@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Stack } from "expo-router/stack";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 
@@ -31,9 +31,7 @@ const AuthLayout = () => {
           justifyContent: "center",
           alignItems: "center",
         }}
-      >
-        <ActivityIndicator />
-      </View>
+      ></View>
     );
   }
 

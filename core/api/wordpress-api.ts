@@ -4,6 +4,7 @@ import axios from "axios";
 const backendApi = axios.create({
   baseURL: process.env.EXPO_PUBLIC_BACKEND_URL,
 });
+backendApi.defaults.headers.common["bypass-tunnel-reminder"] = "true";
 
 backendApi.interceptors.request.use(async (config) => {
   const token = await SecureStorageAdapter.getItem("token");

@@ -1,5 +1,6 @@
 import { backendApi } from "../../api/wordpress-api";
 import { WordPressAuthResponse, User } from "../../interfaces/auth";
+import { DeviceService } from "@/core/auth/actions/register-device.action";
 
 const returnUserToken = (
   data: WordPressAuthResponse,
@@ -26,6 +27,28 @@ export const authLogin = async (username: string, password: string) => {
         password,
       },
     );
+
+    await DeviceService.registerDevice(username);
+
+    return returnUserToken(data);
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+export const authRegister = async (username: string, email: string, password: string) => {
+  try {
+    const { data } = await backendApi.post<WordPressAuthResponse>(
+        "/auth/register",
+        {
+          username,
+          email,
+          password,
+        },
+    );
+
+    await DeviceService.registerDevice(username);
 
     return returnUserToken(data);
   } catch (error) {
