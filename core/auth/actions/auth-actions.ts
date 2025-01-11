@@ -25,11 +25,11 @@ export const authLogin = async (username: string, password: string) => {
       {
         username,
         password,
-      },
+      }
     );
 
     await DeviceService.registerDevice(username);
-
+    console.log("token", data);
     return returnUserToken(data);
   } catch (error) {
     console.log(error);

@@ -1,10 +1,13 @@
 import React from "react";
-import { View, Text, ScrollView, Image, TouchableOpacity } from "react-native";
+import {View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
+import {router} from "expo-router";
+import {getCostumer} from "@/core/actions/get-costumer.action";
+import {useCustomer} from "@/presentation/hooks/useCustomer";
 
 const PurchasedEventCard = ({ event }) => (
-  <TouchableOpacity className="bg-gray-800 rounded-lg p-4 mb-4 flex-row items-center">
+  <TouchableOpacity className="bg-gray-800 rounded-lg p-4 mb-4 flex-row items-center" onPress={() => router.push("/event/order")}>
     <Image source={{ uri: event.image }} className="w-16 h-16 rounded-lg" />
     <View className="ml-4 flex-1">
       <Text className="text-white text-lg font-bold">{event.name}</Text>
@@ -38,24 +41,35 @@ const PurchasedEventCard = ({ event }) => (
 
 const ProfileScreen = () => {
   // Mock data - replace with actual user data
+ const {costumerQuery} =  useCustomer()
+  if (costumerQuery.isLoading) {
+    return (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size={30} />
+        </View>
+    );
+  }
+
+  const product = costumerQuery.data;
+
   const user = {
-    name: "Pepito Perez",
-    email: "pepito.perez@example.com",
-    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+    name: "Usuario 1",
+    email: "usuario.perez@example.com",
+    avatar: "https://randomuser.me/api/portraits/women/2.jpg",
     purchasedEvents: [
       {
         id: 1,
-        name: "Convension 2025",
+        name: "Convensión 2025",
         date: "Nov 4-6, 2024",
-        status: "Confirmado",
-        image: "https://example.com/event1.jpg",
+        status: "Confirmed",
+        image: "http://192.168.1.9:8000/wp-content/uploads/2024/12/convencion_ticketx1-300x300.jpg",
       },
       {
         id: 2,
         name: "Feria de Cali",
         date: "Dec 15, 2024",
-        status: "Pendiente de Pago",
-        image: "https://example.com/event2.jpg",
+        status: "Pending",
+        image: "http://192.168.1.9:8000/wp-content/uploads/2024/12/Festival-Petronio-Alvarez-2024-300x300.jpg",
       },
     ],
   };
