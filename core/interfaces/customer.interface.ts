@@ -17,7 +17,7 @@ export interface Customer {
     _links: Links;
 }
 
-interface BillingAddress {
+export interface BillingAddress {
     first_name: string;
     last_name: string;
     company: string;
@@ -31,7 +31,7 @@ interface BillingAddress {
     phone: string;
 }
 
-interface ShippingAddress {
+export interface ShippingAddress {
     first_name: string;
     last_name: string;
     company: string;
