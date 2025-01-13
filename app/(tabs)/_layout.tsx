@@ -11,6 +11,15 @@ export default function TabLayout() {
       }}
       tabBar={(props) => <TabBar {...props} />}
     >
+        <Tabs.Screen
+            name="blog"
+            options={{
+                title: "Noticias",
+                tabBarIcon: ({ color }) => (
+                    <FontAwesome size={24} name="newspaper-o" color={color} />
+                ),
+            }}
+        />
       <Tabs.Screen
         name="cart"
         options={{

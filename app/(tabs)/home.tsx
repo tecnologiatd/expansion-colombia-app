@@ -127,40 +127,40 @@ export default function Tab() {
           </Text>
         </View>
 
-        {/* Search Bar */}
-        <View className="mx-4 mb-8 flex-row justify-between items-center">
-          <View className="flex-1 p-2 bg-gray-800 rounded-lg flex-row items-center">
-            <Entypo name="magnifying-glass" size={24} color="gray" />
-            <TextInput
-              placeholder="Search any event..."
-              placeholderTextColor="gray"
-              className="flex-1 text-white ml-2"
-              onChangeText={onSearch}
-            />
-          </View>
-          <TouchableOpacity className="bg-gray-800 rounded-lg p-2 ml-4">
-            <Feather name="filter" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
+        {/*/!* Search Bar *!/*/}
+        {/*<View className="mx-4 mb-8 flex-row justify-between items-center">*/}
+        {/*  <View className="flex-1 p-2 bg-gray-800 rounded-lg flex-row items-center">*/}
+        {/*    <Entypo name="magnifying-glass" size={24} color="gray" />*/}
+        {/*    <TextInput*/}
+        {/*      placeholder="Search any event..."*/}
+        {/*      placeholderTextColor="gray"*/}
+        {/*      className="flex-1 text-white ml-2"*/}
+        {/*      onChangeText={onSearch}*/}
+        {/*    />*/}
+        {/*  </View>*/}
+        {/*  <TouchableOpacity className="bg-gray-800 rounded-lg p-2 ml-4">*/}
+        {/*    <Feather name="filter" size={24} color="white" />*/}
+        {/*  </TouchableOpacity>*/}
+        {/*</View>*/}
 
-        {/* Categories */}
-        <View className="mx-4 mb-8 flex-row justify-between">
-          {categories.map((category, idx) => (
-            <TouchableOpacity
-              key={idx}
-              className={`py-3 px-4 flex-1 mx-1 rounded-lg ${
-                selectedCategory === category ? "bg-secondary" : "bg-gray-800"
-              }`}
-              onPress={() =>
-                setSelectedCategory(
-                  selectedCategory === category ? null : category,
-                )
-              }
-            >
-              <Text className="text-white font-medium">{category}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/*/!* Categories *!/*/}
+        {/*<View className="mx-4 mb-8 flex-row justify-between">*/}
+        {/*  {categories.map((category, idx) => (*/}
+        {/*    <TouchableOpacity*/}
+        {/*      key={idx}*/}
+        {/*      className={`py-3 px-4 flex-1 mx-1 rounded-lg ${*/}
+        {/*        selectedCategory === category ? "bg-secondary" : "bg-gray-800"*/}
+        {/*      }`}*/}
+        {/*      onPress={() =>*/}
+        {/*        setSelectedCategory(*/}
+        {/*          selectedCategory === category ? null : category,*/}
+        {/*        )*/}
+        {/*      }*/}
+        {/*    >*/}
+        {/*      <Text className="text-white font-medium">{category}</Text>*/}
+        {/*    </TouchableOpacity>*/}
+        {/*  ))}*/}
+        {/*</View>*/}
 
         {/* Event Cards */}
         {filteredProducts.map((item) => (

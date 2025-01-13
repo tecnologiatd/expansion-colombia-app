@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   focusedIconContainer: {
     backgroundColor: "#7B3DFF",
