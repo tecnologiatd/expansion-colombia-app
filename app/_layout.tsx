@@ -73,19 +73,18 @@ export default function Layout() {
             headerTitle: "Events",
           }}
         />
-          <Stack.Screen
-              name="event/order"
-              options={{
-                  headerTitle: "Order Details",
-              }}
-          />
         <Stack.Screen
           name="event/[id]"
           options={{
             headerTitle: "Event Details",
           }}
         />
-
+          <Stack.Screen
+              name="order/[id]"
+              options={{
+                  headerTitle: "Order Details",
+              }}
+          />
         <Stack.Screen
           name="payment"
           options={{
