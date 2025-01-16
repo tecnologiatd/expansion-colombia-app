@@ -17,7 +17,7 @@ import {useProfile} from "@/presentation/hooks/useProfile";
 const PurchasedEventCard = ({ event }) => (
     <TouchableOpacity
         className="bg-gray-800 rounded-lg p-4 mb-4 flex-row items-center"
-        onPress={() => router.push("/event/order")}
+        onPress={() => router.push("/order/" + event.id)}
     >
       <Image source={{ uri: event.image.src }} className="w-16 h-16 rounded-lg" />
       <View className="ml-4 flex-1">
@@ -171,6 +171,8 @@ const ProfileScreen = () => {
     return null; // Add a fallback or loading indicator if needed
   }
 
+  console.log(profileQuery.data?.orders[0].line_items);
+
   const handleSaveProfile = (editedData) => {
     setUserData(editedData);
     Alert.alert("Success", "Profile updated successfully!");
@@ -215,18 +217,16 @@ const ProfileScreen = () => {
             {/* Purchased Events */}
             <View>
               <Text className="text-white text-xl font-bold mb-4">My Orders</Text>
-              {profileQuery.data.orders.map((order) =>
-                  order.line_items.map((item) => (
+              {profileQuery.data?.orders.map((order) =>
                       <PurchasedEventCard
-                          key={`${order.id}-${item.id}`}
+                          key={`${order.id}`}
                           event={{
-                            id: item.id,
-                            name: item.name,
+                            id: order.id,
+                            name: order.line_items[0].name,
                             status: order.status,
-                            image: item.image,
+                            image: order.line_items[0].image,
                           }}
                       />
-                  ))
               )}
             </View>
             {/* Settings Section */}

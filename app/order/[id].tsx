@@ -1,6 +1,6 @@
-// app/event/order.tsx
+// app/order/[id].tsx
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -8,14 +8,13 @@ import { useOrderDetails } from '@/presentation/hooks/useOrders';
 
 const OrderDetailScreen = () => {
     const { id } = useLocalSearchParams();
-    const { data: order, isLoading, isError } = useOrderDetails(id as string);
+    const { data: order, isLoading, isError, error } = useOrderDetails(id as string);
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('es-CO', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
+        return new Date(dateString).toLocaleDateString('es-CO', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
     };
 
@@ -28,13 +27,18 @@ const OrderDetailScreen = () => {
     };
 
     const getStatusColor = (status: string) => {
-        const statusColors = {
-            processing: "text-blue-400",
-            completed: "text-green-400",
-            pending: "text-yellow-400",
-            cancelled: "text-red-400"
-        };
-        return statusColors[status] || "text-gray-400";
+        switch (status) {
+            case 'processing':
+                return 'text-blue-400';
+            case 'completed':
+                return 'text-green-400';
+            case 'cancelled':
+                return 'text-red-400';
+            case 'pending':
+                return 'text-yellow-400';
+            default:
+                return 'text-gray-400';
+        }
     };
 
     const handlePayment = async () => {
@@ -49,17 +53,17 @@ const OrderDetailScreen = () => {
 
     if (isLoading) {
         return (
-            <View className="flex-1 bg-[#1a1625] justify-center items-center">
-                <ActivityIndicator size="large" color="#6c2bd9" />
+            <View className="flex-1 bg-gray-900 justify-center items-center">
+                <ActivityIndicator size="large" color="#7B3DFF" />
             </View>
         );
     }
 
     if (isError || !order) {
         return (
-            <View className="flex-1 bg-[#1a1625] justify-center items-center p-4">
+            <View className="flex-1 bg-gray-900 justify-center items-center p-4">
                 <Text className="text-white text-lg text-center mb-4">
-                    Unable to load order details
+                    {error?.message || 'Unable to load order details'}
                 </Text>
                 <TouchableOpacity
                     className="bg-purple-500 px-6 py-3 rounded-lg"
@@ -71,23 +75,26 @@ const OrderDetailScreen = () => {
         );
     }
 
+    const totalItems = order.line_items.reduce((acc, item) => acc + item.quantity, 0);
+
     return (
-        <View className="flex-1 bg-[#1a1625]">
-            {/* Header */}
-            <View className="flex-row justify-between items-center p-4 border-b border-gray-800">
+        <View className="flex-1 bg-gray-900">
+            {/* Header with back button */}
+            <View className="flex-row items-center p-4 border-b border-gray-800">
                 <TouchableOpacity onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
-                <Text className="text-white text-lg font-semibold">Order #{order.number}</Text>
-                <View style={{ width: 24 }} /> {/* Spacer for alignment */}
+                <Text className="text-white text-lg font-bold ml-4">
+                    Order #{order.number}
+                </Text>
             </View>
 
             <ScrollView className="flex-1">
-                {/* Order Status Card */}
-                <View className="m-4 bg-[#2d2639] rounded-xl p-4">
+                {/* Status and Date Card */}
+                <View className="m-4 bg-gray-800 rounded-xl p-4">
                     <View className="flex-row justify-between items-center mb-4">
                         <View>
-                            <Text className="text-gray-400 text-sm">Status</Text>
+                            <Text className="text-gray-400">Status</Text>
                             <Text className={`text-lg capitalize ${getStatusColor(order.status)}`}>
                                 <Ionicons
                                     name={order.status === 'completed' ? 'checkmark-circle' : 'time-outline'}
@@ -96,43 +103,58 @@ const OrderDetailScreen = () => {
                             </Text>
                         </View>
                         <View>
-                            <Text className="text-gray-400 text-sm">Date</Text>
-                            <Text className="text-white text-lg">{formatDate(order.date_created)}</Text>
+                            <Text className="text-gray-400">Date</Text>
+                            <Text className="text-white">
+                                {formatDate(order.date_created)}
+                            </Text>
                         </View>
                     </View>
 
+                    {/* Order Summary */}
                     <View className="flex-row justify-between items-center">
                         <View>
-                            <Text className="text-gray-400 text-sm">Total</Text>
-                            <Text className="text-white text-lg">{formatCurrency(order.total)}</Text>
+                            <Text className="text-gray-400">Total</Text>
+                            <Text className="text-white text-lg font-bold">
+                                {formatCurrency(order.total)}
+                            </Text>
                         </View>
                         <View>
-                            <Text className="text-gray-400 text-sm">Payment Method</Text>
+                            <Text className="text-gray-400">Items</Text>
                             <Text className="text-white text-lg">
-                                <Ionicons name="card-outline" size={18} /> {order.payment_method_title}
+                                {totalItems} {totalItems === 1 ? 'item' : 'items'}
                             </Text>
                         </View>
                     </View>
                 </View>
 
-                {/* Order Items */}
-                <View className="m-4 bg-[#2d2639] rounded-xl p-4">
-                    <Text className="text-white text-lg mb-3">Items</Text>
+                {/* Products List */}
+                <View className="m-4 bg-gray-800 rounded-xl p-4">
+                    <Text className="text-white text-lg font-bold mb-4">Products</Text>
                     {order.line_items.map((item) => (
-                        <View key={item.id} className="flex-row justify-between items-center py-2 border-b border-gray-700">
-                            <View className="flex-1">
-                                <Text className="text-white">{item.name}</Text>
-                                <Text className="text-gray-400">Quantity: {item.quantity}</Text>
+                        <View key={item.id} className="flex-row mb-4 border-b border-gray-700 pb-4">
+                            {item.image && (
+                                <Image
+                                    source={{ uri: item.image.src }}
+                                    className="w-20 h-20 rounded-lg"
+                                />
+                            )}
+                            <View className="flex-1 ml-4">
+                                <Text className="text-white font-bold">{item.name}</Text>
+                                <Text className="text-gray-400">
+                                    Quantity: {item.quantity}
+                                </Text>
+                                <Text className="text-white mt-1">
+                                    {formatCurrency(item.total)}
+                                </Text>
                             </View>
-                            <Text className="text-white">{formatCurrency(item.total)}</Text>
                         </View>
                     ))}
                 </View>
 
                 {/* Billing Information */}
-                <View className="m-4 bg-[#2d2639] rounded-xl p-4">
-                    <Text className="text-white text-lg mb-3">
-                        <Ionicons name="person-outline" size={18} /> Billing Details
+                <View className="m-4 bg-gray-800 rounded-xl p-4">
+                    <Text className="text-white text-lg font-bold mb-4">
+                        Billing Details
                     </Text>
                     <View className="space-y-2">
                         <Text className="text-gray-400">
@@ -156,35 +178,23 @@ const OrderDetailScreen = () => {
                     </View>
                 </View>
 
-                {/* Action Buttons */}
+                {/* Payment Action */}
                 {order.status === 'pending' && order.payment_url && (
-                    <View className="m-4">
+                    <View className="m-4 mb-8">
                         <TouchableOpacity
-                            className="bg-[#6c2bd9] p-4 rounded-xl flex-row justify-center items-center space-x-2"
+                            className="bg-purple-500 p-4 rounded-xl flex-row justify-center items-center space-x-2"
                             onPress={handlePayment}
                         >
                             <Ionicons name="card-outline" size={20} color="white" />
-                            <Text className="text-white text-center font-semibold text-lg">
+                            <Text className="text-white font-bold text-lg ml-2">
                                 Complete Payment
                             </Text>
                         </TouchableOpacity>
                     </View>
                 )}
-
-                <View className="m-4 mb-8 space-y-3">
-                    <TouchableOpacity
-                        className="border border-[#6c2bd9] p-4 rounded-xl flex-row justify-center items-center space-x-2"
-                        activeOpacity={0.8}
-                    >
-                        <Ionicons name="chatbox-outline" size={20} color="white" />
-                        <Text className="text-white text-center font-semibold text-lg">
-                            Contact Support
-                        </Text>
-                    </TouchableOpacity>
-                </View>
             </ScrollView>
         </View>
     );
 };
 
-export default OrderDetailScreen
+export default OrderDetailScreen;

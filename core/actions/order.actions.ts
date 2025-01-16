@@ -34,7 +34,7 @@ export const createOrderAction = async (params: CreateOrderParams): Promise<Orde
 
 export const getOrderByIdAction = async (orderId: string): Promise<Order> => {
     try {
-        const { data } = await backendApi.get<Order>(`/orders/50`);
+        const { data } = await backendApi.get<Order>(`/orders/${orderId}`);
         return data;
     } catch (error) {
         console.error('Error fetching order:', error);
