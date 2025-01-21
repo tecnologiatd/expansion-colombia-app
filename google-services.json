@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "97334922041",
+    "project_id": "atd-exapansion-colombia",
+    "storage_bucket": "atd-exapansion-colombia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:97334922041:android:a9bc145fadc3195781b6e8",
+        "android_client_info": {
+          "package_name": "com.expansion.colombia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBELAsYYOxBgbzzUzZBMtA1F0vsBZsS2ms"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
