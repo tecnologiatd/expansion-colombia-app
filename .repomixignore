@@ -1,0 +1,13 @@
+node_modules
+.expo
+.idea
+.vscode
+.yarn
+ios
+android
+.env
+atd-exapansion-colombia-firebase-adminsdk.json
+expansion-colombia-app.txt
+google-services.json
+yarn.lock
+README.md

@@ -13,13 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import {useProfile} from "@/presentation/hooks/useProfile";
+import {LogoutButton} from "@/presentation/auth/components/LogoutIconButton";
 
 const PurchasedEventCard = ({ event }) => (
     <TouchableOpacity
         className="bg-gray-800 rounded-lg p-4 mb-4 flex-row items-center"
         onPress={() => router.push("/order/" + event.id)}
     >
-      <Image source={{ uri: event.image.src }} className="w-16 h-16 rounded-lg" />
+      <Image source={{ uri: event.image?.src }} className="w-16 h-16 rounded-lg" />
       <View className="ml-4 flex-1">
         <Text className="text-white text-lg font-bold">{event.name}</Text>
         <Text className="text-gray-400">Order #{event.id}</Text>
@@ -171,8 +172,6 @@ const ProfileScreen = () => {
     return null; // Add a fallback or loading indicator if needed
   }
 
-  console.log(profileQuery.data?.orders[0].line_items);
-
   const handleSaveProfile = (editedData) => {
     setUserData(editedData);
     Alert.alert("Success", "Profile updated successfully!");
@@ -222,28 +221,21 @@ const ProfileScreen = () => {
                           key={`${order.id}`}
                           event={{
                             id: order.id,
-                            name: order.line_items[0].name,
+                            name: order.line_items[0]?.name,
                             status: order.status,
-                            image: order.line_items[0].image,
+                            image: order.line_items[0]?.image ?? null,
                           }}
                       />
               )}
             </View>
             {/* Settings Section */}
             <View className="mt-8">
-              <Text className="text-white text-xl font-bold mb-4">Settings</Text>
+              <Text className="text-white text-xl font-bold mb-4">Ajustes</Text>
               <TouchableOpacity className="bg-gray-800 p-4 rounded-lg mb-4 flex-row justify-between items-center">
-                <Text className="text-white font-medium">Notifications</Text>
+                <Text className="text-white font-medium">Notificaciones</Text>
                 <Feather name="chevron-right" size={20} color="white" />
               </TouchableOpacity>
-              <TouchableOpacity className="bg-gray-800 p-4 rounded-lg mb-4 flex-row justify-between items-center">
-                <Text className="text-white font-medium">Payment Methods</Text>
-                <Feather name="chevron-right" size={20} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity className="bg-gray-800 p-4 rounded-lg flex-row justify-between items-center">
-                <Text className="text-red-500 font-medium">Log Out</Text>
-                <Feather name="log-out" size={20} color="#EF4444" />
-              </TouchableOpacity>
+              <LogoutButton/>
             </View>
 
           </View>

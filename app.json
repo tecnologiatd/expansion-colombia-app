@@ -1,24 +1,42 @@
 {
   "expo": {
-    "name": "expansion-colombia-app",
+    "name": "Expansión Colombia",
     "slug": "expansion-colombia",
     "version": "0.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/EXPANSION-COLOMBIA-LOGO2.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.expansion.colombia"
+      "bundleIdentifier": "com.expansion.colombia",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "172.177.47.136": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true
+            }
+          }
+        }
+      }
     },
     "android": {
       "package": "com.expansion.colombia",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/EXPANSION-COLOMBIA-LOGO2.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "config": {
+        "usesCleartextTraffic": true
+      }
     },
     "web": {
       "bundler": "metro",
@@ -34,6 +52,26 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "networkSecurityConfig": {
+              "cleartextTrafficPermitted": true,
+              "domainConfigs": [
+                {
+                  "domain": "172.177.47.136",
+                  "cleartextTrafficPermitted": true
+                }
+              ]
+            }
+          },
+          "ios": {
+            "flipper": true
+          }
         }
       ]
     ],

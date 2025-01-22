@@ -6,45 +6,44 @@ import { router } from "expo-router";
 import { useCartStore } from "@/core/stores/cart-store";
 import { CartItem } from "@/presentation/components/CartItem";
 import { useCustomer } from "@/presentation/hooks/useCustomer";
+import {useAuthStore} from "@/presentation/auth/store/useAuthStore";
 
 const CartScreen = () => {
   const { items, calculateTotal, clearCart } = useCartStore();
   const { costumerQuery } = useCustomer();
+    const { status } = useAuthStore();
 
   const handleCheckout = async () => {
+      console.log('Checkout', status);
+    if (status !== 'authenticated') {
+      Alert.alert(
+          'Iniciar Sesión',
+          'Debes iniciar sesión para continuar con la compra',
+          [
+            {
+              text: 'Cancelar',
+              style: 'cancel'
+            },
+            {
+              text: 'Iniciar Sesión',
+              onPress: () => router.push('/auth/login')
+            }
+          ]
+      );
+      return;
+    }
+
     if (items.length === 0) {
-      Alert.alert("Cart Empty", "Please add items to your cart before checkout");
+      Alert.alert('Carrito Vacío', 'Agrega productos a tu carrito antes de continuar');
       return;
     }
 
     if (costumerQuery.isLoading) {
-      Alert.alert("Loading", "Please wait while we load your information");
+      Alert.alert('Cargando', 'Por favor espera mientras cargamos tu información');
       return;
     }
 
-    if (costumerQuery.isError) {
-      Alert.alert("Error", "Failed to load customer information. Please try again.");
-      return;
-    }
-
-    // Check if billing information is complete
-    const requiredFields = [
-      'first_name',
-      'last_name',
-      'address_1',
-      'city',
-      'country',
-      'state',
-      'email',
-      'phone'
-    ];
-
-    const missingFields = requiredFields.filter(
-        field => !costumerQuery.data?.billing[field] ||
-            costumerQuery.data?.billing[field].trim() === ''
-    );
-
-    router.push("/checkout/billing");
+    router.push('/checkout/billing');
   };
 
   return (
@@ -75,13 +74,15 @@ const CartScreen = () => {
               ${calculateTotal().toLocaleString()}
             </Text>
           </View>
-          <TouchableOpacity
-              className="bg-purple-500 rounded-lg py-4 mt-8 justify-center items-center"
-              onPress={handleCheckout}
-              disabled={items.length === 0}
-          >
-            <Text className="text-white font-bold text-lg">Checkout</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+                className={`rounded-lg py-4 mt-8 justify-center items-center ${
+                    items.length === 0 ? 'bg-purple-400' : 'bg-purple-500'
+                }`}
+                onPress={handleCheckout}
+                disabled={items.length === 0}
+            >
+                <Text className="text-white font-bold text-lg">Checkout</Text>
+            </TouchableOpacity>
         </View>
       </SafeAreaView>
   );

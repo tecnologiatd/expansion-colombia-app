@@ -2,7 +2,7 @@ import { backendApi } from "@/core/api/wordpress-api";
 import { Order } from "@/core/interfaces/order.interface";
 
 export interface CreateOrderParams {
-    payment_method: 'pse' | 'creditcard';
+    payment_method: 'openpay_pse' | 'openpay_cards';
     billing: {
         first_name: string;
         last_name: string;

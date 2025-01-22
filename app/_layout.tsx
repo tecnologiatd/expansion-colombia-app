@@ -7,6 +7,7 @@ import { StatusBar, Text, TouchableOpacity, View } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import "./global.css";
 import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
+import AuthGuard from "@/presentation/auth/components/AuthGuard";
 
 const CustomHeader = ({ title, navigation, back }) => {
   return (
@@ -46,7 +47,7 @@ export default function Layout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar barStyle="light-content" />
-
+        <AuthGuard>
       <Stack
         screenOptions={{
           header: (props) => <CustomHeader {...props} />,
@@ -85,6 +86,13 @@ export default function Layout() {
                   headerTitle: "Order Details",
               }}
           />
+          <Stack.Screen
+              name="checkout/payment"
+              options={{
+                  headerShown: true,
+                  headerTitle: "Selecciona el metodo de Pago",
+              }}
+          />
         <Stack.Screen
           name="payment"
           options={{
@@ -92,6 +100,7 @@ export default function Layout() {
           }}
         />
       </Stack>
+        </AuthGuard>
     </QueryClientProvider>
   );
 }
