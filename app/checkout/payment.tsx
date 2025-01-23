@@ -33,13 +33,13 @@ export default function PaymentScreen() {
                     pathname: '/order/' + response.id.toString(),
                 });
             } else {
-                Alert.alert('Error', 'No payment URL received from server');
+                Alert.alert('Error', 'No se recibió la URL de pago del servidor');
             }
         } catch (error) {
-            console.error('Payment error:', error);
+            console.error('Error de pago:', error);
             Alert.alert(
                 'Error',
-                'There was a problem processing your payment. Please try again.'
+                'Hubo un problema procesando tu pago. Por favor intenta de nuevo.'
             );
         } finally {
             setIsProcessing(false);

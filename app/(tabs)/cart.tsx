@@ -50,10 +50,10 @@ const CartScreen = () => {
       <SafeAreaView className="flex-1 bg-gray-900">
         <View className="p-4">
           <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-white text-2xl font-bold">Cart</Text>
+            <Text className="text-white text-2xl font-bold">Carrito de Compras</Text>
             {items.length > 0 && (
                 <TouchableOpacity onPress={clearCart}>
-                  <Text className="text-red-500 text-lg">Clear Cart</Text>
+                  <Text className="text-red-500 text-lg">Eliminar Elementos</Text>
                 </TouchableOpacity>
             )}
           </View>
@@ -64,7 +64,7 @@ const CartScreen = () => {
               contentContainerStyle={{ paddingBottom: 24 }}
               ListEmptyComponent={() => (
                   <Text className="text-white text-center mt-8">
-                    Your cart is empty
+                    No hay eventos agregados
                   </Text>
               )}
           />
@@ -81,7 +81,7 @@ const CartScreen = () => {
                 onPress={handleCheckout}
                 disabled={items.length === 0}
             >
-                <Text className="text-white font-bold text-lg">Checkout</Text>
+                <Text className="text-white font-bold text-lg">Continuar</Text>
             </TouchableOpacity>
         </View>
       </SafeAreaView>

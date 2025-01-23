@@ -14,6 +14,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { router } from "expo-router";
 import {useProfile} from "@/presentation/hooks/useProfile";
 import {LogoutButton} from "@/presentation/auth/components/LogoutIconButton";
+import EditProfileModal from "@/presentation/components/EditProfileModal";
 
 const PurchasedEventCard = ({ event }) => (
     <TouchableOpacity
@@ -51,103 +52,6 @@ const PurchasedEventCard = ({ event }) => (
     </TouchableOpacity>
 );
 
-const EditProfileModal = ({ visible, onClose, userData, onSave }) => {
-  const [editedData, setEditedData] = useState(userData);
-
-  const handleSave = () => {
-    onSave(editedData);
-    onClose();
-  };
-
-  return (
-      <Modal
-          animationType="slide"
-          transparent={true}
-          visible={visible}
-          onRequestClose={onClose}
-      >
-        <View className="flex-1 justify-end">
-          <View className="bg-gray-800 rounded-t-3xl p-6">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white text-xl font-bold">Edit Profile</Text>
-              <TouchableOpacity onPress={onClose}>
-                <Feather name="x" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            <View className="space-y-4">
-              <View>
-                <Text className="text-gray-400 mb-2">First Name</Text>
-                <TextInput
-                    className="bg-gray-700 p-4 rounded-lg text-white"
-                    editable={false}
-                    value={editedData.billing.first_name}
-                    onChangeText={(text) =>
-                        setEditedData({
-                          ...editedData,
-                          billing: { ...editedData.billing, first_name: text },
-                        })
-                    }
-                    placeholderTextColor="#666"
-                />
-              </View>
-
-              <View>
-                <Text className="text-gray-400 mb-2">Last Name</Text>
-                <TextInput
-                    className="bg-gray-700 p-4 rounded-lg text-white"
-                    value={editedData.billing.last_name}
-                    onChangeText={(text) =>
-                        setEditedData({
-                          ...editedData,
-                          billing: { ...editedData.billing, last_name: text },
-                        })
-                    }
-                    placeholderTextColor="#666"
-                />
-              </View>
-
-              <View>
-                <Text className="text-gray-400 mb-2">Email</Text>
-                <TextInput
-                    className="bg-gray-700 p-4 rounded-lg text-white"
-                    value={editedData.email}
-                    onChangeText={(text) =>
-                        setEditedData({ ...editedData, email: text })
-                    }
-                    keyboardType="email-address"
-                    placeholderTextColor="#666"
-                />
-              </View>
-
-              <View>
-                <Text className="text-gray-400 mb-2">Phone</Text>
-                <TextInput
-                    className="bg-gray-700 p-4 rounded-lg text-white"
-                    value={editedData.billing.phone}
-                    onChangeText={(text) =>
-                        setEditedData({
-                          ...editedData,
-                          billing: { ...editedData.billing, phone: text },
-                        })
-                    }
-                    keyboardType="phone-pad"
-                    placeholderTextColor="#666"
-                />
-              </View>
-
-              <TouchableOpacity
-                  className="bg-purple-500 p-4 rounded-lg mt-4"
-                  onPress={handleSave}
-              >
-                <Text className="text-white text-center font-bold">Save Changes</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-  );
-};
 
 const ProfileScreen = () => {
   const { profileQuery } = useProfile();

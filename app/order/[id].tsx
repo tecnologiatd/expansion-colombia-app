@@ -63,13 +63,13 @@ const OrderDetailScreen = () => {
         return (
             <View className="flex-1 bg-gray-900 justify-center items-center p-4">
                 <Text className="text-white text-lg text-center mb-4">
-                    {error?.message || 'Unable to load order details'}
+                    Error al cargar los detalles del pedido
                 </Text>
                 <TouchableOpacity
                     className="bg-purple-500 px-6 py-3 rounded-lg"
                     onPress={() => router.back()}
                 >
-                    <Text className="text-white font-bold">Go Back</Text>
+                    <Text className="text-white font-bold">Reintentar</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -85,7 +85,7 @@ const OrderDetailScreen = () => {
                     <Ionicons name="arrow-back" size={24} color="white" />
                 </TouchableOpacity>
                 <Text className="text-white text-lg font-bold ml-4">
-                    Order #{order.number}
+                    Orden #{order.number}
                 </Text>
             </View>
 
@@ -94,7 +94,7 @@ const OrderDetailScreen = () => {
                 <View className="m-4 bg-gray-800 rounded-xl p-4">
                     <View className="flex-row justify-between items-center mb-4">
                         <View>
-                            <Text className="text-gray-400">Status</Text>
+                            <Text className="text-gray-400">Estado</Text>
                             <Text className={`text-lg capitalize ${getStatusColor(order.status)}`}>
                                 <Ionicons
                                     name={order.status === 'completed' ? 'checkmark-circle' : 'time-outline'}
@@ -103,7 +103,7 @@ const OrderDetailScreen = () => {
                             </Text>
                         </View>
                         <View>
-                            <Text className="text-gray-400">Date</Text>
+                            <Text className="text-gray-400">Fecha</Text>
                             <Text className="text-white">
                                 {formatDate(order.date_created)}
                             </Text>
@@ -129,7 +129,7 @@ const OrderDetailScreen = () => {
 
                 {/* Products List */}
                 <View className="m-4 bg-gray-800 rounded-xl p-4">
-                    <Text className="text-white text-lg font-bold mb-4">Products</Text>
+                    <Text className="text-white text-lg font-bold mb-4">Eventos</Text>
                     {order.line_items.map((item) => (
                         <View key={item.id} className="flex-row mb-4 border-b border-gray-700 pb-4">
                             {item.image && (
@@ -154,7 +154,7 @@ const OrderDetailScreen = () => {
                 {/* Billing Information */}
                 <View className="m-4 bg-gray-800 rounded-xl p-4">
                     <Text className="text-white text-lg font-bold mb-4">
-                        Billing Details
+                        Detalles de facturación
                     </Text>
                     <View className="space-y-2">
                         <Text className="text-gray-400">
@@ -187,11 +187,18 @@ const OrderDetailScreen = () => {
                         >
                             <Ionicons name="card-outline" size={20} color="white" />
                             <Text className="text-white font-bold text-lg ml-2">
-                                Complete Payment
+                                Completar Pago
                             </Text>
                         </TouchableOpacity>
                     </View>
                 )}
+                {/*{order?.status === 'pending' && (*/}
+                {/*    <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">*/}
+                {/*        <Text className="text-yellow-500 text-center">*/}
+                {/*            Esperando confirmación del pago...*/}
+                {/*        </Text>*/}
+                {/*    </View>*/}
+                {/*)}*/}
             </ScrollView>
         </View>
     );
