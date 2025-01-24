@@ -29,7 +29,8 @@ export default function Layout() {
     return (
         <QueryClientProvider client={queryClient}>
             <AuthGuard>
-            <StatusBar barStyle="light-content" />
+
+            <StatusBar barStyle="dark-content" />
 
             <Stack
                 screenOptions={{
@@ -67,12 +68,6 @@ export default function Layout() {
                     name="order/[id]"
                     options={{
                         headerTitle: "Order Details",
-                    }}
-                />
-                <Stack.Screen
-                    name="payment"
-                    options={{
-                        headerTitle: "Payment",
                     }}
                 />
             </Stack>

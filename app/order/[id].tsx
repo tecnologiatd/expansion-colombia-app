@@ -79,16 +79,6 @@ const OrderDetailScreen = () => {
 
     return (
         <View className="flex-1 bg-gray-900">
-            {/* Header with back button */}
-            <View className="flex-row items-center p-4 border-b border-gray-800">
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
-                <Text className="text-white text-lg font-bold ml-4">
-                    Orden #{order.number}
-                </Text>
-            </View>
-
             <ScrollView className="flex-1">
                 {/* Status and Date Card */}
                 <View className="m-4 bg-gray-800 rounded-xl p-4">

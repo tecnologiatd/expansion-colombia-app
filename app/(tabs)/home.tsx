@@ -87,14 +87,14 @@ export default function Tab() {
           }
         >
           <View className="justify-center items-center flex-1">
-            <Text className="text-white">
-              Something went wrong. Please try again.
+            <Text>
+              Hay un error, intente de nuevo
             </Text>
             <TouchableOpacity
               className="bg-red-600 rounded-lg mt-4 px-4 py-2"
               onPress={onRefresh}
             >
-              <Text className="text-white">Retry</Text>
+              <Text className="text-white">Reintentar</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

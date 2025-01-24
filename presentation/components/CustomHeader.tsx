@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NotificationModal } from './NotificationModal';
 import { useNotificationStore } from '@/core/stores/notification.store';
+import {SafeAreaView} from "react-native-safe-area-context";
 
 interface Props {
     title: string;
@@ -16,7 +17,8 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
     const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
-        <>
+        <SafeAreaView>
+
             <View className="flex-row items-center justify-between px-4 py-3 bg-gray-900">
                 <View className="flex-row items-center">
                     {back && (
@@ -43,7 +45,7 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
                 visible={showNotifications}
                 onClose={() => setShowNotifications(false)}
             />
-        </>
+        </SafeAreaView>
     );
 };
 

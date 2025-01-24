@@ -2157,6 +2157,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-clipboard/clipboard@npm:^1.16.1":
+  version: 1.16.1
+  resolution: "@react-native-clipboard/clipboard@npm:1.16.1"
+  peerDependencies:
+    react: ">= 16.9.0"
+    react-native: ">= 0.61.5"
+    react-native-macos: ">= 0.61.0"
+    react-native-windows: ">= 0.61.0"
+  peerDependenciesMeta:
+    react-native-macos:
+      optional: true
+    react-native-windows:
+      optional: true
+  checksum: 10c0/765e1c140c34fbfe30a1e7e0657cc2a325a103a4fcaf757994dff3d8877beb8c4f0b915eac5542ada5910560ce2cfe624cd23081302dd6d6bc76354ff0d98d5e
+  languageName: node
+  linkType: hard
+
 "@react-native/assets-registry@npm:0.76.6":
   version: 0.76.6
   resolution: "@react-native/assets-registry@npm:0.76.6"
@@ -5590,6 +5607,7 @@ __metadata:
     "@expo/vector-icons": "npm:^14.0.4"
     "@hookform/resolvers": "npm:^3.9.1"
     "@react-native-async-storage/async-storage": "npm:^2.1.0"
+    "@react-native-clipboard/clipboard": "npm:^1.16.1"
     "@react-navigation/bottom-tabs": "npm:^7.2.0"
     "@react-navigation/native": "npm:^7.0.14"
     "@tanstack/react-query": "npm:^5.64.2"

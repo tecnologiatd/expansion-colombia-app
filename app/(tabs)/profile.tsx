@@ -113,13 +113,13 @@ const ProfileScreen = () => {
                 <Text className="text-purple-500 text-xl font-bold">
                   {profileQuery.data.orders.length}
                 </Text>
-                <Text className="text-gray-400">Orders</Text>
+                <Text className="text-gray-400">Ordenes</Text>
               </View>
             </View>
 
             {/* Purchased Events */}
             <View>
-              <Text className="text-white text-xl font-bold mb-4">My Orders</Text>
+              <Text className="text-white text-xl font-bold mb-4">Mis Eventos</Text>
               {profileQuery.data?.orders.map((order) =>
                       <PurchasedEventCard
                           key={`${order.id}`}
@@ -135,7 +135,7 @@ const ProfileScreen = () => {
             {/* Settings Section */}
             <View className="mt-8">
               <Text className="text-white text-xl font-bold mb-4">Ajustes</Text>
-              <TouchableOpacity className="bg-gray-800 p-4 rounded-lg mb-4 flex-row justify-between items-center">
+              <TouchableOpacity className="bg-gray-800 p-4 rounded-lg mb-4 flex-row justify-between items-center hidden">
                 <Text className="text-white font-medium">Notificaciones</Text>
                 <Feather name="chevron-right" size={20} color="white" />
               </TouchableOpacity>
