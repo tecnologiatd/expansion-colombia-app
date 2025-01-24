@@ -27,7 +27,7 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
   };
 
   return (
-    <View className="flex-row items-center justify-between bg-gray-800 rounded-lg p-4 mb-4 text-purple-500">
+    <View className="flex-row items-center justify-between bg-gray-800 rounded-lg p-4 mb-4 text-purple-500 relative">
       <View className="flex-row items-center">
         <Image
           source={{ uri: item.imageUrl }}
@@ -50,12 +50,13 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
               onPress={handleIncrement}
             >
               <Feather name="plus" size={16} color="white" />
+
             </TouchableOpacity>
           </View>
         </View>
       </View>
-      <Text className="text-white text-lg font-bold">
-        ${(item.price * item.quantity).toLocaleString()}
+      <Text className="text-white text-lg font-bold absolute right-10 bottom-1/3">
+        ${(item.price * item.quantity).toLocaleString() }
       </Text>
     </View>
   );

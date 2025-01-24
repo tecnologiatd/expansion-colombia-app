@@ -26,8 +26,12 @@ export default function BillingScreen() {
     });
 
     useEffect(() => {
-        if (costumerQuery.data?.billing) {
-            setBillingData(costumerQuery.data.billing);
+        if (costumerQuery.data) {
+            setBillingData(prev => ({
+                ...prev,
+                ...costumerQuery.data.billing,
+                email: costumerQuery.data.email || prev.email // Use customer's email as default
+            }));
         }
     }, [costumerQuery.data]);
 

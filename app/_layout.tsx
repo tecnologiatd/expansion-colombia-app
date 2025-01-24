@@ -7,6 +7,7 @@ import { StatusBar } from "react-native";
 import "./global.css";
 import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
 import CustomHeader from "@/presentation/components/CustomHeader";
+import AuthGuard from "@/presentation/auth/components/AuthGuard";
 
 export default function Layout() {
     const { expoPushToken } = usePushNotifications();
@@ -27,6 +28,7 @@ export default function Layout() {
 
     return (
         <QueryClientProvider client={queryClient}>
+            <AuthGuard>
             <StatusBar barStyle="light-content" />
 
             <Stack
@@ -74,6 +76,7 @@ export default function Layout() {
                     }}
                 />
             </Stack>
+            </AuthGuard>
         </QueryClientProvider>
     );
 }
