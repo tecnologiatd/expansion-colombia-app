@@ -1,5 +1,6 @@
 import {
-  ActivityIndicator, Alert,
+  ActivityIndicator,
+  Alert,
   Image,
   Modal,
   RefreshControl,
@@ -15,7 +16,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useEffect, useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import RenderHtml from "react-native-render-html";
-import Clipboard from '@react-native-clipboard/clipboard';
+import Clipboard from "@react-native-clipboard/clipboard";
 import { useProduct } from "@/presentation/hooks/useProduct";
 import { useCartStore } from "@/core/stores/cart-store";
 
@@ -85,46 +86,51 @@ const DetailScreen = () => {
     if (product?.permalink) {
       Clipboard.setString(product.permalink);
       // Optional: Show feedback to user
-      Alert.alert('¡Enlace copiado!', 'El enlace ha sido copiado al portapapeles');
+      Alert.alert(
+        "¡Enlace copiado!",
+        "El enlace ha sido copiado al portapapeles",
+      );
     }
   };
 
   return (
-      <SafeAreaView className="flex-1 bg-gray-900">
-        <ScrollView
-            refreshControl={
-              <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-            }
-        >
-          <View className="relative">
-            <TouchableOpacity onPress={handleImagePress}>
-              <Image
-                  source={{ uri: product?.images?.[0]?.src ?? "" }}
-                  style={{
-                    width: "100%",
-                    height: 300,
-                    resizeMode: "cover",
-                  }}
-              />
-            </TouchableOpacity>
-            <View className="absolute top-4 left-4 bg-purple-500 px-3 py-1 rounded-md">
-              <Text className="text-white font-medium">{product.name}</Text>
-            </View>
+    <SafeAreaView className="flex-1 bg-gray-900">
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View className="relative">
+          <TouchableOpacity onPress={handleImagePress}>
+            <Image
+              source={{ uri: product?.images?.[0]?.src ?? "" }}
+              style={{
+                width: "100%",
+                height: 300,
+                resizeMode: "cover",
+              }}
+            />
+          </TouchableOpacity>
+          <View className="absolute top-4 left-4 bg-purple-500 px-3 py-1 rounded-md">
+            <Text className="text-white font-medium">{product.name}</Text>
           </View>
-          <View className="p-4">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-white text-2xl font-bold">
-                {product.name}
-              </Text>
-              <TouchableOpacity
-                  className="bg-gray-800 rounded-lg p-2"
-                  onPress={handleShare}
-              >
-                <Feather name="share" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
+        </View>
+        <View className="p-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-white text-2xl font-bold">
+              {product.name}
+            </Text>
+            <TouchableOpacity
+              className="bg-gray-800 rounded-lg p-2"
+              onPress={handleShare}
+            >
+              <Feather name="share" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
           <View className="flex-row items-center justify-between mt-4">
-            <Text className="text-gray-400 font-medium">${product.price.toLocaleString('es-CO')}</Text>
+            <Text className="text-gray-400 font-medium">
+              ${product.price.toLocaleString("es-CO")}
+            </Text>
           </View>
           <View className="mt-8 ">
             <RenderHtml
@@ -146,7 +152,6 @@ const DetailScreen = () => {
             onPress={() => setShowModal(false)}
           >
             <Image source={{ uri: imageUri }} style={styles.modalImage} />
-
           </TouchableOpacity>
         </View>
       </Modal>

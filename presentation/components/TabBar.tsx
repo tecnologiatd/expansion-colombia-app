@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
 import * as Linking from "expo-linking";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
@@ -49,21 +55,24 @@ const TabBar: React.FC<BottomTabBarProps> = ({
               style={styles.tabBarItem}
             >
               {options.tabBarIcon && (
-                <View
-                  style={[
-                    styles.iconContainer,
-                    isFocused && styles.focusedIconContainer,
-                  ]}
-                >
-                  {options.tabBarIcon({
-                    focused: false,
-                    color: isFocused ? "#FFFFFF" : "#666666",
-                    size: 24,
-                  })}
+                <View style={styles.iconWrapper}>
+                  <View
+                    style={[
+                      styles.iconBackground,
+                      isFocused && styles.focusedIconBackground,
+                    ]}
+                  >
+                    {options.tabBarIcon({
+                      focused: false,
+                      color: isFocused ? "#FFFFFF" : "#666666",
+                      size: 24,
+                    })}
+                  </View>
                 </View>
               )}
               <Text
                 style={[styles.tabLabel, isFocused && styles.focusedTabLabel]}
+                numberOfLines={1}
               >
                 {label}
               </Text>
@@ -95,19 +104,33 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
   },
-  iconContainer: {
+  iconWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  iconBackground: {
     padding: 8,
-    borderRadius: 10,
+    borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        overflow: "hidden",
+      },
+      android: {
+        overflow: "hidden",
+        elevation: 0,
+      },
+    }),
   },
-  focusedIconContainer: {
+  focusedIconBackground: {
     backgroundColor: "#7B3DFF",
   },
   tabLabel: {
     color: "#666666",
     fontSize: 12,
-    marginTop: 4,
+    marginTop: 2,
+    textAlign: "center",
   },
   focusedTabLabel: {
     color: "#FFFFFF",
