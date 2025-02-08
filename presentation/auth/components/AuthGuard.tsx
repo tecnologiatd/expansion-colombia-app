@@ -1,32 +1,42 @@
-import React, { useEffect, ReactNode } from 'react';
-import { router, usePathname } from 'expo-router';
-import { useAuthStore } from '@/presentation/auth/store/useAuthStore';
+import React, { useEffect, ReactNode } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { router, usePathname } from "expo-router";
+import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 
-// Define the type for the auth status. Adjust as needed based on your actual store
-
-const protectedRoutes: string[] = [
-    '/checkout',
-    '/profile',
-    '/order',
-];
+const protectedRoutes: string[] = ["/checkout", "/profile", "/order"];
 
 interface AuthGuardProps {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-    const pathname = usePathname();
-    const { status } = useAuthStore(); // Make sure useAuthStore returns the correct type
+  const pathname = usePathname();
+  const { status, checkStatus } = useAuthStore();
 
-    useEffect(() => {
-        const isProtectedRoute = protectedRoutes.some(route => pathname?.startsWith(route)); // Handle potential null pathname
+  useEffect(() => {
+    const validateSession = async () => {
+      const isProtectedRoute = protectedRoutes.some((route) =>
+        pathname?.startsWith(route),
+      );
 
-        if (isProtectedRoute && status !== 'authenticated') {
-            router.replace('/auth/login');
-        }
-    }, [pathname, status]);
+      if (isProtectedRoute && status === "unauthenticated") {
+        router.replace("/auth/login");
+      }
+    };
 
-    return <>{children}</>; // Use a Fragment to avoid unnecessary divs
+    validateSession();
+  }, [pathname, status]);
+
+  // No redirigir inmediatamente cuando el status es 'checking'
+  if (status === "checking") {
+    return (
+      <View className="flex-1 justify-center items-center bg-gray-900">
+        <ActivityIndicator size="large" color="#7B3DFF" />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
 };
 
 export default AuthGuard;

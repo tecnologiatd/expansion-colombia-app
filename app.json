@@ -63,7 +63,7 @@
               "cleartextTrafficPermitted": true,
               "domainConfigs": [
                 {
-                  "domain": "172.177.47.136",
+                  "domain": "192.168.1.9",
                   "cleartextTrafficPermitted": true
                 }
               ]
@@ -72,6 +72,14 @@
           "ios": {
             "flipper": true
           }
+        }
+      ],
+    [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
         }
       ]
     ],

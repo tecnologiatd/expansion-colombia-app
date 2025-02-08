@@ -1,3 +1,4 @@
+// app/_layout.tsx
 import { SplashScreen } from "expo-router";
 import { Stack } from "expo-router/stack";
 import React, { useEffect } from "react";
@@ -7,10 +8,12 @@ import { StatusBar } from "react-native";
 import "./global.css";
 import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
 import CustomHeader from "@/presentation/components/CustomHeader";
-import AuthGuard from "@/presentation/auth/components/AuthGuard";
+import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 
 export default function Layout() {
   const { expoPushToken } = usePushNotifications();
+  const { checkStatus } = useAuthStore();
+  const [isAuthChecked, setIsAuthChecked] = React.useState(false);
 
   const [fontsLoaded, error] = useFonts({
     FortunaDotRegular: require("../assets/fonts/FortunaDotRegular.ttf"),
@@ -18,81 +21,63 @@ export default function Layout() {
   });
 
   useEffect(() => {
-    if (error) throw error;
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded, error]);
+    const initializeAuth = async () => {
+      await checkStatus();
+      setIsAuthChecked(true);
+    };
 
-  if (!fontsLoaded && !error) return null;
+    if (fontsLoaded) {
+      initializeAuth();
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded || !isAuthChecked) return null;
 
   const queryClient = new QueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthGuard>
-        <StatusBar barStyle="light-content" />
-        <Stack
-          screenOptions={{
-            header: (props) => <CustomHeader {...props} />,
-            headerStyle: {
-              backgroundColor: "#111111",
-            },
-            headerTintColor: "white",
-            headerShadowVisible: false,
-            contentStyle: {
-              backgroundColor: "#111111",
-            },
+      <StatusBar barStyle="dark-content" />
+      <Stack
+        screenOptions={{
+          header: (props) => <CustomHeader {...props} />,
+          headerStyle: {
+            backgroundColor: "#111111",
+          },
+          headerTintColor: "white",
+          headerShadowVisible: false,
+          contentStyle: {
+            backgroundColor: "#111111",
+          },
+        }}
+      >
+        <Stack.Screen
+          name="auth"
+          options={{
+            headerShown: false,
           }}
-        >
-          <Stack.Screen
-            name="auth"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              // Remove headerShown: false to allow header in tabs
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="event/[id]"
-            options={{
-              headerTitle: "Detalles del Evento",
-              headerBackTitle: "Atrás",
-            }}
-          />
-          <Stack.Screen
-            name="order/[id]"
-            options={({ route }) => ({
-              headerTitle: `Orden #${route.params?.id}`,
-              headerBackTitle: "Atrás",
-            })}
-          />
-          <Stack.Screen
-            name="blog/[id]"
-            options={{
-              headerTitle: "Blog",
-              headerBackTitle: "Atrás",
-            }}
-          />
-          <Stack.Screen
-            name="checkout/billing"
-            options={{
-              headerTitle: "Información de Facturación",
-              headerBackTitle: "Atrás",
-            }}
-          />
-          <Stack.Screen
-            name="checkout/payment"
-            options={{
-              headerTitle: "Método de Pago",
-              headerBackTitle: "Atrás",
-            }}
-          />
-        </Stack>
-      </AuthGuard>
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: true,
+            headerTitle: "Events",
+          }}
+        />
+        <Stack.Screen
+          name="event/[id]"
+          options={{
+            headerTitle: "Event Details",
+          }}
+        />
+        <Stack.Screen
+          name="order/[id]"
+          options={{
+            headerTitle: "Order Details",
+          }}
+        />
+      </Stack>
     </QueryClientProvider>
   );
 }

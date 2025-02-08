@@ -16,7 +16,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useEffect, useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import RenderHtml from "react-native-render-html";
-import Clipboard from "@react-native-clipboard/clipboard";
+// import Clipboard from "@react-native-clipboard/clipboard";
 import { useProduct } from "@/presentation/hooks/useProduct";
 import { useCartStore } from "@/core/stores/cart-store";
 
@@ -84,7 +84,7 @@ const DetailScreen = () => {
 
   const handleShare = async () => {
     if (product?.permalink) {
-      Clipboard.setString(product.permalink);
+      // Clipboard.setString(product.permalink);
       // Optional: Show feedback to user
       Alert.alert(
         "¡Enlace copiado!",
@@ -120,12 +120,12 @@ const DetailScreen = () => {
             <Text className="text-white text-2xl font-bold">
               {product.name}
             </Text>
-            <TouchableOpacity
-              className="bg-gray-800 rounded-lg p-2"
-              onPress={handleShare}
-            >
-              <Feather name="share" size={24} color="white" />
-            </TouchableOpacity>
+            {/*<TouchableOpacity*/}
+            {/*  className="bg-gray-800 rounded-lg p-2"*/}
+            {/*  onPress={handleShare}*/}
+            {/*>*/}
+            {/*  <Feather name="share" size={24} color="white" />*/}
+            {/*</TouchableOpacity>*/}
           </View>
           <View className="flex-row items-center justify-between mt-4">
             <Text className="text-gray-400 font-medium">
@@ -161,7 +161,7 @@ const DetailScreen = () => {
         disabled={!productQuery.data} // Disable if product is not loaded
       >
         <Text className="text-white font-bold text-lg">
-          {productQuery.isLoading ? "Cargando..." : "Comprar Voleto"}
+          {productQuery.isLoading ? "Cargando..." : "Comprar"}
         </Text>
       </TouchableOpacity>
     </SafeAreaView>

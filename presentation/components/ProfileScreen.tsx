@@ -14,6 +14,7 @@ import Feather from "@expo/vector-icons/Feather";
 import EditProfileModal from "@/presentation/components/EditProfileModal";
 import { LogoutButton } from "@/presentation/auth/components/LogoutIconButton";
 import PurchasedEventCard from "@/presentation/components/PurchasedEventCard";
+import { AdminAccessButton } from "@/presentation/components/AdminAccessButton";
 
 const ProfileScreen = () => {
   const { profileQuery } = useProfile();
@@ -87,9 +88,10 @@ const ProfileScreen = () => {
             <Feather name="edit-2" size={20} color="white" />
           </TouchableOpacity>
         </View>
+        <AdminAccessButton />
 
         {/* Quick Stats */}
-        <View className="flex-row justify-between mb-8">
+        <View className="mt-4 flex-row justify-between mb-8">
           <View className="bg-gray-800 p-4 rounded-lg flex-1 mr-2 items-center">
             <Text className="text-purple-500 text-xl font-bold">
               {profileQuery.data?.orders?.length || 0}
