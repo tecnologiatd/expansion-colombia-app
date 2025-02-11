@@ -1,3 +1,4 @@
+// presentation/hooks/useGenerateTicket.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { generateTicketQR } from "@/core/actions/generate-ticket.action";
 
@@ -6,7 +7,7 @@ export const useGenerateTicket = () => {
 
   const generateTicketMutation = useMutation({
     mutationFn: generateTicketQR,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["order"] });
     },
   });

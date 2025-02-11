@@ -2,28 +2,19 @@
 import { backendApi } from "@/core/api/wordpress-api";
 import { TicketResponse } from "@/core/interfaces/ticket.interface";
 
+// core/actions/generate-ticket.action.ts
 export const generateTicketQR = async (
   orderId: string,
 ): Promise<TicketResponse> => {
-  if (!orderId) {
-    throw new Error("OrderId es requerido");
-  }
-
-  console.log("Generando QR para orden:", orderId);
-  console.log("URL base:", process.env.EXPO_PUBLIC_BACKEND_URL);
-
   try {
+    console.log("Generating QR for order:", orderId); // Añadir log
     const { data } = await backendApi.post<TicketResponse>(
       `/tickets/generate/${orderId}`,
     );
-    console.log("Respuesta del servidor:", data);
+    console.log("QR Generated:", data); // Añadir log
     return data;
   } catch (error) {
-    console.error("Error completo:", error);
-    console.error(
-      "URL completa:",
-      `${process.env.EXPO_PUBLIC_BACKEND_URL}/tickets/generate/${orderId}`,
-    );
+    console.error("Error generating ticket QR:", error);
     throw error;
   }
 };

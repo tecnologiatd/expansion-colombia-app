@@ -4,40 +4,35 @@ import {
   validateTicket,
   getTicketStatus,
 } from "@/core/actions/ticket-validation.actions";
-import {
-  TicketStatus,
-  TicketValidationResponse,
-} from "@/core/interfaces/ticket.interface";
+import { useOrderDetails } from "./useOrders";
 
 export const useTicketValidation = (qrCode?: string) => {
   const queryClient = useQueryClient();
 
-  // Query para obtener el estado del ticket
-  const ticketStatusQuery = useQuery<TicketStatus>({
+  const ticketStatusQuery = useQuery({
     queryKey: ["ticket-status", qrCode],
     queryFn: () => getTicketStatus(qrCode!),
-    enabled: !!qrCode, // Solo ejecutar si hay un qrCode
-    staleTime: 1000 * 30, // Considerar los datos frescos por 30 segundos
+    enabled: !!qrCode,
   });
 
-  // Mutation para validar el ticket
-  const validateTicketMutation = useMutation<
-    TicketValidationResponse,
-    Error,
-    string
-  >({
+  // Consulta adicional para obtener detalles de la orden
+  const orderDetailsQuery = useQuery({
+    queryKey: ["order", ticketStatusQuery.data?.orderId],
+    queryFn: () => useOrderDetails(ticketStatusQuery.data?.orderId).refetch(),
+    enabled: !!ticketStatusQuery.data?.orderId,
+  });
+
+  const validateTicketMutation = useMutation({
     mutationFn: validateTicket,
     onSuccess: (data) => {
-      // Invalidar la consulta del estado del ticket y de la orden
-      queryClient.invalidateQueries({
-        queryKey: ["ticket-status", data.orderId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["ticket-status", qrCode] });
       queryClient.invalidateQueries({ queryKey: ["order", data.orderId] });
     },
   });
 
   return {
     ticketStatusQuery,
+    orderDetailsQuery,
     validateTicketMutation,
   };
 };

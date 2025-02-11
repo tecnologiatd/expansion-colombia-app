@@ -6,11 +6,17 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTicketValidation } from "@/presentation/hooks/useTicketValidation";
 import { Ionicons } from "@expo/vector-icons";
+import { useOrderDetails } from "@/presentation/hooks/useOrders";
 
 export default function ScanScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
-  const { validateTicketMutation } = useTicketValidation();
+  const [currentQR, setCurrentQR] = useState<string | null>(null);
+
+  // Hooks para obtener datos (se moverán al nivel superior)
+  const { validateTicketMutation, ticketStatusQuery } =
+    useTicketValidation(currentQR);
+  const { data: orderData } = useOrderDetails(ticketStatusQuery.data?.orderId);
 
   useEffect(() => {
     const getBarCodeScannerPermissions = async () => {
@@ -21,6 +27,109 @@ export default function ScanScreen() {
     getBarCodeScannerPermissions();
   }, []);
 
+  // Efecto para manejar los datos del ticket cuando están disponibles
+  useEffect(() => {
+    if (!currentQR || !ticketStatusQuery.data) return;
+
+    const handleTicketData = async () => {
+      const ticketStatus = ticketStatusQuery.data;
+
+      if (ticketStatus.isUsed) {
+        Alert.alert(
+          "Ticket Usado",
+          `Este ticket ya fue utilizado el ${new Date(
+            ticketStatus.usedAt,
+          ).toLocaleString()} por el administrador ${ticketStatus.validatedBy}`,
+          [
+            {
+              text: "Ver detalles",
+              onPress: () => router.push(`/admin/ticket/${currentQR}`),
+            },
+            {
+              text: "Escanear otro",
+              onPress: () => {
+                setScanned(false);
+                setCurrentQR(null);
+              },
+            },
+          ],
+        );
+        return;
+      }
+
+      // Esperar a que los datos de la orden estén disponibles
+      if (!orderData) return;
+
+      // Mostrar detalles y confirmar validación
+      Alert.alert(
+        "Validar Ticket",
+        `¿Deseas validar el ticket para?\n\n` +
+          `Cliente: ${orderData.billing.first_name} ${orderData.billing.last_name}\n` +
+          `Email: ${orderData.billing.email}\n` +
+          `Teléfono: ${orderData.billing.phone}\n\n` +
+          `Eventos:\n${orderData.line_items
+            .map((item) => `- ${item.name}`)
+            .join("\n")}`,
+        [
+          {
+            text: "Cancelar",
+            style: "cancel",
+            onPress: () => {
+              setScanned(false);
+              setCurrentQR(null);
+            },
+          },
+          {
+            text: "Ver Detalles",
+            onPress: () => {
+              setScanned(false);
+              setCurrentQR(null);
+              router.push(`/admin/ticket/${currentQR}`);
+            },
+          },
+          {
+            text: "Validar",
+            style: "default",
+            onPress: async () => {
+              try {
+                await validateTicketMutation.mutateAsync(currentQR);
+                Alert.alert("Éxito", "Ticket validado correctamente", [
+                  {
+                    text: "Ver detalles",
+                    onPress: () => router.push(`/admin/ticket/${currentQR}`),
+                  },
+                  {
+                    text: "Escanear otro",
+                    onPress: () => {
+                      setScanned(false);
+                      setCurrentQR(null);
+                    },
+                  },
+                ]);
+              } catch (error) {
+                Alert.alert(
+                  "Error",
+                  "Error al validar el ticket. Intente nuevamente.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        setScanned(false);
+                        setCurrentQR(null);
+                      },
+                    },
+                  ],
+                );
+              }
+            },
+          },
+        ],
+      );
+    };
+
+    handleTicketData();
+  }, [currentQR, ticketStatusQuery.data, orderData]);
+
   const handleBarCodeScanned = async ({
     data,
   }: {
@@ -29,52 +138,7 @@ export default function ScanScreen() {
   }) => {
     if (scanned) return;
     setScanned(true);
-
-    try {
-      await validateTicketMutation.mutateAsync(data);
-      Alert.alert("Éxito", "Ticket validado correctamente", [
-        {
-          text: "Ver detalles",
-          onPress: () => router.push(`/admin/ticket/${data}`),
-        },
-        {
-          text: "Escanear otro",
-          onPress: () => setScanned(false),
-        },
-      ]);
-    } catch (error) {
-      const isUsedError =
-        error.response?.data?.message === "Ticket ya utilizado";
-
-      if (isUsedError) {
-        Alert.alert(
-          "Ticket Usado",
-          `Este ticket ya fue utilizado el ${new Date(error.response.data.usedAt).toLocaleString()} 
-           por el administrador ${error.response.data.validatedBy}`,
-          [
-            {
-              text: "Ver detalles",
-              onPress: () => router.push(`/admin/ticket/${data}`),
-            },
-            {
-              text: "Escanear otro",
-              onPress: () => setScanned(false),
-            },
-          ],
-        );
-      } else {
-        Alert.alert(
-          "Error",
-          error.response?.data?.message || "Error al validar el ticket",
-          [
-            {
-              text: "Intentar de nuevo",
-              onPress: () => setScanned(false),
-            },
-          ],
-        );
-      }
-    }
+    setCurrentQR(data);
   };
 
   if (hasPermission === null) {
@@ -120,7 +184,6 @@ export default function ScanScreen() {
         </BarCodeScanner>
       </View>
 
-      {/* Instrucciones y estado */}
       <View className="p-4">
         <View className="bg-gray-800 rounded-lg p-4 mb-4">
           <Text className="text-white text-center text-lg mb-2">
@@ -131,7 +194,10 @@ export default function ScanScreen() {
           {scanned && (
             <TouchableOpacity
               className="bg-purple-500 py-3 rounded-lg flex-row justify-center items-center"
-              onPress={() => setScanned(false)}
+              onPress={() => {
+                setScanned(false);
+                setCurrentQR(null);
+              }}
             >
               <Ionicons name="scan" size={24} color="white" className="mr-2" />
               <Text className="text-white font-bold ml-2">

@@ -1,29 +1,52 @@
-// presentation/components/TicketQR.tsx
-import React from "react";
-import { View, Text } from "react-native";
+// presentation/components/TicketQRSection.tsx
+import React, { useEffect } from "react";
+import { View, Text, ActivityIndicator } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-import { useTicketValidation } from "@/presentation/hooks/useTicketValidation";
+import { useTicketValidation } from "../hooks/useTicketValidation";
+import { useGenerateTicket } from "../hooks/useGenerateTicket";
 
 interface Props {
-  qrCode: string;
+  orderId: string;
+  orderStatus: string;
 }
 
-export const TicketQR: React.FC<Props> = ({ qrCode }) => {
-  const { ticketStatusQuery } = useTicketValidation(qrCode);
+export const TicketQRSection: React.FC<Props> = ({ orderId, orderStatus }) => {
+  const { generateTicketMutation } = useGenerateTicket();
+  const { ticketStatusQuery } = useTicketValidation(
+    generateTicketMutation.data?.qrCode,
+  );
 
-  if (ticketStatusQuery.isLoading) {
+  // Generar QR cuando el componente se monta y el estado es 'processing'
+  useEffect(() => {
+    if (orderStatus === "processing") {
+      generateTicketMutation.mutate(orderId);
+    }
+  }, [orderId, orderStatus]);
+
+  if (orderStatus !== "processing") {
     return (
-      <View className="items-center p-4">
-        <Text className="text-white">Verificando estado del ticket...</Text>
+      <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
+        <Text className="text-yellow-500 text-center">
+          El QR estará disponible cuando se complete el pago
+        </Text>
       </View>
     );
   }
 
-  if (ticketStatusQuery.isError) {
+  if (generateTicketMutation.isPending) {
     return (
-      <View className="items-center p-4">
-        <Text className="text-red-500">
-          Error al verificar el estado del ticket
+      <View className="m-4 bg-gray-800 p-4 rounded-xl items-center">
+        <ActivityIndicator size="large" color="#7B3DFF" />
+        <Text className="text-white mt-2">Generando código QR...</Text>
+      </View>
+    );
+  }
+
+  if (generateTicketMutation.isError || !generateTicketMutation.data?.qrCode) {
+    return (
+      <View className="m-4 bg-red-500/20 p-4 rounded-xl">
+        <Text className="text-red-500 text-center">
+          Error al generar el código QR. Por favor contacta a soporte.
         </Text>
       </View>
     );
@@ -35,54 +58,34 @@ export const TicketQR: React.FC<Props> = ({ qrCode }) => {
     <View className="bg-gray-800 rounded-lg p-6 m-4">
       <View className="items-center mb-4">
         <QRCode
-          value={qrCode}
+          value={generateTicketMutation.data.qrCode}
           size={200}
           color="white"
           backgroundColor="transparent"
         />
       </View>
-
       <View className="mt-4">
-        <Text className="text-white text-center text-lg mb-2">
-          Estado del Ticket
-        </Text>
-
         <View
           className={`p-4 rounded-lg ${
-            ticketStatus?.isUsed ? "bg-purple-500/20" : "bg-green-500/20"
+            ticketStatus?.isUsed ? "bg-red-500/20" : "bg-green-500/20"
           }`}
         >
-          {ticketStatus?.isUsed ? (
-            <View>
-              <Text className="text-purple-500 text-center font-bold text-lg mb-2">
-                Ticket Utilizado
+          <Text
+            className={`text-center text-lg font-bold ${
+              ticketStatus?.isUsed ? "text-red-500" : "text-green-500"
+            }`}
+          >
+            {ticketStatus?.isUsed ? "Ticket Usado" : "Ticket Válido"}
+          </Text>
+          {ticketStatus?.isUsed && (
+            <>
+              <Text className="text-gray-400 text-center mt-2">
+                Usado el: {new Date(ticketStatus.usedAt).toLocaleDateString()}
               </Text>
               <Text className="text-gray-400 text-center">
-                Ingresaste el{" "}
-                {new Date(ticketStatus.usedAt).toLocaleDateString("es-CO", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                Validado por: {ticketStatus.validatedBy}
               </Text>
-              {ticketStatus.validatedBy && (
-                <Text className="text-gray-400 text-center mt-1">
-                  Validado por: {ticketStatus.validatedBy}
-                </Text>
-              )}
-            </View>
-          ) : (
-            <View>
-              <Text className="text-green-500 text-center font-bold text-lg">
-                Ticket Válido
-              </Text>
-              <Text className="text-gray-400 text-center mt-1">
-                Este ticket aún no ha sido utilizado
-              </Text>
-            </View>
+            </>
           )}
         </View>
       </View>
