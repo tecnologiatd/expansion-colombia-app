@@ -111,4 +111,46 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     delete backendApi.defaults.headers.common["Authorization"];
     set({ status: "unauthenticated", token: undefined, user: undefined });
   },
+  register: async (username, email, password) => {
+    try {
+      set({ status: "checking" });
+      const resp = await authRegister(username, email, password);
+
+      if (!resp?.token || !resp?.user) {
+        set({ status: "unauthenticated" });
+        return false;
+      }
+
+      backendApi.defaults.headers.common["Authorization"] =
+        `Bearer ${resp.token}`;
+
+      try {
+        const customerResp = await backendApi.get("/customer");
+        const role = customerResp.data.role || "subscriber";
+
+        set({
+          status: "authenticated",
+          token: resp.token,
+          user: {
+            ...resp.user,
+            role,
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+        set({
+          status: "authenticated",
+          token: resp.token,
+          user: resp.user,
+        });
+      }
+
+      await SecureStorageAdapter.setItem("token", resp.token);
+      return true;
+    } catch (error) {
+      console.error("Register error:", error);
+      set({ status: "unauthenticated" });
+      return false;
+    }
+  },
 }));

@@ -9,6 +9,7 @@ import "./global.css";
 import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
 import CustomHeader from "@/presentation/components/CustomHeader";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
+import AuthGuard from "@/presentation/auth/components/AuthGuard";
 
 export default function Layout() {
   const { expoPushToken } = usePushNotifications();
@@ -39,45 +40,47 @@ export default function Layout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar barStyle="dark-content" />
-      <Stack
-        screenOptions={{
-          header: (props) => <CustomHeader {...props} />,
-          headerStyle: {
-            backgroundColor: "#111111",
-          },
-          headerTintColor: "white",
-          headerShadowVisible: false,
-          contentStyle: {
-            backgroundColor: "#111111",
-          },
-        }}
-      >
-        <Stack.Screen
-          name="auth"
-          options={{
-            headerShown: false,
+      <AuthGuard>
+        <Stack
+          screenOptions={{
+            header: (props) => <CustomHeader {...props} />,
+            headerStyle: {
+              backgroundColor: "#111111",
+            },
+            headerTintColor: "white",
+            headerShadowVisible: false,
+            contentStyle: {
+              backgroundColor: "#111111",
+            },
           }}
-        />
-        <Stack.Screen
-          name="(tabs)"
-          options={{
-            headerShown: true,
-            headerTitle: "Events",
-          }}
-        />
-        <Stack.Screen
-          name="event/[id]"
-          options={{
-            headerTitle: "Event Details",
-          }}
-        />
-        <Stack.Screen
-          name="order/[id]"
-          options={{
-            headerTitle: "Order Details",
-          }}
-        />
-      </Stack>
+        >
+          <Stack.Screen
+            name="auth"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              headerShown: true,
+              headerTitle: "Events",
+            }}
+          />
+          <Stack.Screen
+            name="event/[id]"
+            options={{
+              headerTitle: "Event Details",
+            }}
+          />
+          <Stack.Screen
+            name="order/[id]"
+            options={{
+              headerTitle: "Order Details",
+            }}
+          />
+        </Stack>
+      </AuthGuard>
     </QueryClientProvider>
   );
 }

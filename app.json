@@ -10,33 +10,18 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.expansion.colombia",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
-          "NSExceptionDomains": {
-            "172.177.47.136": {
-              "NSExceptionAllowsInsecureHTTPLoads": true,
-              "NSIncludesSubdomains": true
-            }
-          }
-        }
-      }
+      "bundleIdentifier": "com.expansioncolombia"
     },
     "android": {
-      "package": "com.expansion.colombia",
+      "package": "com.expansioncolombia",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "googleServicesFile": "./google-services.json",
       "permissions": [
-        "INTERNET",
-        "ACCESS_NETWORK_STATE"
-      ],
-      "config": {
-        "usesCleartextTraffic": true
-      }
+        "INTERNET"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -52,26 +37,6 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
-        }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "usesCleartextTraffic": true,
-            "networkSecurityConfig": {
-              "cleartextTrafficPermitted": true,
-              "domainConfigs": [
-                {
-                  "domain": "192.168.1.9",
-                  "cleartextTrafficPermitted": true
-                }
-              ]
-            }
-          },
-          "ios": {
-            "flipper": true
-          }
         }
       ],
     [

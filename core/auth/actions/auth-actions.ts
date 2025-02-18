@@ -25,7 +25,7 @@ export const authLogin = async (username: string, password: string) => {
       {
         username,
         password,
-      }
+      },
     );
 
     await DeviceService.registerDevice(username);
@@ -37,15 +37,19 @@ export const authLogin = async (username: string, password: string) => {
   }
 };
 
-export const authRegister = async (username: string, email: string, password: string) => {
+export const authRegister = async (
+  username: string,
+  email: string,
+  password: string,
+) => {
   try {
     const { data } = await backendApi.post<WordPressAuthResponse>(
-        "/auth/register",
-        {
-          username,
-          email,
-          password,
-        },
+      "/auth/register",
+      {
+        username,
+        email,
+        password,
+      },
     );
 
     await DeviceService.registerDevice(username);

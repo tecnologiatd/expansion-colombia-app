@@ -236,7 +236,7 @@ const OrderDetails = ({ orderId }) => {
         orderId={order.id.toString()}
         orderStatus={order.status}
         qrCode={order.qrCode}
-      />{" "}
+      />
     </ScrollView>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useEffect, ReactNode } from "react";
-import { View, ActivityIndicator } from "react-native";
 import { router, usePathname } from "expo-router";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
+
+// Define the type for the auth status. Adjust as needed based on your actual store
 
 const protectedRoutes: string[] = ["/checkout", "/profile", "/order"];
 
@@ -11,32 +12,19 @@ interface AuthGuardProps {
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const pathname = usePathname();
-  const { status, checkStatus } = useAuthStore();
+  const { status } = useAuthStore(); // Make sure useAuthStore returns the correct type
 
   useEffect(() => {
-    const validateSession = async () => {
-      const isProtectedRoute = protectedRoutes.some((route) =>
-        pathname?.startsWith(route),
-      );
+    const isProtectedRoute = protectedRoutes.some((route) =>
+      pathname?.startsWith(route),
+    ); // Handle potential null pathname
 
-      if (isProtectedRoute && status === "unauthenticated") {
-        router.replace("/auth/login");
-      }
-    };
-
-    validateSession();
+    if (isProtectedRoute && status !== "authenticated") {
+      router.replace("/auth/login");
+    }
   }, [pathname, status]);
 
-  // No redirigir inmediatamente cuando el status es 'checking'
-  if (status === "checking") {
-    return (
-      <View className="flex-1 justify-center items-center bg-gray-900">
-        <ActivityIndicator size="large" color="#7B3DFF" />
-      </View>
-    );
-  }
-
-  return <>{children}</>;
+  return <>{children}</>; // Use a Fragment to avoid unnecessary divs
 };
 
 export default AuthGuard;

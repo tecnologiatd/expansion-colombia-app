@@ -11,15 +11,15 @@ export default function TabLayout() {
       }}
       tabBar={(props) => <TabBar {...props} />}
     >
-        <Tabs.Screen
-            name="blog"
-            options={{
-                title: "Noticias",
-                tabBarIcon: ({ color }) => (
-                    <FontAwesome size={24} name="newspaper-o" color={color} />
-                ),
-            }}
-        />
+      <Tabs.Screen
+        name="blog"
+        options={{
+          title: "Noticias",
+          tabBarIcon: ({ color }) => (
+            <FontAwesome size={24} name="newspaper-o" color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="cart"
         options={{
@@ -33,11 +33,6 @@ export default function TabLayout() {
         name="home"
         options={{
           title: "Eventos",
-          headerTitle: "sdfa",
-          headerTintColor: "white",
-          headerStyle: {
-            backgroundColor: "#F9B233",
-          },
           tabBarIcon: ({ color }) => (
             <FontAwesome size={24} name="ticket" color={color} />
           ),

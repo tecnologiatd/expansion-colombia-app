@@ -39,11 +39,7 @@ const Register = () => {
     const { name, email, password } = data;
 
     setIsPosting(true);
-    const wasSuccessful = await register(
-      name.toLowerCase(),
-      email.toLowerCase(),
-      password,
-    );
+    const wasSuccessful = await register(name, email.toLowerCase(), password);
     setIsPosting(false);
 
     if (wasSuccessful) {
@@ -77,8 +73,8 @@ const Register = () => {
               name="name"
               render={({ field: { onChange, value } }) => (
                 <FormField
-                  title="Nombre"
-                  placeholder="Tu nombre completo"
+                  title="Nombre de usuario"
+                  placeholder="usuario1"
                   value={value}
                   onChangeText={onChange}
                   errorMessage={errors.name?.message}
