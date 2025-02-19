@@ -1,0 +1,570 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+
+Additional Info:
+----------------
+
+================================================================
+Directory Structure
+================================================================
+ticket/
+  [id].tsx
+_layout.tsx
+scan.tsx
+
+================================================================
+Files
+================================================================
+
+================
+File: ticket/[id].tsx
+================
+import React, { useEffect, useState } from "react";
+import { View, Text, ActivityIndicator, ScrollView } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { useTicketValidation } from "@/presentation/hooks/useTicketValidation";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useOrderDetails } from "@/presentation/hooks/useOrders";
+
+export default function TicketDetailsScreen() {
+  const { id } = useLocalSearchParams();
+  const [qrCode, setQrCode] = useState<string>(id as string);
+  const [autoDetectedEventId, setAutoDetectedEventId] = useState<
+    string | undefined
+  >();
+
+  // Extract eventId from the QR code if available
+  useEffect(() => {
+    if (typeof qrCode === "string" && qrCode.includes("/")) {
+      const parts = qrCode.split("/");
+      if (parts.length === 2) {
+        setAutoDetectedEventId(parts[1]);
+        console.log("Auto-detected eventId from QR:", parts[1]);
+      }
+    }
+  }, [qrCode]);
+
+  // Use provided eventId or extracted one
+  const providedEventId = useLocalSearchParams().eventId as string | undefined;
+  const eventId = providedEventId || autoDetectedEventId;
+
+  const { ticketStatusQuery } = useTicketValidation(qrCode, eventId);
+
+  const { data: orderData } = ticketStatusQuery.data?.orderId
+    ? useOrderDetails(ticketStatusQuery.data?.orderId)
+    : { data: null };
+
+  if (ticketStatusQuery.isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#7B3DFF" />
+      </View>
+    );
+  }
+
+  if (ticketStatusQuery.error) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 20,
+        }}
+      >
+        <Text style={{ color: "white", textAlign: "center" }}>
+          Error al cargar los detalles del ticket
+        </Text>
+        <Text style={{ color: "gray", marginTop: 10, textAlign: "center" }}>
+          {autoDetectedEventId
+            ? `Usando eventId detectado: ${autoDetectedEventId}`
+            : "No se detectó eventId en el código QR"}
+        </Text>
+      </View>
+    );
+  }
+
+  const ticket = ticketStatusQuery.data;
+  const isFullyUsed = ticket.usageCount >= ticket.maxUsages;
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-900">
+      <ScrollView className="p-4">
+        {autoDetectedEventId && (
+          <View className="bg-purple-500/20 rounded-lg p-2 mb-4">
+            <Text className="text-purple-300">
+              Evento ID detectado en QR: {autoDetectedEventId}
+            </Text>
+          </View>
+        )}
+
+        <View className="bg-gray-800 rounded-lg p-4 mb-4">
+          <Text className="text-white text-lg font-bold mb-2">
+            Estado del Ticket
+          </Text>
+          <View
+            className={`p-2 rounded ${isFullyUsed ? "bg-red-500/20" : "bg-green-500/20"}`}
+          >
+            <Text className={isFullyUsed ? "text-red-500" : "text-green-500"}>
+              {isFullyUsed ? "Completamente Usado" : "Válido"}
+            </Text>
+          </View>
+
+          <View className="mt-3">
+            <Text className="text-gray-400">
+              Usos: {ticket.usageCount} de {ticket.maxUsages}
+            </Text>
+            <Text className="text-gray-400">
+              Usos restantes: {ticket.remainingUsages}
+            </Text>
+            <Text className="text-gray-400 mt-2">
+              Evento ID: {ticket.eventId}
+            </Text>
+          </View>
+
+          {ticket.usageHistory && ticket.usageHistory.length > 0 && (
+            <View className="mt-4">
+              <Text className="text-white text-lg font-bold mb-2">
+                Historial de Usos
+              </Text>
+              {ticket.usageHistory.map((usage, index) => (
+                <View key={index} className="bg-gray-700 p-2 rounded mt-2">
+                  <Text className="text-gray-300">
+                    Uso #{index + 1}:{" "}
+                    {new Date(usage.timestamp).toLocaleString()}
+                  </Text>
+                  <Text className="text-gray-400">
+                    Validado por: {usage.validatedBy}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {orderData && (
+          <View className="bg-gray-800 rounded-lg p-4">
+            <Text className="text-white text-lg font-bold mb-4">
+              Detalles de la Orden
+            </Text>
+            <Text className="text-gray-400">
+              Cliente: {orderData.billing.first_name}{" "}
+              {orderData.billing.last_name}
+            </Text>
+            <Text className="text-gray-400">
+              Email: {orderData.billing.email}
+            </Text>
+            <Text className="text-gray-400">
+              Teléfono: {orderData.billing.phone}
+            </Text>
+            <Text className="text-white text-lg font-bold mt-4 mb-2">
+              Eventos
+            </Text>
+            {orderData.line_items.map((item) => (
+              <View
+                key={item.id}
+                className="border-t border-gray-700 pt-2 mt-2"
+              >
+                <Text className="text-white">{item.name}</Text>
+                <Text className="text-gray-400">Cantidad: {item.quantity}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+================
+File: _layout.tsx
+================
+import { Stack } from "expo-router";
+import { AdminGuard } from "@/presentation/auth/components/AdminGuard";
+
+export default function AdminLayout() {
+  return (
+    <AdminGuard>
+      <Stack>
+        <Stack.Screen
+          name="scan"
+          options={{
+            title: "Escanear Ticket",
+            headerStyle: {
+              backgroundColor: "#111111",
+            },
+            headerTintColor: "#fff",
+          }}
+        />
+        <Stack.Screen
+          name="ticket/[id]"
+          options={{
+            title: "Detalles del Ticket",
+            headerStyle: {
+              backgroundColor: "#111111",
+            },
+            headerTintColor: "#fff",
+          }}
+        />
+      </Stack>
+    </AdminGuard>
+  );
+}
+
+================
+File: scan.tsx
+================
+// scan.tsx
+import React, { useState, useEffect } from "react";
+import {
+  Text,
+  View,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { BarCodeScanner } from "expo-barcode-scanner";
+import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTicketValidation } from "@/presentation/hooks/useTicketValidation";
+import { Ionicons } from "@expo/vector-icons";
+import { useOrderDetails } from "@/presentation/hooks/useOrders";
+
+export default function ScanScreen() {
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [scanned, setScanned] = useState(false);
+  const [currentQR, setCurrentQR] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Extract eventId from QR code if available
+  useEffect(() => {
+    if (currentQR && currentQR.includes("/")) {
+      const parts = currentQR.split("/");
+      if (parts.length === 2) {
+        setSelectedEventId(parts[1]);
+        console.log("Auto-selected eventId from QR:", parts[1]);
+      }
+    }
+  }, [currentQR]);
+
+  const { validateTicketMutation, ticketStatusQuery } = useTicketValidation(
+    currentQR,
+    selectedEventId ?? undefined,
+  );
+
+  const {
+    data: orderData,
+    isLoading: isOrderLoading,
+    error: orderError,
+  } = useOrderDetails(ticketStatusQuery.data?.orderId);
+
+  useEffect(() => {
+    const getBarCodeScannerPermissions = async () => {
+      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      setHasPermission(status === "granted");
+    };
+
+    getBarCodeScannerPermissions();
+  }, []);
+
+  const resetScan = () => {
+    setScanned(false);
+    setCurrentQR(null);
+    setSelectedEventId(null);
+    setIsProcessing(false);
+  };
+
+  useEffect(() => {
+    if (!currentQR) return;
+
+    const handleTicketData = async () => {
+      setIsProcessing(true);
+      console.log("Current QR:", currentQR);
+      console.log("Selected Event ID:", selectedEventId);
+      console.log("Ticket Status Query:", ticketStatusQuery.status);
+      console.log("Ticket Data:", ticketStatusQuery.data);
+      console.log("Order Data:", orderData);
+
+      // Si hay error en la consulta del ticket
+      if (ticketStatusQuery.error) {
+        console.error("Ticket Status Error:", ticketStatusQuery.error);
+        Alert.alert(
+          "Error",
+          "Error al obtener el estado del ticket. Por favor, intente nuevamente.",
+          [{ text: "OK", onPress: resetScan }],
+        );
+        return;
+      }
+
+      // Si no hay datos del ticket todavía
+      if (!ticketStatusQuery.data) {
+        console.log("Waiting for ticket data...");
+        return;
+      }
+
+      const ticketStatus = ticketStatusQuery.data;
+
+      // Si hay error en la consulta de la orden
+      if (orderError) {
+        console.error("Order Error:", orderError);
+        Alert.alert(
+          "Error",
+          "Error al obtener los detalles de la orden. Por favor, intente nuevamente.",
+          [{ text: "OK", onPress: resetScan }],
+        );
+        return;
+      }
+
+      // Si hay múltiples eventos, mostrar selector
+      if (ticketStatus.events?.length > 1 && !selectedEventId) {
+        console.log("Multiple events found:", ticketStatus.events);
+        Alert.alert(
+          "Seleccionar Evento",
+          "Este ticket es válido para múltiples eventos. Seleccione uno:",
+          [
+            ...ticketStatus.events.map((event) => ({
+              text: `${event.name} (${event.quantity} entradas)`,
+              onPress: () => {
+                console.log("Selected event:", event.id);
+                setSelectedEventId(event.id);
+              },
+            })),
+            {
+              text: "Cancelar",
+              style: "cancel",
+              onPress: resetScan,
+            },
+          ],
+        );
+        return;
+      }
+
+      // Si el ticket ya fue usado para este evento
+      if (ticketStatus.isUsed) {
+        console.log("Ticket already used:", ticketStatus);
+        Alert.alert(
+          "Ticket Usado",
+          `Este ticket ya fue utilizado el ${new Date(
+            ticketStatus.usedAt!,
+          ).toLocaleString()} por el administrador ${ticketStatus.validatedBy}`,
+          [
+            {
+              text: "Ver detalles",
+              onPress: () => router.push(`/admin/ticket/${currentQR}`),
+            },
+            {
+              text: "Escanear otro",
+              onPress: resetScan,
+            },
+          ],
+        );
+        return;
+      }
+
+      // Esperar a que los datos de la orden estén disponibles
+      if (!orderData) {
+        console.log("Waiting for order data...");
+        return;
+      }
+
+      console.log("Ready to validate ticket:", {
+        ticketStatus,
+        orderData,
+        selectedEventId,
+      });
+
+      // Mostrar detalles y confirmar validación
+      Alert.alert(
+        "Validar Ticket",
+        `¿Deseas validar el ticket para?\n\n` +
+          `Cliente: ${orderData.billing.first_name} ${orderData.billing.last_name}\n` +
+          `Email: ${orderData.billing.email}\n` +
+          `Teléfono: ${orderData.billing.phone}\n\n` +
+          `Evento: ${
+            ticketStatus.events.find((e) => e.id === selectedEventId)?.name
+          }\n` +
+          `Usos restantes: ${ticketStatus.maxUsages - ticketStatus.usageCount}`,
+        [
+          {
+            text: "Cancelar",
+            style: "cancel",
+            onPress: resetScan,
+          },
+          {
+            text: "Ver Detalles",
+            onPress: () => {
+              router.push(`/admin/ticket/${currentQR}`);
+            },
+          },
+          {
+            text: "Validar",
+            style: "default",
+            onPress: async () => {
+              try {
+                console.log("Validating ticket...", {
+                  qrCode: currentQR,
+                  eventId: selectedEventId,
+                });
+                await validateTicketMutation.mutateAsync({
+                  qrCode: currentQR,
+                  eventId: selectedEventId!,
+                });
+                Alert.alert("Éxito", "Ticket validado correctamente", [
+                  {
+                    text: "Ver detalles",
+                    onPress: () => router.push(`/admin/ticket/${currentQR}`),
+                  },
+                  {
+                    text: "Escanear otro",
+                    onPress: resetScan,
+                  },
+                ]);
+              } catch (error) {
+                console.error("Validation error:", error);
+                Alert.alert(
+                  "Error",
+                  "Error al validar el ticket. Intente nuevamente.",
+                  [{ text: "OK", onPress: resetScan }],
+                );
+              }
+            },
+          },
+        ],
+      );
+    };
+
+    handleTicketData();
+  }, [currentQR, ticketStatusQuery.data, orderData, selectedEventId]);
+
+  const handleBarCodeScanned = ({ data }: { type: string; data: string }) => {
+    if (scanned) return;
+    console.log("QR Code scanned:", data);
+    setScanned(true);
+    setCurrentQR(data);
+  };
+
+  if (hasPermission === null) {
+    return (
+      <View className="flex-1 justify-center items-center bg-gray-900">
+        <Text className="text-white">Solicitando permiso de cámara...</Text>
+      </View>
+    );
+  }
+
+  if (hasPermission === false) {
+    return (
+      <View className="flex-1 justify-center items-center bg-gray-900 p-4">
+        <Text className="text-white text-center mb-4">
+          Necesitamos acceso a la cámara para escanear los tickets
+        </Text>
+        <TouchableOpacity
+          className="bg-purple-500 px-6 py-3 rounded-lg"
+          onPress={() => BarCodeScanner.requestPermissionsAsync()}
+        >
+          <Text className="text-white font-bold">Dar Permiso</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-900">
+      <View className="flex-1 m-4 rounded-2xl overflow-hidden">
+        <BarCodeScanner
+          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+          barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
+          style={{ flex: 1 }}
+        >
+          <View className="flex-1 bg-transparent justify-center items-center">
+            <View className="w-72 h-72 border-2 border-white/50 rounded-2xl">
+              <View className="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-purple-500" />
+              <View className="absolute -top-2 -right-2 w-4 h-4 border-t-2 border-r-2 border-purple-500" />
+              <View className="absolute -bottom-2 -left-2 w-4 h-4 border-b-2 border-l-2 border-purple-500" />
+              <View className="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-purple-500" />
+            </View>
+          </View>
+        </BarCodeScanner>
+      </View>
+
+      <View className="p-4">
+        <View className="bg-gray-800 rounded-lg p-4 mb-4">
+          {isProcessing && (
+            <View className="flex-row items-center justify-center mb-2">
+              <ActivityIndicator size="small" color="#7B3DFF" />
+              <Text className="text-white ml-2">
+                {ticketStatusQuery.isLoading
+                  ? "Verificando ticket..."
+                  : isOrderLoading
+                    ? "Cargando detalles de la orden..."
+                    : "Procesando..."}
+              </Text>
+            </View>
+          )}
+          <Text className="text-white text-center text-lg mb-2">
+            {scanned
+              ? currentQR && currentQR.includes("/")
+                ? `QR escaneado con eventId: ${currentQR.split("/")[1]}`
+                : "Procesando ticket..."
+              : "Coloca el código QR dentro del marco"}
+          </Text>
+          {scanned && (
+            <TouchableOpacity
+              className="bg-purple-500 py-3 rounded-lg flex-row justify-center items-center"
+              onPress={resetScan}
+            >
+              <Ionicons name="scan" size={24} color="white" className="mr-2" />
+              <Text className="text-white font-bold ml-2">
+                Escanear otro ticket
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+
+
+================================================================
+End of Codebase
+================================================================

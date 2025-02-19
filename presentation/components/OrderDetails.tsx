@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
@@ -107,7 +108,7 @@ const OrderDetails = ({ orderId }) => {
     );
   }
 
-  if (isError || !order) {
+  if (!order) {
     return (
       <View className="flex-1 bg-gray-900 justify-center items-center p-4">
         <Text className="text-white text-lg text-center mb-4">
@@ -129,115 +130,127 @@ const OrderDetails = ({ orderId }) => {
   );
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-900"
-      refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-      }
-    >
-      {/* Status and Order Info */}
-      <View className="m-4 bg-gray-800 rounded-xl p-4">
-        <View className="flex-row justify-between items-center mb-4">
-          <View>
-            <Text className="text-gray-400">Estado</Text>
-            <OrderStatus status={order.status} />
-          </View>
-          <View>
-            <Text className="text-gray-400">Fecha</Text>
-            <Text className="text-white">{formatDate(order.date_created)}</Text>
-          </View>
-        </View>
+    <View className="flex-1 bg-gray-900">
+      <FlatList
+        data={order.line_items}
+        ListHeaderComponent={() => (
+          <>
+            <View className="flex-row justify-between items-center mb-4">
+              <View>
+                <Text className="text-gray-400">Estado</Text>
+                <OrderStatus status={order.status} />
+              </View>
 
-        <View className="flex-row justify-between items-center">
-          <View>
-            <Text className="text-gray-400">Total</Text>
-            <Text className="text-white text-lg font-bold">
-              {formatCurrency(order.total)}
-            </Text>
-          </View>
-          <View>
-            <Text className="text-gray-400">Items</Text>
-            <Text className="text-white text-lg">
-              {totalItems} {totalItems === 1 ? "item" : "items"}
-            </Text>
-          </View>
-        </View>
-      </View>
-      {/* Products */}
-      <View className="m-4 bg-gray-800 rounded-xl p-4">
-        <Text className="text-white text-lg font-bold mb-4">Eventos</Text>
-        {order.line_items.map((item) => (
-          <View
-            key={item.id}
-            className="flex-row mb-4 border-b border-gray-700 pb-4"
-          >
-            {item.image && (
-              <Image
-                source={{ uri: item.image.src }}
-                className="w-20 h-20 rounded-lg"
-              />
-            )}
-            <View className="flex-1 ml-4">
-              <Text className="text-white font-bold">{item.name}</Text>
+              <View className="m-4 bg-gray-800 rounded-xl p-4">
+                {/* ... existing status and order info code ... */}
+                <View>
+                  <Text className="text-gray-400">Fecha</Text>
+                  <Text className="text-white">
+                    {formatDate(order.date_created)}
+                  </Text>
+                </View>
+              </View>
+
+              <View className="m-4 bg-gray-800 rounded-xl p-4">
+                <Text className="text-white text-lg font-bold mb-4">
+                  Eventos
+                </Text>
+                <View>
+                  <Text className="text-gray-400">Total</Text>
+                  <Text className="text-white text-lg font-bold">
+                    {formatCurrency(order.total)}
+                  </Text>
+                </View>
+                <View>
+                  <Text className="text-gray-400">Items</Text>
+                  <Text className="text-white text-lg">
+                    {totalItems} {totalItems === 1 ? "item" : "items"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </>
+        )}
+        renderItem={({ item }) => (
+          <View className="mx-4 mb-4">
+            <View className="bg-gray-800 rounded-xl p-4">
+              {item.image && (
+                <Image
+                  source={{ uri: item.image.src }}
+                  className="w-full h-40 rounded-lg mb-4"
+                  resizeMode="cover"
+                />
+              )}
+              <Text className="text-white font-bold text-lg">{item.name}</Text>
               <Text className="text-gray-400">Cantidad: {item.quantity}</Text>
               <Text className="text-white mt-1">
                 {formatCurrency(item.total)}
               </Text>
+
+              <TicketQRSection
+                orderId={orderId}
+                orderStatus={order.status}
+                eventId={item.product_id.toString()}
+                quantity={item.quantity}
+              />
             </View>
           </View>
-        ))}
-      </View>
-      {/* Billing Info */}
-      <View className="m-4 bg-gray-800 rounded-xl p-4">
-        <Text className="text-white text-lg font-bold mb-4">
-          Detalles de facturación
-        </Text>
-        <View className="space-y-2">
-          <Text className="text-gray-400">
-            {order.billing.first_name} {order.billing.last_name}
-          </Text>
-          <Text className="text-gray-400">
-            <Ionicons name="mail-outline" size={16} /> {order.billing.email}
-          </Text>
-          <Text className="text-gray-400">
-            <Ionicons name="call-outline" size={16} /> {order.billing.phone}
-          </Text>
-          <Text className="text-gray-400">
-            <Ionicons name="location-outline" size={16} />{" "}
-            {[
-              order.billing.address_1,
-              order.billing.city,
-              order.billing.state,
-              order.billing.postcode,
-              order.billing.country,
-            ]
-              .filter(Boolean)
-              .join(", ")}
-          </Text>
-        </View>
-      </View>
-      {/* Payment Action */}
-      {order.status === "pending" && order.payment_url && (
-        <View className="m-4 mb-8">
-          <TouchableOpacity
-            className="bg-purple-500 p-4 rounded-xl flex-row justify-center items-center"
-            onPress={handlePayment}
-          >
-            <Ionicons name="card-outline" size={20} color="white" />
-            <Text className="text-white font-bold text-lg ml-2">
-              Completar Pago
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {/* Sección de QR */}
-      {/* Ticket QR Section */}
-      <TicketQRSection
-        orderId={order.id.toString()}
-        orderStatus={order.status}
-        qrCode={order.qrCode}
+        )}
+        ListFooterComponent={() => (
+          <>
+            {/* Billing Info section */}
+            <View className="m-4 bg-gray-800 rounded-xl p-4">
+              <Text className="text-white text-lg font-bold mb-4">
+                Detalles de facturación
+              </Text>
+              <View className="space-y-2">
+                <Text className="text-gray-400">
+                  {order.billing.first_name} {order.billing.last_name}
+                </Text>
+                <Text className="text-gray-400">
+                  <Ionicons name="mail-outline" size={16} />{" "}
+                  {order.billing.email}
+                </Text>
+                <Text className="text-gray-400">
+                  <Ionicons name="call-outline" size={16} />{" "}
+                  {order.billing.phone}
+                </Text>
+                <Text className="text-gray-400">
+                  <Ionicons name="location-outline" size={16} />{" "}
+                  {[
+                    order.billing.address_1,
+                    order.billing.city,
+                    order.billing.state,
+                    order.billing.postcode,
+                    order.billing.country,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </Text>
+              </View>
+            </View>
+            {/* Closed missing View */}
+            {/* Payment Action section */}
+            {order.status === "pending" && order.payment_url && (
+              <View className="m-4 bg-gray-800 rounded-xl p-4">
+                <TouchableOpacity
+                  className="bg-purple-500 p-4 rounded-xl flex-row justify-center items-center"
+                  onPress={handlePayment}
+                >
+                  <Ionicons name="card-outline" size={20} color="white" />
+                  <Text className="text-white font-bold text-lg ml-2">
+                    Completar Pago
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+        }
       />
-    </ScrollView>
+    </View>
   );
 };
 

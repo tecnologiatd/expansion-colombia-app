@@ -1,17 +1,20 @@
 // core/actions/generate-ticket.action.ts
 import { backendApi } from "@/core/api/wordpress-api";
-import { TicketResponse } from "@/core/interfaces/ticket.interface";
+import {
+  GenerateTicketDto,
+  TicketResponse,
+} from "@/core/interfaces/ticket.interface";
 
-// core/actions/generate-ticket.action.ts
 export const generateTicketQR = async (
-  orderId: string,
+  params: GenerateTicketDto,
 ): Promise<TicketResponse> => {
   try {
-    console.log("Generating QR for order:", orderId); // Añadir log
+    console.log("Generating QR with params:", params);
     const { data } = await backendApi.post<TicketResponse>(
-      `/tickets/generate/${orderId}`,
+      "/tickets/generate",
+      params,
     );
-    console.log("QR Generated:", data); // Añadir log
+    console.log("QR Generated:", data);
     return data;
   } catch (error) {
     console.error("Error generating ticket QR:", error);

@@ -6,10 +6,17 @@ export interface TicketStatus {
 }
 
 export interface TicketResponse {
-  qrCode: string;
+  qrCodes: string[];
 }
 
 export interface TicketValidationResponse {
   message: string;
   orderId: string;
+}
+
+export interface GenerateTicketDto {
+  orderId: string;
+  eventId: string;
+  quantity: number;
+  usagesPerTicket: number;
 }
