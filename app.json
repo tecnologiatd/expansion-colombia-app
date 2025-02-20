@@ -39,7 +39,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
-    [
+      [
         "expo-camera",
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
@@ -59,6 +59,6 @@
         "projectId": "4c646e1d-0c03-4042-bb68-84aae1f356bb"
       }
     },
-    "owner": "camiloatd"
+    "owner": "tecnologiatd"
   }
 }
