@@ -1,44 +1,16 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   RefreshControl,
-  FlatList,
 } from "react-native";
+import { useOrderDetails } from "@/presentation/hooks/useOrders";
+import { TicketQRSection } from "@/presentation/components/TicketQRSection";
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
-import { useOrderDetails } from "@/presentation/hooks/useOrders";
-import { TicketQR } from "@/presentation/components/TicketQR";
-import { TicketQRSection } from "@/presentation/components/TicketQRSection";
-
-const OrderStatus = ({ status }) => {
-  const getStatusConfig = (status) => {
-    switch (status) {
-      case "processing":
-        return { color: "text-blue-400", icon: "time-outline" };
-      case "completed":
-        return { color: "text-green-400", icon: "checkmark-circle" };
-      case "cancelled":
-        return { color: "text-red-400", icon: "close-circle" };
-      case "pending":
-        return { color: "text-yellow-400", icon: "alert-circle" };
-      default:
-        return { color: "text-gray-400", icon: "help-circle" };
-    }
-  };
-
-  const { color, icon } = getStatusConfig(status);
-
-  return (
-    <Text className={`text-lg capitalize ${color}`}>
-      <Ionicons name={icon} size={18} /> {status}
-    </Text>
-  );
-};
 
 const OrderDetails = ({ orderId }) => {
   const {
@@ -49,57 +21,6 @@ const OrderDetails = ({ orderId }) => {
     refetch,
   } = useOrderDetails(orderId);
 
-  const renderTicketQR = () => {
-    console.log(order);
-    if (order?.status !== "processing") {
-      return (
-        <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
-          <Text className="text-yellow-500 text-center">
-            El QR estará disponible cuando se complete el pago
-          </Text>
-        </View>
-      );
-    }
-
-    if (!order?.qrCode) {
-      return (
-        <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
-          <Text className="text-yellow-500 text-center">
-            QR no disponible. Por favor contacta a soporte.
-          </Text>
-        </View>
-      );
-    }
-
-    return <TicketQR qrCode={order.qrCode} />;
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("es-CO", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(parseFloat(amount));
-  };
-
-  const handlePayment = async () => {
-    if (order?.payment_url) {
-      try {
-        await Linking.openURL(order.payment_url);
-      } catch (error) {
-        console.error("Error abriendo URL de pago:", error);
-      }
-    }
-  };
-
   if (isLoading) {
     return (
       <View className="flex-1 bg-gray-900 justify-center items-center">
@@ -108,7 +29,7 @@ const OrderDetails = ({ orderId }) => {
     );
   }
 
-  if (!order) {
+  if (isError || !order) {
     return (
       <View className="flex-1 bg-gray-900 justify-center items-center p-4">
         <Text className="text-white text-lg text-center mb-4">
@@ -129,128 +50,160 @@ const OrderDetails = ({ orderId }) => {
     0,
   );
 
+  const handlePayment = async () => {
+    if (order?.payment_url) {
+      try {
+        await Linking.openURL(order.payment_url);
+      } catch (error) {
+        console.error("Error opening payment URL:", error);
+      }
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    }).format(parseFloat(amount));
+  };
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case "processing":
+        return {
+          color: "text-blue-400",
+          icon: "time-outline",
+          text: "En Proceso",
+        };
+      case "completed":
+        return {
+          color: "text-green-400",
+          icon: "checkmark-circle",
+          text: "Completado",
+        };
+      case "cancelled":
+        return {
+          color: "text-red-400",
+          icon: "close-circle",
+          text: "Cancelado",
+        };
+      case "pending":
+        return {
+          color: "text-yellow-400",
+          icon: "alert-circle",
+          text: "Pendiente",
+        };
+      default:
+        return { color: "text-gray-400", icon: "help-circle", text: status };
+    }
+  };
+
+  const statusConfig = getStatusConfig(order.status);
+
   return (
-    <View className="flex-1 bg-gray-900">
-      <FlatList
-        data={order.line_items}
-        ListHeaderComponent={() => (
-          <>
-            <View className="flex-row justify-between items-center mb-4">
-              <View>
-                <Text className="text-gray-400">Estado</Text>
-                <OrderStatus status={order.status} />
-              </View>
+    <ScrollView
+      className="flex-1 bg-gray-900"
+      refreshControl={
+        <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+      }
+    >
+      {/* Order Status and Info */}
+      <View className="p-4 bg-gray-800 rounded-lg m-4">
+        <View className="flex-row justify-between items-center mb-4">
+          <View>
+            <Text className="text-gray-400">Estado del pedido</Text>
+            <Text className={`text-lg capitalize ${statusConfig.color}`}>
+              <Ionicons name={statusConfig.icon} size={18} />{" "}
+              {statusConfig.text}
+            </Text>
+          </View>
+          <View>
+            <Text className="text-gray-400">Fecha</Text>
+            <Text className="text-white">{formatDate(order.date_created)}</Text>
+          </View>
+        </View>
 
-              <View className="m-4 bg-gray-800 rounded-xl p-4">
-                {/* ... existing status and order info code ... */}
-                <View>
-                  <Text className="text-gray-400">Fecha</Text>
-                  <Text className="text-white">
-                    {formatDate(order.date_created)}
-                  </Text>
-                </View>
-              </View>
+        <View className="border-t border-gray-700 pt-4">
+          <Text className="text-white text-lg font-bold mb-2">Resumen</Text>
+          <View className="flex-row justify-between mb-2">
+            <Text className="text-gray-400">Total</Text>
+            <Text className="text-white text-lg font-bold">
+              {formatCurrency(order.total)}
+            </Text>
+          </View>
+          <View className="flex-row justify-between">
+            <Text className="text-gray-400">Cantidad</Text>
+            <Text className="text-white">
+              {totalItems} {totalItems === 1 ? "item" : "items"}
+            </Text>
+          </View>
+        </View>
+      </View>
 
-              <View className="m-4 bg-gray-800 rounded-xl p-4">
-                <Text className="text-white text-lg font-bold mb-4">
-                  Eventos
-                </Text>
-                <View>
-                  <Text className="text-gray-400">Total</Text>
-                  <Text className="text-white text-lg font-bold">
-                    {formatCurrency(order.total)}
-                  </Text>
-                </View>
-                <View>
-                  <Text className="text-gray-400">Items</Text>
-                  <Text className="text-white text-lg">
-                    {totalItems} {totalItems === 1 ? "item" : "items"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </>
-        )}
-        renderItem={({ item }) => (
-          <View className="mx-4 mb-4">
-            <View className="bg-gray-800 rounded-xl p-4">
-              {item.image && (
-                <Image
-                  source={{ uri: item.image.src }}
-                  className="w-full h-40 rounded-lg mb-4"
-                  resizeMode="cover"
-                />
-              )}
-              <Text className="text-white font-bold text-lg">{item.name}</Text>
-              <Text className="text-gray-400">Cantidad: {item.quantity}</Text>
-              <Text className="text-white mt-1">
-                {formatCurrency(item.total)}
-              </Text>
+      {/* Line Items with Tickets */}
+      {order.line_items.map((item) => (
+        <View key={item.id} className="mx-4 mb-4 bg-gray-800 rounded-lg p-4">
+          <Text className="text-white font-bold text-lg">{item.name}</Text>
+          <Text className="text-gray-400">Cantidad: {item.quantity}</Text>
+          <Text className="text-white mt-1">{formatCurrency(item.total)}</Text>
 
-              <TicketQRSection
-                orderId={orderId}
-                orderStatus={order.status}
-                eventId={item.product_id.toString()}
-                quantity={item.quantity}
-              />
-            </View>
+          <TicketQRSection
+            orderId={orderId}
+            orderStatus={order.status}
+            eventId={item.product_id.toString()}
+            quantity={item.quantity}
+          />
+        </View>
+      ))}
+
+      {/* Billing Info */}
+      <View className="m-4 bg-gray-800 rounded-lg p-4">
+        <Text className="text-white text-lg font-bold mb-4">
+          Detalles de facturación
+        </Text>
+        {order.billing && (
+          <View className="space-y-2">
+            <Text className="text-gray-400">
+              {order.billing.first_name} {order.billing.last_name}
+            </Text>
+            <Text className="text-gray-400">
+              <Ionicons name="mail-outline" size={16} /> {order.billing.email}
+            </Text>
+            <Text className="text-gray-400">
+              <Ionicons name="call-outline" size={16} /> {order.billing.phone}
+            </Text>
+            <Text className="text-gray-400">
+              <Ionicons name="location-outline" size={16} />
+              {` ${order.billing.address_1}, ${order.billing.city}, ${order.billing.state}`}
+            </Text>
           </View>
         )}
-        ListFooterComponent={() => (
-          <>
-            {/* Billing Info section */}
-            <View className="m-4 bg-gray-800 rounded-xl p-4">
-              <Text className="text-white text-lg font-bold mb-4">
-                Detalles de facturación
-              </Text>
-              <View className="space-y-2">
-                <Text className="text-gray-400">
-                  {order.billing.first_name} {order.billing.last_name}
-                </Text>
-                <Text className="text-gray-400">
-                  <Ionicons name="mail-outline" size={16} />{" "}
-                  {order.billing.email}
-                </Text>
-                <Text className="text-gray-400">
-                  <Ionicons name="call-outline" size={16} />{" "}
-                  {order.billing.phone}
-                </Text>
-                <Text className="text-gray-400">
-                  <Ionicons name="location-outline" size={16} />{" "}
-                  {[
-                    order.billing.address_1,
-                    order.billing.city,
-                    order.billing.state,
-                    order.billing.postcode,
-                    order.billing.country,
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}
-                </Text>
-              </View>
-            </View>
-            {/* Closed missing View */}
-            {/* Payment Action section */}
-            {order.status === "pending" && order.payment_url && (
-              <View className="m-4 bg-gray-800 rounded-xl p-4">
-                <TouchableOpacity
-                  className="bg-purple-500 p-4 rounded-xl flex-row justify-center items-center"
-                  onPress={handlePayment}
-                >
-                  <Ionicons name="card-outline" size={20} color="white" />
-                  <Text className="text-white font-bold text-lg ml-2">
-                    Completar Pago
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
-        )}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-        }
-      />
-    </View>
+      </View>
+
+      {/* Payment Action */}
+      {order.status === "pending" && order.payment_url && (
+        <View className="m-4">
+          <TouchableOpacity
+            className="bg-purple-500 p-4 rounded-lg flex-row justify-center items-center"
+            onPress={handlePayment}
+          >
+            <Ionicons name="card-outline" size={20} color="white" />
+            <Text className="text-white font-bold text-lg ml-2">
+              Completar Pago
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
