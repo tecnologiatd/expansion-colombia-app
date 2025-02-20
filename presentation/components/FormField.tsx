@@ -26,10 +26,10 @@ const FormField = ({
 
   return (
     <View className="space-y-2 mt-7">
-      <Text className="dark:text-white  font-medium mb-3 ">{title}</Text>
+      <Text className="text-white  font-medium mb-3 ">{title}</Text>
       <View className="border-black-200 h-16 relative">
         <TextInput
-          className="flex-1 w-full p-4 text-base font-semibold dark:border-white dark:text-white focus:border-secondary  active:border-secondary border-2 rounded-2xl"
+          className="flex-1 w-full p-4 text-base font-semibold dark:border-white text-white focus:border-secondary  active:border-secondary border-2 rounded-2xl"
           value={value}
           secureTextEntry={secureTextEntry ? showPassword : false}
           placeholderTextColor="#7b7b8b"
