@@ -1,4 +1,3 @@
-// app/(admin)/scan.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -7,7 +6,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { BarCodeScanner } from "expo-barcode-scanner";
+import { Camera, CameraView } from "expo-camera"; // Import BarCodeType
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTicketValidation } from "@/presentation/hooks/useTicketValidation";
@@ -23,7 +22,7 @@ export default function ScanScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === "granted");
     })();
   }, []);
@@ -91,14 +90,7 @@ export default function ScanScreen() {
         `Este ticket ya ha sido utilizado completamente.\n\nÚltimo uso: ${new Date(
           ticket.usageHistory[ticket.usageHistory.length - 1].timestamp,
         ).toLocaleString()}`,
-        [
-          // {
-          //   text: "Ver detalles",
-          //   onPress: () =>
-          //     router.push(`/admin/ticket/${qrData.code}/${qrData.eventId}`),
-          // },
-          { text: "Escanear otro", onPress: resetScan },
-        ],
+        [{ text: "Escanear otro", onPress: resetScan }],
       );
       return;
     }
@@ -122,11 +114,6 @@ export default function ScanScreen() {
           `Usos restantes: ${ticket.maxUsages - ticket.usageCount}`,
         [
           { text: "Cancelar", style: "cancel", onPress: resetScan },
-          // {
-          //   text: "Ver Detalles",
-          //   onPress: () =>
-          //     router.push(`/admin/ticket/${qrData.code}/${qrData.eventId}`),
-          // },
           {
             text: "Validar",
             style: "default",
@@ -178,7 +165,7 @@ export default function ScanScreen() {
         </Text>
         <TouchableOpacity
           className="bg-purple-500 px-6 py-3 rounded-lg"
-          onPress={() => BarCodeScanner.requestPermissionsAsync()}
+          onPress={() => Camera.requestCameraPermissionsAsync()}
         >
           <Text className="text-white font-bold">Dar Permiso</Text>
         </TouchableOpacity>
@@ -189,9 +176,11 @@ export default function ScanScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
       <View className="flex-1 m-4 rounded-2xl overflow-hidden">
-        <BarCodeScanner
-          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-          barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
+        <CameraView
+          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ["qr"],
+          }}
           style={{ flex: 1 }}
         >
           <View className="flex-1 bg-transparent justify-center items-center">
@@ -202,7 +191,7 @@ export default function ScanScreen() {
               <View className="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-purple-500" />
             </View>
           </View>
-        </BarCodeScanner>
+        </CameraView>
       </View>
 
       <View className="p-4">

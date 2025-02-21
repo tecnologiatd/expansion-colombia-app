@@ -1246,9 +1246,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@expo/cli@npm:0.22.17":
-  version: 0.22.17
-  resolution: "@expo/cli@npm:0.22.17"
+"@expo/cli@npm:0.22.18":
+  version: 0.22.18
+  resolution: "@expo/cli@npm:0.22.18"
   dependencies:
     "@0no-co/graphql.web": "npm:^1.0.8"
     "@babel/runtime": "npm:^7.20.0"
@@ -1324,7 +1324,7 @@ __metadata:
     ws: "npm:^8.12.1"
   bin:
     expo-internal: build/bin/cli
-  checksum: 10c0/04f8a2295ace6441098dc42a5f2b15003fcf76e00f564c92196490e46cebab50cd7c9976b8f3cf5b48a5cfee1f86511ba6b0ba71ca34c671471fc42f504fd480
+  checksum: 10c0/7c4a0380c090cca16f74680f70410ab29ef56269d9f4440cf9e00016f1cb836bb4d3b9210106cd47cfb15044b7d57ea8c25170f01ea4b830784e989c6eb92667
   languageName: node
   linkType: hard
 
@@ -3775,9 +3775,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"babel-preset-expo@npm:~12.0.8":
-  version: 12.0.8
-  resolution: "babel-preset-expo@npm:12.0.8"
+"babel-preset-expo@npm:~12.0.9":
+  version: 12.0.9
+  resolution: "babel-preset-expo@npm:12.0.9"
   dependencies:
     "@babel/plugin-proposal-decorators": "npm:^7.12.9"
     "@babel/plugin-transform-export-namespace-from": "npm:^7.22.11"
@@ -3796,7 +3796,7 @@ __metadata:
       optional: true
     react-compiler-runtime:
       optional: true
-  checksum: 10c0/e3d88d797bdc08228e5044acdedfad2460a070d860d6641bece0b5c282bb1f773a803fdeed417e67fccb2fdb3d426dd1fc75a0ce32df5105186ead56f964b6ee
+  checksum: 10c0/7b1b7d05172a18d52a66d5038a88269e6c6b8a566397a9fccaa36ebd2573d91178d2efa2d404e431f4cb65eea2d8b2da69dd16cc55403ca046023e8f320ea331
   languageName: node
   linkType: hard
 
@@ -5846,8 +5846,7 @@ __metadata:
     eslint-config-expo: "npm:~8.0.1"
     eslint-config-prettier: "npm:^9.1.0"
     eslint-plugin-prettier: "npm:^5.2.3"
-    expo: "npm:~52.0.36"
-    expo-barcode-scanner: "npm:^13.0.1"
+    expo: "npm:~52.0.37"
     expo-blur: "npm:~14.0.3"
     expo-camera: "npm:~16.0.17"
     expo-constants: "npm:~17.0.7"
@@ -5927,17 +5926,6 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: 10c0/5ccdcdbfb46045d262cf23694cd9732027f6f0787fa4b78975135f39fbfa430ea24dc9c23024c604f32bc5f5a782e3fdcd615b4dc4e6d0a22caebc0537fe83a7
-  languageName: node
-  linkType: hard
-
-"expo-barcode-scanner@npm:^13.0.1":
-  version: 13.0.1
-  resolution: "expo-barcode-scanner@npm:13.0.1"
-  dependencies:
-    expo-image-loader: "npm:~4.7.0"
-  peerDependencies:
-    expo: "*"
-  checksum: 10c0/a3b55a9f725957f9fad3fdee7afd7053cbcb0c246fb9487b5f9412b23caeb39d18e82cee80d2f747f5f3d631d695d0f6828af7194be5cb00d80f0a3240a4f5cc
   languageName: node
   linkType: hard
 
@@ -6085,15 +6073,6 @@ __metadata:
   peerDependencies:
     expo: "*"
   checksum: 10c0/31a77f7fb2f9a3db586ca34e9fb80b9b03f29ed93aa045eeba3facec31bd71537c7a10c10c90b54cadec2334aad44df4a3cc5f99af1ca33f63f349b5547fdb43
-  languageName: node
-  linkType: hard
-
-"expo-image-loader@npm:~4.7.0":
-  version: 4.7.0
-  resolution: "expo-image-loader@npm:4.7.0"
-  peerDependencies:
-    expo: "*"
-  checksum: 10c0/7db9df154f1b44e9877361e0707715503eaaf2b18968b6aecb6b0205612cf40bfd99ab8c6e6d7de3a5abd35267e9636963d5050e082af063d8e527763d597eb1
   languageName: node
   linkType: hard
 
@@ -6309,18 +6288,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"expo@npm:~52.0.36":
-  version: 52.0.36
-  resolution: "expo@npm:52.0.36"
+"expo@npm:~52.0.37":
+  version: 52.0.37
+  resolution: "expo@npm:52.0.37"
   dependencies:
     "@babel/runtime": "npm:^7.20.0"
-    "@expo/cli": "npm:0.22.17"
+    "@expo/cli": "npm:0.22.18"
     "@expo/config": "npm:~10.0.10"
     "@expo/config-plugins": "npm:~9.0.15"
     "@expo/fingerprint": "npm:0.11.11"
     "@expo/metro-config": "npm:0.19.11"
     "@expo/vector-icons": "npm:^14.0.0"
-    babel-preset-expo: "npm:~12.0.8"
+    babel-preset-expo: "npm:~12.0.9"
     expo-asset: "npm:~11.0.4"
     expo-constants: "npm:~17.0.7"
     expo-file-system: "npm:~18.0.11"
@@ -6346,7 +6325,7 @@ __metadata:
       optional: true
   bin:
     expo: bin/cli
-  checksum: 10c0/f8df627e6e4f29856cd5910d889e1085a26179a5413fba785bee66da4944fd0ef6f2bf3bbf15d95ed161afcf486f0fe03653f6f822d85a90c3d4aae32dd3dcf0
+  checksum: 10c0/48b839fcc2ccb71f6aacf987270c3dd4d0e48589db84e5c96a1654d2012617b9d6918afe555942b592c7ca557512df4d47fd325e38cc95e223e4ed0508b3f0fb
   languageName: node
   linkType: hard
 

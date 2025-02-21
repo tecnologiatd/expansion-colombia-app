@@ -9,8 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
-    },
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://expansion-colombia-backend-production.up.railway.app"
+      }    },
     "production": {
       "autoIncrement": true,
       "env": {
