@@ -6,9 +6,15 @@ import {
 } from "@/core/actions/ticket-validation.actions";
 import { getOrderByIdAction } from "@/core/actions/order.actions";
 import { useCallback, useMemo } from "react";
+import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 
 export const useTicketValidation = (qrCode?: string, eventId?: string) => {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+
+  // Verificar si el usuario es administrador
+  const isAdmin =
+    user?.role === "administrator" || user?.role === "shop_manager";
 
   // Procesar el QR para asegurar el formato correcto
   const processedQrCode = useMemo(() => {
@@ -46,16 +52,20 @@ export const useTicketValidation = (qrCode?: string, eventId?: string) => {
       return getOrderByIdAction(ticketStatusQuery.data.orderId);
     },
     enabled: !!ticketStatusQuery.data?.orderId,
-    staleTime: 30000, // Datos considerados frescos por 30 segundos
-    cacheTime: 60000, // Mantener en caché por 1 minuto
-    retry: false, // No reintentar si falla
+    staleTime: 30000,
+    cacheTime: 60000,
+    retry: false,
   });
 
   // Mutación para validar el ticket
   const validateTicketMutation = useMutation({
-    mutationFn: validateTicket,
+    mutationFn: async (params: { qrCode: string; eventId: string }) => {
+      if (!isAdmin) {
+        throw new Error("No tienes permisos para validar tickets");
+      }
+      return validateTicket(params);
+    },
     onSuccess: () => {
-      // Solo invalidar el estado del ticket, no la orden
       queryClient.invalidateQueries({
         queryKey: ["ticket-status", processedQrCode, eventId],
       });
@@ -76,5 +86,6 @@ export const useTicketValidation = (qrCode?: string, eventId?: string) => {
     validateTicketMutation,
     processedQrCode,
     refreshData,
+    isAdmin,
   };
 };
