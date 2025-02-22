@@ -1,5 +1,5 @@
 import { View, ScrollView, Alert } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
 import { Link, router } from "expo-router";
@@ -8,16 +8,16 @@ import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import ExpansionHeader from "@/presentation/components/ExpansionHeader";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 import { useForm, Controller } from "react-hook-form";
+import PasswordValidation from "@/presentation/auth/components/PasswordValidation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  RegisterFormData,
   registerSchema,
-  type RegisterFormData,
 } from "@/core/validations/register-validations";
-import PasswordValidation from "@/presentation/auth/components/PasswordValidation";
 
 const Register = () => {
   const { register } = useAuthStore();
-  const [isPosting, setIsPosting] = React.useState(false);
+  const [isPosting, setIsPosting] = useState(false);
 
   const {
     control,
@@ -27,8 +27,8 @@ const Register = () => {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: "",
       email: "",
+      confirmEmail: "",
       password: "",
     },
   });
@@ -36,21 +36,34 @@ const Register = () => {
   const password = watch("password");
 
   const onRegister = async (data: RegisterFormData) => {
-    const { name, email, password } = data;
-
+    const { email, password } = data;
     setIsPosting(true);
-    const wasSuccessful = await register(name, email.toLowerCase(), password);
-    setIsPosting(false);
 
-    if (wasSuccessful) {
-      router.replace("/(tabs)/home");
-      return;
+    try {
+      // Usar el email como username
+      const wasSuccessful = await register(
+        email,
+        email.toLowerCase(),
+        password,
+      );
+
+      if (wasSuccessful) {
+        router.replace("/(tabs)/home");
+        return;
+      }
+
+      Alert.alert(
+        "Error",
+        "No se pudo completar el registro. Por favor verifica tus datos e intenta de nuevo.",
+      );
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "Ocurrió un error durante el registro. Por favor intenta de nuevo.",
+      );
+    } finally {
+      setIsPosting(false);
     }
-
-    Alert.alert(
-      "Error",
-      "No se pudo completar el registro. Por favor verifica tus datos e intenta de nuevo.",
-    );
   };
 
   return (
@@ -70,29 +83,30 @@ const Register = () => {
 
             <Controller
               control={control}
-              name="name"
+              name="email"
               render={({ field: { onChange, value } }) => (
                 <FormField
-                  title="Nombre de usuario"
-                  placeholder="usuario1"
+                  title="Correo electrónico"
+                  placeholder="correo@ejemplo.com"
+                  keyboardType="email-address"
                   value={value}
                   onChangeText={onChange}
-                  errorMessage={errors.name?.message}
+                  errorMessage={errors.email?.message}
                 />
               )}
             />
 
             <Controller
               control={control}
-              name="email"
+              name="confirmEmail"
               render={({ field: { onChange, value } }) => (
                 <FormField
-                  title="Correo electrónico"
-                  placeholder="usuario@expansionm.co"
+                  title="Confirmar correo electrónico"
+                  placeholder="correo@ejemplo.com"
                   keyboardType="email-address"
                   value={value}
                   onChangeText={onChange}
-                  errorMessage={errors.email?.message}
+                  errorMessage={errors.confirmEmail?.message}
                 />
               )}
             />

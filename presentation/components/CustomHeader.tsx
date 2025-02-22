@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { NotificationModal } from "./NotificationModal";
-import { useNotificationStore } from "@/core/stores/notification.store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, usePathname } from "expo-router";
+import { NotificationBell } from "./NotificationBell";
 
 interface Props {
   title?: string;
@@ -14,8 +14,6 @@ interface Props {
 
 const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
   const [showNotifications, setShowNotifications] = useState(false);
-  const { notifications } = useNotificationStore();
-  const unreadCount = notifications.filter((n) => !n.read).length;
   const pathname = usePathname();
 
   // Función para obtener el título dinámico
@@ -59,17 +57,8 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
             {getHeaderTitle()}
           </Text>
         </View>
-        <TouchableOpacity
-          className="relative"
-          onPress={() => setShowNotifications(true)}
-        >
-          <Feather name="bell" size={24} color="white" />
-          {unreadCount > 0 && (
-            <View className="absolute -top-1 -right-1 bg-purple-500 rounded-full w-4 h-4 items-center justify-center">
-              <Text className="text-white text-xs">{unreadCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+
+        <NotificationBell onPress={() => setShowNotifications(true)} />
       </View>
 
       <NotificationModal

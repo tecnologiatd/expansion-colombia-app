@@ -59,11 +59,11 @@ export const TicketQRCard = ({ qrCode, eventId, index, total }) => {
             {ticketStatus.usageHistory.map((usage, i) => (
               <View key={i} className="bg-gray-700/50 p-2 rounded-lg mb-2">
                 <Text className="text-gray-400">
-                  Usado el: {new Date(usage.timestamp).toLocaleDateString()}
+                  Usado el: {new Date(usage.timestamp).toLocaleString("es-co")}
                 </Text>
-                <Text className="text-gray-400">
-                  Validado por: {usage.validatedBy}
-                </Text>
+                {/*<Text className="text-gray-400">*/}
+                {/*  Validado por: {usage.validatedBy}*/}
+                {/*</Text>*/}
               </View>
             ))}
           </View>
