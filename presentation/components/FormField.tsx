@@ -1,18 +1,18 @@
+import React, { useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TextInputProps,
   TouchableOpacity,
+  StyleSheet,
 } from "react-native";
-import React from "react";
-import ThemedTextInput from "../theme/components/ThemedTextInput";
-import { ThemedText } from "../theme/components/ThemedText";
-import { Ionicons } from "@expo/vector-icons"; // Asegúrate de instalar @expo/vector-icons
+import { Ionicons } from "@expo/vector-icons";
 
 interface Props extends TextInputProps {
   title: string;
   value: string;
+  errorMessage?: string;
 }
 
 const FormField = ({
@@ -20,20 +20,30 @@ const FormField = ({
   value,
   onChangeText,
   secureTextEntry,
+  errorMessage,
   ...props
 }: Props) => {
-  const [showPassword, setShowPassword] = React.useState(secureTextEntry);
+  const [showPassword, setShowPassword] = useState(secureTextEntry);
+  const [isFocused, setIsFocused] = useState(false);
 
   return (
     <View className="space-y-2 mt-7">
-      <Text className="text-white  font-medium mb-3 ">{title}</Text>
-      <View className="border-black-200 h-16 relative">
+      <Text className="text-white font-medium mb-3">{title}</Text>
+      <View className="relative flex-row items-centerx">
         <TextInput
-          className="flex-1 w-full p-4 text-base font-semibold dark:border-white dark:text-white focus:border-secondary  active:border-secondary border-2 rounded-2xl"
+          className={`flex-1 w-full p-4 text-base font-semibold text-white border-2 rounded-2xl ${
+            errorMessage
+              ? "border-red-500"
+              : isFocused
+                ? "border-purple-500"
+                : "border-gray-700"
+          }`}
           value={value}
           secureTextEntry={secureTextEntry ? showPassword : false}
           placeholderTextColor="#7b7b8b"
           onChangeText={onChangeText}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           {...props}
         />
         {secureTextEntry && (
@@ -49,6 +59,9 @@ const FormField = ({
           </TouchableOpacity>
         )}
       </View>
+      {errorMessage && (
+        <Text className="text-red-500 text-sm mt-1">{errorMessage}</Text>
+      )}
     </View>
   );
 };

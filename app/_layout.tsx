@@ -39,7 +39,7 @@ export default function Layout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" backgroundColor="#1F2B43" />
       <AuthGuard>
         <Stack
           screenOptions={{
