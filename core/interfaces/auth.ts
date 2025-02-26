@@ -8,10 +8,16 @@ export interface User {
   role?: string;
 }
 
+export interface AuthError {
+  code?: string;
+  message: string;
+}
+
 export interface AuthStore {
   status: AuthStatus;
   token?: string;
   user?: User;
+  error: string | null;
 
   login: (username: string, password: string) => Promise<boolean>;
   register: (

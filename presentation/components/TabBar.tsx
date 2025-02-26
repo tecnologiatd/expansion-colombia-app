@@ -8,14 +8,20 @@ import {
 } from "react-native";
 import * as Linking from "expo-linking";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TabBar: React.FC<BottomTabBarProps> = ({
   state,
   descriptors,
   navigation,
 }) => {
+  const insets = useSafeAreaInsets();
+
+  // Añadimos padding inferior para crear espacio entre la barra de navegación y la barra blanca de iOS
+  const bottomPadding = Platform.OS === "ios" ? Math.max(insets.bottom, 10) : 0;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <View style={styles.tabBar}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];

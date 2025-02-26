@@ -1,7 +1,7 @@
 {
   "name": "expansion-colombia-app",
   "main": "expo-router/entry",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "scripts": {
     "eas-build-pre-install": "corepack enable",
     "start": "expo start",

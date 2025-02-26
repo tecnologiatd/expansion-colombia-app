@@ -54,10 +54,38 @@ export const authRegister = async (
 
     await DeviceService.registerDevice(username);
 
-    return returnUserToken(data);
+    return {
+      success: true,
+      data: returnUserToken(data),
+      error: null,
+    };
   } catch (error) {
-    console.log(error);
-    return null;
+    console.log("Error de registro:", error);
+
+    // Extraer mensaje de error
+    let errorMessage = "Error al registrar el usuario";
+
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    }
+
+    // Formato específico para errores de WordPress
+    if (error.response?.data?.code) {
+      return {
+        success: false,
+        data: null,
+        error: {
+          code: error.response.data.code,
+          message: errorMessage,
+        },
+      };
+    }
+
+    return {
+      success: false,
+      data: null,
+      error: { message: errorMessage },
+    };
   }
 };
 

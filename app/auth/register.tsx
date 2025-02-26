@@ -1,4 +1,4 @@
-import { View, ScrollView, Alert } from "react-native";
+import { View, ScrollView, Alert, Text } from "react-native";
 import React, { useState } from "react";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
@@ -16,7 +16,7 @@ import {
 } from "@/core/validations/register-validations";
 
 const Register = () => {
-  const { register } = useAuthStore();
+  const { register, error } = useAuthStore();
   const [isPosting, setIsPosting] = useState(false);
 
   const {
@@ -40,7 +40,6 @@ const Register = () => {
     setIsPosting(true);
 
     try {
-      // Usar el email como username
       const wasSuccessful = await register(
         email,
         email.toLowerCase(),
@@ -52,15 +51,9 @@ const Register = () => {
         return;
       }
 
-      Alert.alert(
-        "Error",
-        "No se pudo completar el registro. Por favor verifica tus datos e intenta de nuevo.",
-      );
+      // El error ya estará disponible en el estado del store
     } catch (error) {
-      Alert.alert(
-        "Error",
-        "Ocurrió un error durante el registro. Por favor intenta de nuevo.",
-      );
+      Alert.alert("Error", error.message);
     } finally {
       setIsPosting(false);
     }
@@ -129,6 +122,11 @@ const Register = () => {
               )}
             />
           </View>
+          {error && (
+            <View className="bg-red-500/20 p-4 rounded-lg my-4">
+              <Text className="text-red-500 text-center">{error}</Text>
+            </View>
+          )}
 
           <View>
             <CustomButton

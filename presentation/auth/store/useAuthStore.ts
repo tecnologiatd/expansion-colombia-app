@@ -13,6 +13,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   status: "unauthenticated",
   token: undefined,
   user: undefined,
+  error: null,
 
   login: async (username: string, password: string) => {
     try {
@@ -113,16 +114,24 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
   register: async (username, email, password) => {
     try {
-      set({ status: "checking" });
+      set({ status: "checking", error: null });
       const resp = await authRegister(username, email, password);
 
-      if (!resp?.token || !resp?.user) {
-        set({ status: "unauthenticated" });
+      if (!resp.success) {
+        set({
+          status: "unauthenticated",
+          error: resp.error.message || "Error durante el registro",
+        });
+        return false;
+      }
+
+      if (!resp.data?.token || !resp.data?.user) {
+        set({ status: "unauthenticated", error: "Error durante el registro" });
         return false;
       }
 
       backendApi.defaults.headers.common["Authorization"] =
-        `Bearer ${resp.token}`;
+        `Bearer ${resp.data.token}`;
 
       try {
         const customerResp = await backendApi.get("/customer");
@@ -130,26 +139,31 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
         set({
           status: "authenticated",
-          token: resp.token,
+          token: resp.data.token,
           user: {
-            ...resp.user,
+            ...resp.data.user,
             role,
           },
+          error: null,
         });
       } catch (error) {
         console.error("Error fetching user role:", error);
         set({
           status: "authenticated",
-          token: resp.token,
-          user: resp.user,
+          token: resp.data.token,
+          user: resp.data.user,
+          error: null,
         });
       }
 
-      await SecureStorageAdapter.setItem("token", resp.token);
+      await SecureStorageAdapter.setItem("token", resp.data.token);
       return true;
     } catch (error) {
       console.error("Register error:", error);
-      set({ status: "unauthenticated" });
+      set({
+        status: "unauthenticated",
+        error: error?.message || "Error durante el registro",
+      });
       return false;
     }
   },
