@@ -39,11 +39,18 @@ export const NotificationModal: React.FC<Props> = ({ visible, onClose }) => {
         <View className="mb-auto w-full">
           <View className="flex-row items-center justify-between p-4 border-b border-gray-800">
             <Text className="text-white text-xl font-bold">Notificaciones</Text>
-            {notifications.length > 0 && (
-              <TouchableOpacity className="p-2" onPress={clearAll}>
-                <Ionicons name="trash-outline" size={24} color="white" />
-              </TouchableOpacity>
-            )}
+            <View className="flex-row items-center">
+              {notifications.length > 0 && (
+                <TouchableOpacity className="p-2 mr-2" onPress={clearAll}>
+                  <Ionicons name="trash-outline" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+              {Platform.OS === "android" && (
+                <TouchableOpacity className="p-2" onPress={onClose}>
+                  <Ionicons name="close" size={24} color="white" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           {notifications.length === 0 ? (
