@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TextInputProps,
   TouchableOpacity,
-  StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -13,6 +12,7 @@ interface Props extends TextInputProps {
   title: string;
   value: string;
   errorMessage?: string;
+  inputRef?: React.RefObject<TextInput>;
 }
 
 const FormField = ({
@@ -21,6 +21,7 @@ const FormField = ({
   onChangeText,
   secureTextEntry,
   errorMessage,
+  inputRef,
   ...props
 }: Props) => {
   const [showPassword, setShowPassword] = useState(secureTextEntry);
@@ -29,8 +30,9 @@ const FormField = ({
   return (
     <View className="space-y-2 mt-7">
       <Text className="text-white font-medium mb-3">{title}</Text>
-      <View className="relative flex-row items-centerx">
+      <View className="relative flex-row items-center">
         <TextInput
+          ref={inputRef}
           className={`flex-1 w-full p-4 text-base font-semibold text-white border-2 rounded-2xl ${
             errorMessage
               ? "border-red-500"

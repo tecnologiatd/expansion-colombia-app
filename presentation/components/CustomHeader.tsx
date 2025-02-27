@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { NotificationModal } from "./NotificationModal";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -45,8 +45,8 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
   };
 
   return (
-    <SafeAreaView>
-      <View className="flex-row items-center justify-between px-4 py-3 bg-gray-900">
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.headerContainer}>
         <View className="flex-row items-center">
           {back && (
             <TouchableOpacity onPress={() => router.back()} className="mr-4">
@@ -68,5 +68,20 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: "#1F2B43",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#1F2B43", // Use the same background color as SafeAreaView
+    borderBottomWidth: 0, // Ensure no border at the bottom
+  },
+});
 
 export default CustomHeader;
