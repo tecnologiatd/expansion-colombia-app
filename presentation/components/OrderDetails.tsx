@@ -1,4 +1,5 @@
-import React from "react";
+// presentation/components/OrderDetails.tsx
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +11,7 @@ import {
 import { useOrderDetails } from "@/presentation/hooks/useOrders";
 import { TicketQRSection } from "@/presentation/components/TicketQRSection";
 import { Ionicons } from "@expo/vector-icons";
-import * as Linking from "expo-linking";
+import PaymentWebView from "@/presentation/components/PaymentWebView";
 
 const OrderDetails = ({ orderId }) => {
   const {
@@ -20,6 +21,9 @@ const OrderDetails = ({ orderId }) => {
     error,
     refetch,
   } = useOrderDetails(orderId);
+
+  // Estado para controlar la visibilidad del WebView de pago
+  const [paymentWebViewVisible, setPaymentWebViewVisible] = useState(false);
 
   if (isLoading) {
     return (
@@ -50,13 +54,10 @@ const OrderDetails = ({ orderId }) => {
     0,
   );
 
-  const handlePayment = async () => {
+  const handlePayment = () => {
     if (order?.payment_url) {
-      try {
-        await Linking.openURL(order.payment_url);
-      } catch (error) {
-        console.error("Error opening payment URL:", error);
-      }
+      // En lugar de usar Linking, mostramos el WebView
+      setPaymentWebViewVisible(true);
     }
   };
 
@@ -110,100 +111,119 @@ const OrderDetails = ({ orderId }) => {
   const statusConfig = getStatusConfig(order.status);
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-900"
-      refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refetch} />
-      }
-    >
-      {/* Order Status and Info */}
-      <View className="p-4 bg-gray-800 rounded-lg m-4">
-        <View className="flex-row justify-between items-center mb-4">
-          <View>
-            <Text className="text-gray-400">Estado del pedido</Text>
-            <Text className={`text-lg capitalize ${statusConfig.color}`}>
-              <Ionicons name={statusConfig.icon} size={18} />{" "}
-              {statusConfig.text}
-            </Text>
+    <>
+      <ScrollView
+        className="flex-1 bg-gray-900"
+        refreshControl={
+          <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+        }
+      >
+        {/* Order Status and Info */}
+        <View className="p-4 bg-gray-800 rounded-lg m-4">
+          <View className="flex-row justify-between items-center mb-4">
+            <View>
+              <Text className="text-gray-400">Estado del pedido</Text>
+              <Text className={`text-lg capitalize ${statusConfig.color}`}>
+                <Ionicons name={statusConfig.icon} size={18} />{" "}
+                {statusConfig.text}
+              </Text>
+            </View>
+            <View>
+              <Text className="text-gray-400">Fecha</Text>
+              <Text className="text-white">
+                {formatDate(order.date_created)}
+              </Text>
+            </View>
           </View>
-          <View>
-            <Text className="text-gray-400">Fecha</Text>
-            <Text className="text-white">{formatDate(order.date_created)}</Text>
+
+          <View className="border-t border-gray-700 pt-4">
+            <Text className="text-white text-lg font-bold mb-2">Resumen</Text>
+            <View className="flex-row justify-between mb-2">
+              <Text className="text-gray-400">Total</Text>
+              <Text className="text-white text-lg font-bold">
+                {formatCurrency(order.total)}
+              </Text>
+            </View>
+            <View className="flex-row justify-between">
+              <Text className="text-gray-400">Cantidad</Text>
+              <Text className="text-white">
+                {totalItems} {totalItems === 1 ? "item" : "items"}
+              </Text>
+            </View>
           </View>
         </View>
 
-        <View className="border-t border-gray-700 pt-4">
-          <Text className="text-white text-lg font-bold mb-2">Resumen</Text>
-          <View className="flex-row justify-between mb-2">
-            <Text className="text-gray-400">Total</Text>
-            <Text className="text-white text-lg font-bold">
-              {formatCurrency(order.total)}
+        {/* Line Items with Tickets */}
+        {order.line_items.map((item) => (
+          <View key={item.id} className="mx-4 mb-4 bg-gray-800 rounded-lg p-4">
+            <Text className="text-white font-bold text-lg">{item.name}</Text>
+            <Text className="text-gray-400">Cantidad: {item.quantity}</Text>
+            <Text className="text-white mt-1">
+              {formatCurrency(item.total)}
             </Text>
+
+            <TicketQRSection
+              orderId={orderId}
+              orderStatus={order.status}
+              eventId={item.product_id.toString()}
+              quantity={item.quantity}
+            />
           </View>
-          <View className="flex-row justify-between">
-            <Text className="text-gray-400">Cantidad</Text>
-            <Text className="text-white">
-              {totalItems} {totalItems === 1 ? "item" : "items"}
-            </Text>
-          </View>
+        ))}
+
+        {/* Billing Info */}
+        <View className="m-4 bg-gray-800 rounded-lg p-4">
+          <Text className="text-white text-lg font-bold mb-4">
+            Detalles de facturación
+          </Text>
+          {order.billing && (
+            <View className="space-y-2">
+              <Text className="text-gray-400">
+                {order.billing.first_name} {order.billing.last_name}
+              </Text>
+              <Text className="text-gray-400">
+                <Ionicons name="mail-outline" size={16} /> {order.billing.email}
+              </Text>
+              <Text className="text-gray-400">
+                <Ionicons name="call-outline" size={16} /> {order.billing.phone}
+              </Text>
+              <Text className="text-gray-400">
+                <Ionicons name="location-outline" size={16} />
+                {` ${order.billing.address_1}, ${order.billing.city}, ${order.billing.state}`}
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
 
-      {/* Line Items with Tickets */}
-      {order.line_items.map((item) => (
-        <View key={item.id} className="mx-4 mb-4 bg-gray-800 rounded-lg p-4">
-          <Text className="text-white font-bold text-lg">{item.name}</Text>
-          <Text className="text-gray-400">Cantidad: {item.quantity}</Text>
-          <Text className="text-white mt-1">{formatCurrency(item.total)}</Text>
-
-          <TicketQRSection
-            orderId={orderId}
-            orderStatus={order.status}
-            eventId={item.product_id.toString()}
-            quantity={item.quantity}
-          />
-        </View>
-      ))}
-
-      {/* Billing Info */}
-      <View className="m-4 bg-gray-800 rounded-lg p-4">
-        <Text className="text-white text-lg font-bold mb-4">
-          Detalles de facturación
-        </Text>
-        {order.billing && (
-          <View className="space-y-2">
-            <Text className="text-gray-400">
-              {order.billing.first_name} {order.billing.last_name}
-            </Text>
-            <Text className="text-gray-400">
-              <Ionicons name="mail-outline" size={16} /> {order.billing.email}
-            </Text>
-            <Text className="text-gray-400">
-              <Ionicons name="call-outline" size={16} /> {order.billing.phone}
-            </Text>
-            <Text className="text-gray-400">
-              <Ionicons name="location-outline" size={16} />
-              {` ${order.billing.address_1}, ${order.billing.city}, ${order.billing.state}`}
-            </Text>
+        {/* Payment Action */}
+        {order.status === "pending" && order.payment_url && (
+          <View className="m-4">
+            <TouchableOpacity
+              className="bg-purple-500 p-4 rounded-lg flex-row justify-center items-center"
+              onPress={handlePayment}
+            >
+              <Ionicons name="card-outline" size={20} color="white" />
+              <Text className="text-white font-bold text-lg ml-2">
+                Completar Pago
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
-      </View>
+      </ScrollView>
 
-      {/* Payment Action */}
-      {order.status === "pending" && order.payment_url && (
-        <View className="m-4">
-          <TouchableOpacity
-            className="bg-purple-500 p-4 rounded-lg flex-row justify-center items-center"
-            onPress={handlePayment}
-          >
-            <Ionicons name="card-outline" size={20} color="white" />
-            <Text className="text-white font-bold text-lg ml-2">
-              Completar Pago
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {/* PaymentWebView Modal */}
+      {paymentWebViewVisible && order?.payment_url && (
+        <PaymentWebView
+          visible={paymentWebViewVisible}
+          paymentUrl={order.payment_url}
+          orderId={orderId}
+          onClose={() => {
+            setPaymentWebViewVisible(false);
+            refetch(); // Refrescar los datos de la orden después de cerrar el WebView
+          }}
+        />
       )}
-    </ScrollView>
+    </>
   );
 };
 

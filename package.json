@@ -1,7 +1,7 @@
 {
   "name": "expansion-colombia-app",
   "main": "expo-router/entry",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "scripts": {
     "eas-build-pre-install": "corepack enable",
     "start": "expo start",
@@ -37,6 +37,7 @@
     "expo-system-ui": "~4.0.8",
     "html-entities": "^2.5.2",
     "html5-qrcode": "^2.3.8",
+    "jwt-decode": "^4.0.0",
     "nativewind": "^4.1.23",
     "qr-code-styling": "^1.9.1",
     "react": "18.3.1",
@@ -51,7 +52,7 @@
     "react-native-screens": "~4.8.0",
     "react-native-svg": "15.8.0",
     "react-native-web": "~0.19.13",
-    "react-native-webview": "~13.13.1",
+    "react-native-webview": "13.13.2",
     "tailwindcss": "^3.4.17",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"

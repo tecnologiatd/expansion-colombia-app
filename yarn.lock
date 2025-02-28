@@ -6103,6 +6103,7 @@ __metadata:
     html5-qrcode: "npm:^2.3.8"
     jest: "npm:^29.2.1"
     jest-expo: "npm:~52.0.5"
+    jwt-decode: "npm:^4.0.0"
     nativewind: "npm:^4.1.23"
     prettier: "npm:^3.4.2"
     qr-code-styling: "npm:^1.9.1"
@@ -6118,7 +6119,7 @@ __metadata:
     react-native-screens: "npm:~4.8.0"
     react-native-svg: "npm:15.8.0"
     react-native-web: "npm:~0.19.13"
-    react-native-webview: "npm:~13.13.1"
+    react-native-webview: "npm:13.13.2"
     react-test-renderer: "npm:18.3.1"
     tailwindcss: "npm:^3.4.17"
     typescript: "npm:^5.3.3"
@@ -8895,6 +8896,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jwt-decode@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "jwt-decode@npm:4.0.0"
+  checksum: 10c0/de75bbf89220746c388cf6a7b71e56080437b77d2edb29bae1c2155048b02c6b8c59a3e5e8d6ccdfd54f0b8bda25226e491a4f1b55ac5f8da04cfbadec4e546c
+  languageName: node
+  linkType: hard
+
 "keyv@npm:^4.5.3":
   version: 4.5.4
   resolution: "keyv@npm:4.5.4"
@@ -11162,7 +11170,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-webview@npm:~13.13.1":
+"react-native-webview@npm:13.13.2":
   version: 13.13.2
   resolution: "react-native-webview@npm:13.13.2"
   dependencies:

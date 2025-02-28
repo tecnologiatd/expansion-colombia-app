@@ -11,15 +11,22 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { useCreateOrder } from "@/presentation/hooks/useOrders";
 import { useCartStore } from "@/core/stores/cart-store";
-import * as Linking from "expo-linking";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import PaymentWebView from "@/presentation/components/PaymentWebView";
 
 export default function PaymentScreen() {
   const { billingData } = useLocalSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
   const { createOrderMutation, prepareOrderItems } = useCreateOrder();
-  const { calculateTotal } = useCartStore();
+  const { calculateTotal, clearCart } = useCartStore();
+
+  // Estado para controlar la visibilidad del WebView y sus datos
+  const [webViewVisible, setWebViewVisible] = useState(false);
+  const [paymentData, setPaymentData] = useState<{
+    url: string;
+    orderId: string;
+  } | null>(null);
 
   const handlePaymentMethod = async (
     method: "openpay_pse" | "openpay_cards",
@@ -36,11 +43,12 @@ export default function PaymentScreen() {
       });
 
       if (response?.payment_url) {
-        // Open payment URL and navigate to order details
-        await Linking.openURL(response.payment_url);
-        router.dismissTo({
-          pathname: "/order/" + response.id.toString(),
+        // En lugar de abrir el navegador externo, guardamos los datos y mostramos el WebView
+        setPaymentData({
+          url: response.payment_url,
+          orderId: response.id.toString(),
         });
+        setWebViewVisible(true);
       } else {
         Alert.alert("Error", "No se recibió la URL de pago del servidor");
       }
@@ -53,6 +61,10 @@ export default function PaymentScreen() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleCloseWebView = () => {
+    setWebViewVisible(false);
   };
 
   return (
@@ -142,6 +154,16 @@ export default function PaymentScreen() {
           </Text>
         </View>
       </View>
+
+      {/* WebView Modal para pagos */}
+      {webViewVisible && paymentData && (
+        <PaymentWebView
+          visible={webViewVisible}
+          paymentUrl={paymentData.url}
+          orderId={paymentData.orderId}
+          onClose={handleCloseWebView}
+        />
+      )}
     </SafeAreaView>
   );
 }
