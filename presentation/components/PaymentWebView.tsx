@@ -41,6 +41,7 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [progressPercent, setProgressPercent] = useState(0);
   const progressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isOpenPay, setIsOpenPay] = useState(false);
 
   // Función para simular progreso de carga
   const simulateProgress = () => {
@@ -82,18 +83,12 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
         const storedToken = await SecureStorageAdapter.getItem("token");
         setToken(storedToken);
 
-        // Simplificamos la URL - para iOS es mejor no sobrecargar con parámetros
-        if (Platform.OS === "ios") {
-          setAuthUrl(paymentUrl);
+        if (storedToken && paymentUrl) {
+          const url = new URL(paymentUrl);
+          url.searchParams.append("auth_token", storedToken);
+          setAuthUrl(url.toString());
         } else {
-          // En Android seguimos añadiendo el token como parámetro
-          if (storedToken && paymentUrl) {
-            const url = new URL(paymentUrl);
-            url.searchParams.append("auth_token", storedToken);
-            setAuthUrl(url.toString());
-          } else {
-            setAuthUrl(paymentUrl);
-          }
+          setAuthUrl(paymentUrl);
         }
       } catch (e) {
         console.error("Error cargando token:", e);
@@ -122,6 +117,15 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
   }, [visible, paymentUrl]);
 
   const handleGoBack = () => {
+    if (isOpenPay) {
+      // Si OpenPay está activo, mostrar una alerta especial
+      Alert.alert("Procesando pago", "¿Estás seguro de que deseas cancelar?", [
+        { text: "No", style: "cancel" },
+        { text: "Sí, cancelar", style: "destructive", onPress: onClose },
+      ]);
+      return true;
+    }
+
     if (webViewRef.current) {
       webViewRef.current.goBack();
       return true;
@@ -129,62 +133,42 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
     return false;
   };
 
-  // Script muy simplificado para iOS
+  // Script para inyectar en el WebView
   const getInjectedJavaScript = () => {
-    // En iOS, usamos un script minimalista
-    if (Platform.OS === "ios") {
-      return `
-        (function() {
-          // Notificar página cargada
-          window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAGE_LOADED'}));
-          
-          // Detectar confirmación o error
-          function checkStatus() {
-            if (window.location.href.includes('order-received') || 
-                window.location.href.includes('thank-you')) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'PAYMENT_COMPLETED', orderId: '${orderId}'
-              }));
-            }
-            
-            const errorElements = document.querySelectorAll('.woocommerce-error');
-            if (errorElements.length > 0) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'PAYMENT_ERROR', message: 'Error en el proceso de pago'
-              }));
-            }
-          }
-          
-          // Ejecutar cuando el DOM esté listo
-          if (document.readyState !== 'loading') {
-            checkStatus();
-          } else {
-            document.addEventListener('DOMContentLoaded', checkStatus);
-          }
-          
-          // Revisar de nuevo después de un tiempo
-          setTimeout(checkStatus, 1000);
-          
-          return true;
-        })();
-      `;
-    }
+    if (!token) return "";
 
-    // Para Android, usamos el script completo
     return `
       (function() {
-        // Establecer token en cookies y localStorage
-        document.cookie = "wp_auth_token=${token}; path=/";
-        localStorage.setItem('wp_auth_token', '${token}');
-        
-        // Notificar al WebView
         window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'PAGE_LOADED'
+          type: 'SCRIPT_LOADED',
+          platform: '${Platform.OS}'
         }));
         
-        // Detectar estado de página
+        // Establecer token para autenticación
+        document.cookie = "wp_auth_token=${token}; path=/";
+        try {
+          localStorage.setItem('wp_auth_token', '${token}');
+        } catch(e) {
+          console.log('Error en localStorage', e);
+        }
+        
+        // Detectar PSE o tarjetas
+        function detectPaymentMethod() {
+          if (document.querySelector('[name="payment_method"][value="openpay_pse"]')) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'PAYMENT_METHOD_DETECTED',
+              method: 'pse'
+            }));
+          } else if (document.querySelector('[name="payment_method"][value="openpay_cards"]')) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'PAYMENT_METHOD_DETECTED',
+              method: 'card'
+            }));
+          }
+        }
+        
+        // Detectar página de éxito o error
         function checkPageStatus() {
-          // Comprobar si estamos en una página de confirmación
           if (window.location.href.includes('/order-received/') || 
               window.location.href.includes('/thank-you/')) {
             window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -193,8 +177,7 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
             }));
           }
           
-          // Detectar errores
-          const errorElements = document.querySelectorAll('.woocommerce-error');
+          const errorElements = document.querySelectorAll('.woocommerce-error, .payment-error');
           if (errorElements.length > 0) {
             let errorMsg = '';
             errorElements.forEach(el => errorMsg += el.textContent + ' ');
@@ -206,15 +189,37 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
           }
         }
         
-        // Ejecutar inicial
-        checkPageStatus();
+        // Ejecutar cuando el DOM esté listo
+        function onPageReady() {
+          detectPaymentMethod();
+          checkPageStatus();
+        }
         
-        // Ejecutar cuando haya cambios
-        const observer = new MutationObserver(checkPageStatus);
-        observer.observe(document.body, { 
-          childList: true, 
-          subtree: true 
-        });
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', onPageReady);
+        } else {
+          onPageReady();
+        }
+        
+        // Observar cambios en el DOM
+        try {
+          const observer = new MutationObserver(function() {
+            detectPaymentMethod();
+            checkPageStatus();
+          });
+          
+          observer.observe(document.body, { 
+            childList: true, 
+            subtree: true 
+          });
+        } catch(e) {
+          console.log('Error con observer', e);
+        }
+        
+        // Poner un mensaje de carga completada
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'PAGE_LOADED'
+        }));
         
         return true;
       })();
@@ -226,34 +231,64 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
       const data = JSON.parse(event.nativeEvent.data);
 
       switch (data.type) {
+        case "SCRIPT_LOADED":
+          console.log("Script cargado en:", data.platform);
+          break;
+
         case "PAGE_LOADED":
-          // Asegurar que el indicador de carga se oculte después de un tiempo prudente
+          // Finalizar carga después de un tiempo prudencial
           setTimeout(() => {
             setIsLoading(false);
             setProgressPercent(100);
-          }, 500);
+          }, 800);
+          break;
+
+        case "PAYMENT_METHOD_DETECTED":
+          console.log("Método de pago detectado:", data.method);
+          setIsOpenPay(true);
+          if (data.method === "pse") {
+            setProgressStage("Preparando pago PSE...");
+          } else if (data.method === "card") {
+            setProgressStage("Preparando pago con tarjeta...");
+          }
           break;
 
         case "PAYMENT_COMPLETED":
+          console.log("Pago completado");
           onClose();
           router.replace(`/order/${orderId}`);
           break;
 
         case "PAYMENT_ERROR":
-          Alert.alert(
-            "Error en el pago",
-            data.message || "Ha ocurrido un error procesando tu pago.",
-            [
-              { text: "Cancelar", style: "cancel", onPress: onClose },
-              {
-                text: "Abrir en navegador",
-                onPress: async () => {
-                  await Linking.openURL(paymentUrl);
-                  onClose();
+          console.log("Error en pago:", data.message);
+          // Si es error de OpenPay, ofrecer navegador externo
+          if (
+            data.message &&
+            (data.message.includes("1002") ||
+              data.message.toLowerCase().includes("openpay") ||
+              data.message.toLowerCase().includes("pse"))
+          ) {
+            Alert.alert(
+              "Error en la pasarela de pago",
+              "Se ha detectado un problema con la pasarela de pago. ¿Deseas continuar en el navegador externo?",
+              [
+                { text: "Cancelar", style: "cancel", onPress: onClose },
+                {
+                  text: "Abrir en navegador",
+                  onPress: async () => {
+                    await Linking.openURL(paymentUrl);
+                    onClose();
+                  },
                 },
-              },
-            ],
-          );
+              ],
+            );
+          } else {
+            Alert.alert(
+              "Error en el pago",
+              data.message || "Ha ocurrido un error procesando tu pago.",
+              [{ text: "OK", onPress: onClose }],
+            );
+          }
           break;
       }
     } catch (error) {
@@ -262,22 +297,31 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
   };
 
   const handleNavigationStateChange = (navState) => {
-    // Detectar página de confirmación por URL
+    // Detectar página de éxito por URL
     if (
       navState.url.includes("/order-received/") ||
       navState.url.includes("/thank-you/")
     ) {
+      console.log("Navegación a página de éxito");
       onClose();
       router.replace(`/order/${orderId}`);
     }
 
-    // Asegurar que isLoading se actualice correctamente
+    // Detectar páginas de OpenPay
+    if (
+      navState.url.includes("openpay") ||
+      navState.url.includes("bancolombia") ||
+      navState.url.includes("pse")
+    ) {
+      console.log("Navegación a página de OpenPay o PSE");
+      setIsOpenPay(true);
+    }
+
+    // Actualizar etapa de carga
     if (navState.loading) {
-      setProgressStage("Cargando " + navState.title || "página");
-    } else if (!isLoading) {
-      // Ya está cargado, no hacemos nada
-    } else {
-      // Forzar fin de carga después de un tiempo prudencial
+      setProgressStage(`Cargando ${navState.title || "página"}...`);
+    } else if (progressPercent < 100) {
+      setProgressPercent(99);
       setTimeout(() => {
         setIsLoading(false);
         setProgressPercent(100);
@@ -287,24 +331,29 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
 
   const handleLoadStart = () => {
     setIsLoading(true);
-    setProgressPercent(10);
-    setProgressStage("Iniciando conexión...");
+    setProgressPercent(20);
   };
 
   const handleLoadEnd = () => {
-    // Dar un poco más de tiempo antes de ocultar el indicador
+    // Gradualmente ocultar la pantalla de carga para una experiencia más suave
     setTimeout(
       () => {
-        setIsLoading(false);
-        setProgressPercent(100);
+        setProgressPercent(95);
+        setTimeout(() => {
+          setIsLoading(false);
+          setProgressPercent(100);
+        }, 500);
       },
-      Platform.OS === "ios" ? 1000 : 300,
+      Platform.OS === "ios" ? 1000 : 500,
     );
   };
 
   const handleError = (syntheticEvent) => {
     const { nativeEvent } = syntheticEvent;
-    setError(`Error al cargar la página: ${nativeEvent.description}`);
+    console.error("WebView error:", nativeEvent);
+    setError(
+      `Error al cargar la página: ${nativeEvent.description || "Error desconocido"}`,
+    );
     setIsLoading(false);
   };
 
@@ -324,12 +373,32 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
     default: undefined,
   });
 
+  // Propiedades específicas de iOS
+  const iosSpecificProps =
+    Platform.OS === "ios"
+      ? {
+          allowsBackForwardNavigationGestures: true,
+          applicationNameForUserAgent: "ExpansionColombia/1.0",
+          decelerationRate: "normal",
+          useWebKit: true,
+        }
+      : {};
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       transparent={false}
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        Alert.alert(
+          "Cancelar pago",
+          "¿Estás seguro que deseas cancelar este pago?",
+          [
+            { text: "No", style: "cancel" },
+            { text: "Sí", onPress: onClose },
+          ],
+        );
+      }}
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -348,7 +417,9 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
           >
             <Ionicons name="close" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Completar Pago</Text>
+          <Text style={styles.headerTitle}>
+            {isOpenPay ? "Procesando Pago" : "Completar Pago"}
+          </Text>
           <TouchableOpacity
             style={styles.refreshButton}
             onPress={() => {
@@ -427,24 +498,17 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
               onMessage={handleMessage}
               onNavigationStateChange={handleNavigationStateChange}
               onError={handleError}
+              // Props básicas para ambas plataformas
               javaScriptEnabled={true}
               domStorageEnabled={true}
               sharedCookiesEnabled={true}
               mediaPlaybackRequiresUserAction={true}
               allowsInlineMediaPlayback={true}
               userAgent={userAgent}
-              // Cookies
-              sharedCookiesEnabled={true}
-              thirdPartyCookiesEnabled={Platform.OS === "android"}
-              // iOS específico
-              useWebKit={true}
-              applicationNameForUserAgent="ExpansionColombia/1.0"
-              decelerationRate="normal"
-              allowsBackForwardNavigationGestures={true}
-              // Evitar redibujados innecesarios
+              // Configuración de caché
               cacheEnabled={true}
-              cacheMode="LOAD_DEFAULT"
-              incognito={false}
+              // Props específicas de iOS
+              {...iosSpecificProps}
             />
           )
         )}
