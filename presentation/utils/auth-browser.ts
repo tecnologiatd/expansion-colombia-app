@@ -35,21 +35,32 @@ export class AuthBrowser {
       // Construir URL con token de autenticación
       const urlObj = new URL(url);
 
-      // Añadir token como parámetro de autenticación
-      urlObj.searchParams.append("auth_token", token);
+      // Verificar si ya existe un parámetro auth_token
+      const existingAuthToken = urlObj.searchParams.get("auth_token");
+
+      // Solo añadir el token si no existe ya
+      if (!existingAuthToken) {
+        urlObj.searchParams.append("auth_token", token);
+      }
 
       // Añadir parámetros adicionales si se proporcionan
       if (options.additionalParams) {
         Object.entries(options.additionalParams).forEach(([key, value]) => {
-          urlObj.searchParams.append(key, value);
+          // Verificar si ya existe el parámetro antes de añadirlo
+          if (!urlObj.searchParams.has(key)) {
+            urlObj.searchParams.append(key, value);
+          }
         });
       }
 
       // Añadir parámetro para identificar origen (app móvil)
-      urlObj.searchParams.append("source", "mobile_app");
+      if (!urlObj.searchParams.has("source")) {
+        urlObj.searchParams.append("source", "mobile_app");
+      }
 
       // URL final con todos los parámetros
       const authUrl = urlObj.toString();
+      console.log("Opening payment URL:", authUrl); // Debug
 
       // Mostrar alerta antes de abrir el navegador (opcional)
       if (options.showAlert) {
@@ -67,8 +78,17 @@ export class AuthBrowser {
               {
                 text: "Continuar",
                 onPress: async () => {
-                  const opened = await Linking.openURL(authUrl);
-                  resolve(!!opened);
+                  try {
+                    const opened = await Linking.openURL(authUrl);
+                    resolve(!!opened);
+                  } catch (error) {
+                    console.error("Error opening URL:", error);
+                    Alert.alert(
+                      "Error",
+                      "No se pudo abrir el navegador. Por favor intente nuevamente.",
+                    );
+                    resolve(false);
+                  }
                 },
               },
             ],
@@ -95,15 +115,37 @@ export class AuthBrowser {
     paymentUrl: string,
     orderId: string,
   ): Promise<boolean> {
-    return this.openAuthUrl(paymentUrl, {
-      showAlert: true,
-      alertTitle: "Procesando Pago",
-      alertMessage:
-        "Se abrirá el navegador para completar el pago. Tu sesión se mantendrá automáticamente.",
-      additionalParams: {
-        order_id: orderId,
-        return_url: Linking.createURL("/order/" + orderId),
-      },
-    });
+    try {
+      // Usar directamente el esquema de la app para la URL de retorno
+      const appReturnUrl = `expansioncolombia://order/${orderId}`;
+
+      // Extraer URL base sin parámetros para evitar conflictos
+      let baseUrl = paymentUrl;
+      const questionMarkIndex = paymentUrl.indexOf("?");
+
+      if (questionMarkIndex !== -1) {
+        // Si ya tiene parámetros, usamos la URL completa
+        // y confiamos en la verificación de parámetros duplicados
+        baseUrl = paymentUrl;
+      }
+
+      return this.openAuthUrl(baseUrl, {
+        showAlert: true,
+        alertTitle: "Procesando Pago",
+        alertMessage:
+          "Se abrirá el navegador para completar el pago. Tu sesión se mantendrá automáticamente.",
+        additionalParams: {
+          order_id: orderId,
+          return_url: appReturnUrl,
+        },
+      });
+    } catch (error) {
+      console.error("Error preparing payment URL:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo preparar la URL de pago. Por favor, intenta nuevamente.",
+      );
+      return false;
+    }
   }
 }

@@ -17,6 +17,7 @@ import { SecureStorageAdapter } from "@/helpers/adapters/secure-storage.adapter"
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getPaymentUrl } from "@/presentation/hooks/useOrders";
 
 interface PaymentWebViewProps {
   visible: boolean;
@@ -83,13 +84,34 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
         const storedToken = await SecureStorageAdapter.getItem("token");
         setToken(storedToken);
 
-        if (storedToken && paymentUrl) {
-          const url = new URL(paymentUrl);
-          url.searchParams.append("auth_token", storedToken);
-          setAuthUrl(url.toString());
-        } else {
-          setAuthUrl(paymentUrl);
+        // Verificar si la URL ya contiene los parámetros necesarios
+        let finalUrl = paymentUrl;
+
+        // Extraer order_key de la URL si existe
+        const urlObj = new URL(paymentUrl);
+        const orderKey = urlObj.searchParams.get("key");
+
+        // Si tenemos orderId y orderKey, usamos el formato correcto de URL
+        if (orderId && orderKey) {
+          finalUrl = getPaymentUrl(orderId, orderKey);
         }
+
+        // Añadir token de autenticación si existe
+        if (storedToken) {
+          const urlWithAuth = new URL(finalUrl);
+          if (!urlWithAuth.searchParams.has("auth_token")) {
+            urlWithAuth.searchParams.append("auth_token", storedToken);
+          }
+          urlWithAuth.searchParams.append("source", "mobile_app");
+          urlWithAuth.searchParams.append(
+            "return_url",
+            `expansioncolombia://order/${orderId}`,
+          );
+          finalUrl = urlWithAuth.toString();
+        }
+
+        console.log("URL final para WebView:", finalUrl);
+        setAuthUrl(finalUrl);
       } catch (e) {
         console.error("Error cargando token:", e);
         setAuthUrl(paymentUrl);
@@ -170,7 +192,8 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
         // Detectar página de éxito o error
         function checkPageStatus() {
           if (window.location.href.includes('/order-received/') || 
-              window.location.href.includes('/thank-you/')) {
+              window.location.href.includes('/thank-you/') ||
+              window.location.href.includes('/pedido-recibido/')) {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'PAYMENT_COMPLETED',
               orderId: '${orderId}'
@@ -276,7 +299,7 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
                 {
                   text: "Abrir en navegador",
                   onPress: async () => {
-                    await Linking.openURL(paymentUrl);
+                    await openInBrowser();
                     onClose();
                   },
                 },
@@ -300,7 +323,8 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
     // Detectar página de éxito por URL
     if (
       navState.url.includes("/order-received/") ||
-      navState.url.includes("/thank-you/")
+      navState.url.includes("/thank-you/") ||
+      navState.url.includes("/pedido-recibido/")
     ) {
       console.log("Navegación a página de éxito");
       onClose();
@@ -359,9 +383,36 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
 
   const openInBrowser = async () => {
     try {
-      await Linking.openURL(paymentUrl);
+      // Extraer order_key de la URL si existe
+      const urlObj = new URL(paymentUrl);
+      const orderKey = urlObj.searchParams.get("key");
+
+      // Crear URL con el formato correcto
+      let urlToOpen = paymentUrl;
+
+      if (orderId && orderKey) {
+        urlToOpen = getPaymentUrl(orderId, orderKey);
+
+        // Añadir token de autenticación si existe
+        if (token) {
+          const urlWithAuth = new URL(urlToOpen);
+          if (!urlWithAuth.searchParams.has("auth_token")) {
+            urlWithAuth.searchParams.append("auth_token", token);
+          }
+          urlWithAuth.searchParams.append("source", "mobile_app");
+          urlWithAuth.searchParams.append(
+            "return_url",
+            `expansioncolombia://order/${orderId}`,
+          );
+          urlToOpen = urlWithAuth.toString();
+        }
+      }
+
+      console.log("Abriendo en navegador externo:", urlToOpen);
+      await Linking.openURL(urlToOpen);
       onClose();
     } catch (e) {
+      console.error("Error al abrir navegador externo:", e);
       Alert.alert("Error", "No se pudo abrir el navegador externo");
     }
   };

@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
-import { useOrderDetails } from "@/presentation/hooks/useOrders";
+import { getPaymentUrl, useOrderDetails } from "@/presentation/hooks/useOrders";
 import { TicketQRSection } from "@/presentation/components/TicketQRSection";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthBrowser } from "@/presentation/utils/auth-browser";
@@ -52,15 +53,45 @@ const OrderDetails = ({ orderId }) => {
   );
 
   const handlePayment = async () => {
-    if (order?.payment_url) {
-      // Utilizar la nueva clase AuthBrowser para abrir el navegador externo
-      // con autenticación automática
-      await AuthBrowser.openPaymentUrl(order.payment_url, orderId);
+    try {
+      // Construir la URL de pago correcta
+      let paymentUrl;
 
-      // Después de que el usuario regrese, refrescar los datos del pedido
-      setTimeout(() => {
-        refetch();
-      }, 1000);
+      if (order.order_key && order.id) {
+        // Usamos la nueva función para generar la URL correcta
+        paymentUrl = getPaymentUrl(order.id.toString(), order.order_key);
+      } else if (order?.payment_url) {
+        // Fallback a la URL proporcionada por la API
+        paymentUrl = order.payment_url;
+      } else {
+        Alert.alert("Error", "No se pudo generar la URL de pago");
+        return;
+      }
+
+      console.log("Abriendo URL de pago:", paymentUrl);
+
+      // Utilizar AuthBrowser para abrir el navegador con autenticación
+      const opened = await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
+
+      if (opened) {
+        // Informar al usuario sobre el proceso
+        Alert.alert(
+          "Pago en Proceso",
+          "Una vez completado el pago, serás redirigido automáticamente de vuelta a la aplicación.",
+          [{ text: "Entendido" }],
+        );
+
+        // Después de que el usuario regrese, refrescar los datos
+        setTimeout(() => {
+          refetch();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Error al abrir URL de pago:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo abrir la página de pago. Por favor intenta nuevamente.",
+      );
     }
   };
 
@@ -194,7 +225,7 @@ const OrderDetails = ({ orderId }) => {
       </View>
 
       {/* Payment Action */}
-      {order.status === "pending" && order.payment_url && (
+      {order.status === "pending" && (
         <View className="m-4">
           <TouchableOpacity
             className="bg-purple-500 p-4 rounded-lg flex-row justify-center items-center"

@@ -53,3 +53,9 @@ export const useOrderDetails = (orderId: string) => {
     retry: 2, // Retry failed requests twice
   });
 };
+
+// Función para generar la URL de pago correcta para una orden
+export const getPaymentUrl = (orderId: string, orderKey: string): string => {
+  // Formato correcto: https://expansioncolombia.com/finalizar-compra/order-pay/25209/?pay_for_order=true&key=wc_order_Q3lmjCLCiqKSC
+  return `https://expansioncolombia.com/finalizar-compra/order-pay/${orderId}/?pay_for_order=true&key=${orderKey}`;
+};

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "530192993387",
+    "project_id": "expansion-colombia",
+    "storage_bucket": "expansion-colombia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:530192993387:android:2d15e09ee8ee0377bf752e",
+        "android_client_info": {
+          "package_name": "com.expansioncolombia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhXXCFs4AC48cGH0TN_xFvGQVCNv_2Jqk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
