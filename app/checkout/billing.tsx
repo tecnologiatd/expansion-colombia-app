@@ -90,7 +90,7 @@ export default function BillingScreen() {
         billing: dataToSubmit,
       });
 
-      router.replace({
+      router.push({
         pathname: "/checkout/payment",
         params: { billingData: JSON.stringify(dataToSubmit) },
       });
