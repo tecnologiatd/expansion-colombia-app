@@ -1,17 +1,18 @@
 import {
   View,
   ScrollView,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   TextInput,
+  Text,
+  ActivityIndicator,
 } from "react-native";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
-import { Link, router } from "expo-router";
+import { Link, router, useFocusEffect } from "expo-router";
 import { ThemedView } from "@/presentation/theme/components/ThemedView";
 import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import ExpansionHeader from "@/presentation/components/ExpansionHeader";
@@ -26,18 +27,27 @@ import {
 } from "@/core/validations/register-validations";
 
 const Register = () => {
-  const { register } = useAuthStore();
+  const { register, error, clearError } = useAuthStore();
   const [isPosting, setIsPosting] = useState(false);
 
   // Referencias para navegar entre campos del formulario
   const confirmEmailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
 
+  // Limpiar errores al entrar en esta pantalla
+  useFocusEffect(
+    React.useCallback(() => {
+      clearError();
+      return () => {};
+    }, [clearError]),
+  );
+
   const {
     control,
     handleSubmit,
     watch,
     formState: { errors },
+    setError,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -46,6 +56,26 @@ const Register = () => {
       password: "",
     },
   });
+
+  // Efecto para mostrar errores del store en el formulario
+  useEffect(() => {
+    if (error) {
+      // Si hay un error específico del servidor, mostrarlo como error general
+      if (
+        error.toLowerCase().includes("email") ||
+        error.toLowerCase().includes("correo")
+      ) {
+        setError("email", { message: error });
+      } else if (
+        error.toLowerCase().includes("username") ||
+        error.toLowerCase().includes("usuario")
+      ) {
+        setError("email", { message: error });
+      }
+      // Limpiar el estado de carga
+      setIsPosting(false);
+    }
+  }, [error, setError]);
 
   const password = watch("password");
 
@@ -70,16 +100,12 @@ const Register = () => {
         return;
       }
 
-      Alert.alert(
-        "Error",
-        "No se pudo completar el registro. Por favor verifica tus datos e intenta de nuevo.",
-      );
+      // Si llegamos aquí es porque register retornó false pero no lanzó excepción
+      // El error debería estar en el estado de error
+      if (!error) {
+        setIsPosting(false);
+      }
     } catch (error) {
-      Alert.alert(
-        "Error",
-        "Ocurrió un error durante el registro. Por favor intenta de nuevo.",
-      );
-    } finally {
       setIsPosting(false);
     }
   };
@@ -112,6 +138,13 @@ const Register = () => {
                     Únete para empezar
                   </ThemedText>
                 </View>
+
+                {/* Mensaje de error global */}
+                {error && (
+                  <View className="bg-red-500/20 p-4 rounded-lg mb-4">
+                    <Text className="text-red-500 text-center">{error}</Text>
+                  </View>
+                )}
 
                 <Controller
                   control={control}
@@ -183,6 +216,13 @@ const Register = () => {
                   onPress={handleSubmit(onRegister)}
                   disabled={isPosting}
                 />
+                {isPosting && (
+                  <ActivityIndicator
+                    size="small"
+                    color="#7B3DFF"
+                    style={{ marginTop: 10 }}
+                  />
+                )}
                 <View className="justify-center pt-5 flex-row gap-5">
                   <ThemedText className="text-center mt-4">
                     ¿Ya tienes una cuenta?{" "}

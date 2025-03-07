@@ -1,16 +1,17 @@
 import {
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   TouchableWithoutFeedback,
   View,
+  ActivityIndicator,
+  Text,
 } from "react-native";
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useRef, useEffect } from "react";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
-import { Link, router } from "expo-router";
+import { Link, router, useFocusEffect } from "expo-router";
 import { ThemedView } from "@/presentation/theme/components/ThemedView";
 import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import ExpansionHeader from "@/presentation/components/ExpansionHeader";
@@ -25,18 +26,38 @@ interface LoginFormData {
 }
 
 const Login = () => {
-  const { login } = useAuthStore();
+  const { login, error, clearError } = useAuthStore();
   const [isPosting, setIsPosting] = React.useState(false);
 
   // Referencias para navegar entre campos del formulario
   const passwordInputRef = useRef<TextInput>(null);
 
-  const { control, handleSubmit } = useForm<LoginFormData>({
+  // Limpiar errores al entrar en esta pantalla
+  useFocusEffect(
+    React.useCallback(() => {
+      clearError();
+      return () => {};
+    }, [clearError]),
+  );
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<LoginFormData>({
     defaultValues: {
       email: "",
       password: "",
     },
   });
+
+  // Efecto para mostrar errores del store
+  useEffect(() => {
+    if (error) {
+      setIsPosting(false);
+    }
+  }, [error]);
 
   const onLogin = useCallback(
     async (data: LoginFormData) => {
@@ -56,14 +77,16 @@ const Login = () => {
           router.replace("/(tabs)/home");
           return;
         }
-        Alert.alert("Error", "Usuario o contraseña no son correctos");
+
+        // Si llegamos aquí, login retornó false
+        // El mensaje de error debería estar en el estado global
       } catch (error) {
-        Alert.alert("Error", "Ocurrió un error al intentar iniciar sesión");
+        // El error se manejará a través del estado global
       } finally {
         setIsPosting(false);
       }
     },
-    [login],
+    [login, error],
   );
 
   // Función para ocultar el teclado al tocar fuera de los inputs
@@ -99,6 +122,13 @@ const Login = () => {
                     Inicia sesión para continuar
                   </ThemedText>
                 </View>
+
+                {/* Mensaje de error global */}
+                {error && (
+                  <View className="bg-red-500/20 p-4 rounded-lg mb-4">
+                    <Text className="text-red-500 text-center">{error}</Text>
+                  </View>
+                )}
 
                 <Controller
                   control={control}
@@ -143,6 +173,13 @@ const Login = () => {
                   onPress={handleSubmit(onLogin)}
                   disabled={isPosting}
                 />
+                {isPosting && (
+                  <ActivityIndicator
+                    size="small"
+                    color="#7B3DFF"
+                    style={{ marginTop: 10 }}
+                  />
+                )}
                 <View className="justify-center pt-5 flex-row gap-5">
                   <ThemedText className="text-center mt-4">
                     ¿No tienes una cuenta?{" "}

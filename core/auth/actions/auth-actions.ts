@@ -33,7 +33,7 @@ export const authLogin = async (username: string, password: string) => {
     return returnUserToken(data);
   } catch (error) {
     console.log(error);
-    return null;
+    throw error; // Propagar el error para un mejor manejo
   }
 };
 
@@ -64,27 +64,31 @@ export const authRegister = async (
 
     // Extraer mensaje de error
     let errorMessage = "Error al registrar el usuario";
+    let errorCode = "";
 
     if (error.response?.data?.message) {
       errorMessage = error.response.data.message;
     }
 
-    // Formato específico para errores de WordPress
     if (error.response?.data?.code) {
-      return {
-        success: false,
-        data: null,
-        error: {
-          code: error.response.data.code,
-          message: errorMessage,
-        },
-      };
+      errorCode = error.response.data.code;
     }
 
+    // Mejorar los mensajes de error para el usuario final
+    if (errorCode === "existing_user_login") {
+      errorMessage = "Este nombre de usuario ya está en uso";
+    } else if (errorCode === "existing_user_email") {
+      errorMessage = "Este correo electrónico ya está registrado";
+    }
+
+    // Formato específico para errores de WordPress
     return {
       success: false,
       data: null,
-      error: { message: errorMessage },
+      error: {
+        code: errorCode || "register_error",
+        message: errorMessage,
+      },
     };
   }
 };
@@ -99,6 +103,6 @@ export const authCheckStatus = async () => {
     return returnUserToken(data);
   } catch (error) {
     console.log("Error en authCheckStatus:", error); // Debug
-    return null;
+    throw error; // Propagar el error para un mejor manejo
   }
 };

@@ -15,6 +15,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   user: undefined,
   error: null,
 
+  // Nuevo método para limpiar errores
+  clearError: () => set({ error: null }),
+
   login: async (username: string, password: string) => {
     try {
       const resp = await authLogin(username, password);
@@ -37,6 +40,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             ...resp.user,
             role,
           },
+          error: null, // Resetear cualquier error previo
         });
       } catch (error) {
         console.error("Error fetching user role:", error);
@@ -45,6 +49,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           status: "authenticated",
           token: resp.token,
           user: resp.user,
+          error: null, // Resetear cualquier error previo
         });
       }
 
@@ -52,6 +57,15 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       return true;
     } catch (error) {
       console.error("Login error:", error);
+      let errorMessage =
+        "Credenciales inválidas. Por favor, intente nuevamente.";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      set({
+        status: "unauthenticated",
+        error: errorMessage,
+      });
       return false;
     }
   },
@@ -61,7 +75,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const storedToken = await SecureStorageAdapter.getItem("token");
 
       if (!storedToken) {
-        set({ status: "unauthenticated", token: undefined, user: undefined });
+        set({
+          status: "unauthenticated",
+          token: undefined,
+          user: undefined,
+          error: null,
+        });
         return false;
       }
 
@@ -71,7 +90,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const resp = await authCheckStatus();
 
       if (!resp?.user) {
-        set({ status: "unauthenticated", token: undefined, user: undefined });
+        set({
+          status: "unauthenticated",
+          token: undefined,
+          user: undefined,
+          error: null,
+        });
         await SecureStorageAdapter.deleteItem("token");
         return false;
       }
@@ -88,6 +112,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             ...resp.user,
             role,
           },
+          error: null,
         });
       } catch (error) {
         console.error("Error fetching user role:", error);
@@ -95,13 +120,19 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           status: "authenticated",
           token: storedToken,
           user: resp.user,
+          error: null,
         });
       }
 
       return true;
     } catch (error) {
       console.error("Check status error:", error);
-      set({ status: "unauthenticated", token: undefined, user: undefined });
+      set({
+        status: "unauthenticated",
+        token: undefined,
+        user: undefined,
+        error: null,
+      });
       await SecureStorageAdapter.deleteItem("token");
       return false;
     }
@@ -110,14 +141,21 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   logout: async () => {
     await SecureStorageAdapter.deleteItem("token");
     delete backendApi.defaults.headers.common["Authorization"];
-    set({ status: "unauthenticated", token: undefined, user: undefined });
+    set({
+      status: "unauthenticated",
+      token: undefined,
+      user: undefined,
+      error: null,
+    });
   },
+
   register: async (username, email, password) => {
     try {
       set({ status: "checking", error: null });
       const resp = await authRegister(username, email, password);
 
       if (!resp.success) {
+        // Guardamos el mensaje de error específico del backend
         set({
           status: "unauthenticated",
           error: resp.error.message || "Error durante el registro",
@@ -160,9 +198,18 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       return true;
     } catch (error) {
       console.error("Register error:", error);
+      // Manejar mejor los errores, intentando extraer el mensaje del error
+      let errorMessage = "Error durante el registro";
+
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       set({
         status: "unauthenticated",
-        error: error?.message || "Error durante el registro",
+        error: errorMessage,
       });
       return false;
     }

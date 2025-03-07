@@ -19,6 +19,7 @@ export interface AuthStore {
   user?: User;
   error: string | null;
 
+  clearError: () => void; // Nuevo método para limpiar errores
   login: (username: string, password: string) => Promise<boolean>;
   register: (
     username: string,
