@@ -1,7 +1,7 @@
 {
   "name": "expansion-colombia-app",
   "main": "expo-router/entry",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "scripts": {
     "eas-build-pre-install": "corepack enable",
     "start": "expo start",
@@ -16,12 +16,12 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
-    "@hookform/resolvers": "^3.9.1",
-    "@react-native-async-storage/async-storage": "1.23.1",
-    "@react-navigation/bottom-tabs": "^7.2.0",
-    "@react-navigation/native": "^7.0.14",
-    "@tanstack/react-query": "^5.64.2",
-    "axios": "^1.7.9",
+    "@hookform/resolvers": "^3.10.0",
+    "@react-native-async-storage/async-storage": "1.24.0",
+    "@react-navigation/bottom-tabs": "^7.2.1",
+    "@react-navigation/native": "^7.0.15",
+    "@tanstack/react-query": "^5.67.2",
+    "axios": "^1.8.2",
     "expo": "~52.0.37",
     "expo-camera": "~16.0.17",
     "expo-constants": "~17.0.7",
@@ -35,6 +35,7 @@
     "expo-splash-screen": "~0.29.22",
     "expo-status-bar": "~2.0.1",
     "expo-system-ui": "~4.0.8",
+    "expo-updates": "~0.27.2",
     "html-entities": "^2.5.2",
     "html5-qrcode": "^2.3.8",
     "jwt-decode": "^4.0.0",
@@ -44,8 +45,8 @@
     "react-dom": "18.3.1",
     "react-hook-form": "^7.54.2",
     "react-native": "~0.77.1",
-    "react-native-gesture-handler": "~2.22.0",
-    "react-native-qrcode-svg": "^6.3.14",
+    "react-native-gesture-handler": "~2.22.1",
+    "react-native-qrcode-svg": "^6.3.15",
     "react-native-reanimated": "~3.16.7",
     "react-native-render-html": "^6.3.4",
     "react-native-safe-area-context": "~5.1.0",
@@ -84,5 +85,5 @@
     }
   },
   "private": true,
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.7.0"
 }

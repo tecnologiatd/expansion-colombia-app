@@ -191,7 +191,17 @@ const Login = () => {
                     </Link>
                   </ThemedText>
                 </View>
-
+                <View className="justify-center pt-2 flex-row">
+                  <ThemedText className="text-center mt-2">
+                    ¿Olvidaste tu contraseña?{" "}
+                    <Link
+                      className="text-lg text-purple-500"
+                      href="/auth/forgot-password"
+                    >
+                      Recuperala aquí
+                    </Link>
+                  </ThemedText>
+                </View>
                 {/* Agregamos un botón para cerrar el teclado, especialmente útil en iOS */}
                 {Platform.OS === "ios" && (
                   <TouchableWithoutFeedback onPress={dismissKeyboard}>
@@ -202,7 +212,6 @@ const Login = () => {
                     </View>
                   </TouchableWithoutFeedback>
                 )}
-
                 <View className="px-8 py-2" />
               </View>
             </View>

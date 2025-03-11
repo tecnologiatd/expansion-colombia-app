@@ -2,7 +2,7 @@
   "expo": {
     "name": "Expansión Colombia",
     "slug": "expansion-colombia",
-      "version": "0.1.1",
+    "version": "0.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "expansioncolombia",
@@ -84,6 +84,12 @@
         "projectId": "4c646e1d-0c03-4042-bb68-84aae1f356bb"
       }
     },
-    "owner": "tecnologiatd"
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "owner": "tecnologiatd",
+    "updates": {
+      "url": "https://u.expo.dev/4c646e1d-0c03-4042-bb68-84aae1f356bb"
+    }
   }
 }

@@ -7,20 +7,21 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://expansion-colombia-backend-production.up.railway.app"
-      }
-  },
+      "channel": "development"
+    },
     "preview": {
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://expansion-colombia-backend-production.up.railway.app"
-      }    },
+      },
+      "channel": "preview"
+    },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://expansion-colombia-backend-production.up.railway.app"
-      }
+      },
+      "channel": "production"
     }
   },
   "submit": {
