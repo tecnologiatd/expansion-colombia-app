@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useGenerateTicket } from "../hooks/useGenerateTicket";
 import { useTicketValidation } from "../hooks/useTicketValidation";
@@ -61,9 +61,6 @@ export const TicketQRCard = ({ qrCode, eventId, index, total }) => {
                 <Text className="text-gray-400">
                   Usado el: {new Date(usage.timestamp).toLocaleString("es-co")}
                 </Text>
-                {/*<Text className="text-gray-400">*/}
-                {/*  Validado por: {usage.validatedBy}*/}
-                {/*</Text>*/}
               </View>
             ))}
           </View>
@@ -78,9 +75,13 @@ export const TicketQRSection = ({
   orderStatus,
   eventId,
   quantity,
+  eventName,
 }) => {
   const { generateTicketMutation } = useGenerateTicket();
   const [generatedCodes, setGeneratedCodes] = useState([]);
+  const [isPackage, setIsPackage] = useState(false);
+  const [ticketsPerUnit, setTicketsPerUnit] = useState(1);
+  const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
 
   // Lista de estados que indican que la orden está completada
   const validOrderStatuses = ["processing", "completed"];
@@ -98,9 +99,16 @@ export const TicketQRSection = ({
 
   useEffect(() => {
     if (generateTicketMutation.data?.qrCodes) {
-      setGeneratedCodes(generateTicketMutation.data.qrCodes);
+      const codes = generateTicketMutation.data.qrCodes;
+      setGeneratedCodes(codes);
+
+      // Determinar si es un paquete basado en la cantidad de códigos generados
+      if (codes.length > quantity) {
+        setIsPackage(true);
+        setTicketsPerUnit(Math.round(codes.length / quantity));
+      }
     }
-  }, [generateTicketMutation.data]);
+  }, [generateTicketMutation.data, quantity]);
 
   // Si la orden no está en un estado válido
   if (!validOrderStatuses.includes(orderStatus?.toLowerCase())) {
@@ -133,23 +141,74 @@ export const TicketQRSection = ({
     );
   }
 
+  // Mostrar un ticket a la vez en lugar de usar FlatList o ScrollView anidados
+  const currentTicket = generatedCodes[currentTicketIndex];
+
+  // Funciones para navegación entre tickets
+  const goToNextTicket = () => {
+    if (currentTicketIndex < generatedCodes.length - 1) {
+      setCurrentTicketIndex(currentTicketIndex + 1);
+    }
+  };
+
+  const goToPrevTicket = () => {
+    if (currentTicketIndex > 0) {
+      setCurrentTicketIndex(currentTicketIndex - 1);
+    }
+  };
+
   return (
     <View className="p-4">
-      <Text className="text-white text-lg font-bold mb-4">
-        Tickets ({generatedCodes.length})
-      </Text>
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-white text-lg font-bold">
+          Tickets ({generatedCodes.length})
+        </Text>
 
-      {generatedCodes.map((qrCode, index) => (
-        <TicketQRCard
-          key={qrCode}
-          qrCode={qrCode}
-          eventId={eventId}
-          index={index}
-          total={quantity}
-        />
-      ))}
+        {isPackage && (
+          <View className="bg-purple-500/20 px-3 py-1 rounded-lg">
+            <Text className="text-purple-300">
+              Paquete: {quantity} × {ticketsPerUnit} entradas
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Mostrar el ticket actual */}
+      {currentTicket && (
+        <View>
+          <TicketQRCard
+            qrCode={currentTicket}
+            eventId={eventId}
+            index={currentTicketIndex}
+            total={generatedCodes.length}
+          />
+
+          {/* Controles de navegación para múltiples tickets */}
+          {generatedCodes.length > 1 && (
+            <View className="flex-row justify-between mt-2 mb-4">
+              <TouchableOpacity
+                onPress={goToPrevTicket}
+                disabled={currentTicketIndex === 0}
+                className={`bg-gray-800 py-2 px-4 rounded-lg ${currentTicketIndex === 0 ? "opacity-50" : ""}`}
+              >
+                <Text className="text-white">← Anterior</Text>
+              </TouchableOpacity>
+
+              <Text className="text-white text-center self-center">
+                {currentTicketIndex + 1} / {generatedCodes.length}
+              </Text>
+
+              <TouchableOpacity
+                onPress={goToNextTicket}
+                disabled={currentTicketIndex === generatedCodes.length - 1}
+                className={`bg-gray-800 py-2 px-4 rounded-lg ${currentTicketIndex === generatedCodes.length - 1 ? "opacity-50" : ""}`}
+              >
+                <Text className="text-white">Siguiente →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 };
-
-export default TicketQRSection;
