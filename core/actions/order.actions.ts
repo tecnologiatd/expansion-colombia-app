@@ -19,8 +19,13 @@ export interface CreateOrderParams {
     product_id: number;
     quantity: number;
   }[];
-  // El payment_method ahora es opcional
+  // El payment_method es opcional
   payment_method?: string;
+  // Campo para metadatos personalizados
+  meta_data?: {
+    key: string;
+    value: string | number | boolean;
+  }[];
 }
 
 export const createOrderAction = async (

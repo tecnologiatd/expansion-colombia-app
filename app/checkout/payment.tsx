@@ -1,4 +1,3 @@
-// app/checkout/payment.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -18,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { AuthBrowser } from "@/presentation/utils/auth-browser";
 
 export default function PaymentScreen() {
-  const { billingData } = useLocalSearchParams();
+  const { billingData, sponsorshipLine } = useLocalSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
   const { createOrderMutation, prepareOrderItems } = useCreateOrder();
   const { calculateTotal, clearCart } = useCartStore();
@@ -29,10 +28,16 @@ export default function PaymentScreen() {
       const parsedBilling = JSON.parse(billingData as string);
       const orderItems = prepareOrderItems();
 
-      // Crear la orden sin especificar el método de pago
+      // Crear la orden incluyendo la línea de auspicio como metadato personalizado
       const response = await createOrderMutation.mutateAsync({
         billing: parsedBilling,
         line_items: orderItems,
+        meta_data: [
+          {
+            key: "linea de auspicio",
+            value: sponsorshipLine as string,
+          },
+        ],
       });
 
       if (response?.payment_url) {
@@ -107,6 +112,14 @@ export default function PaymentScreen() {
                 <View className="flex-row justify-between mb-3">
                   <Text className="text-gray-400">Impuestos</Text>
                   <Text className="text-white">Incluidos</Text>
+                </View>
+
+                {/* Mostrar la línea de auspicio seleccionada */}
+                <View className="flex-row justify-between mb-3">
+                  <Text className="text-gray-400">Línea de Auspicio</Text>
+                  <Text className="text-white">
+                    {sponsorshipLine as string}
+                  </Text>
                 </View>
 
                 <View className="h-px bg-gray-700 my-3" />

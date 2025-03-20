@@ -18,6 +18,7 @@ import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
 import { BillingAddress } from "@/core/interfaces/customer.interface";
 import { Ionicons } from "@expo/vector-icons";
+import SponsorshipLineSelector from "@/presentation/components/SponsorshipLineSelector";
 
 export default function BillingScreen() {
   const { costumerQuery } = useCustomer();
@@ -37,6 +38,9 @@ export default function BillingScreen() {
     email: "",
     phone: "",
   });
+
+  // Estado para la línea de auspicio
+  const [sponsorshipLine, setSponsorshipLine] = useState<string | null>(null);
 
   // Refs para facilitar la navegación por campos
   const lastNameRef = useRef<TextInput>(null);
@@ -80,6 +84,14 @@ export default function BillingScreen() {
       return;
     }
 
+    if (!sponsorshipLine) {
+      Alert.alert(
+        "Línea de auspicio requerida",
+        "Por favor seleccione una línea de auspicio",
+      );
+      return;
+    }
+
     try {
       // Configuramos un código postal por defecto para Colombia
       const dataToSubmit = {
@@ -92,7 +104,10 @@ export default function BillingScreen() {
 
       router.push({
         pathname: "/checkout/payment",
-        params: { billingData: JSON.stringify(dataToSubmit) },
+        params: {
+          billingData: JSON.stringify(dataToSubmit),
+          sponsorshipLine: sponsorshipLine,
+        },
       });
     } catch (error) {
       Alert.alert(
@@ -250,6 +265,24 @@ export default function BillingScreen() {
                   onSubmitEditing={dismissKeyboard}
                 />
                 {/* El campo de código postal ha sido eliminado */}
+              </View>
+
+              {/* Sponsorship Line Section */}
+              <View className="mb-8">
+                <View className="flex-row items-center mb-4">
+                  <Ionicons name="people-outline" size={24} color="#7B3DFF" />
+                  <Text className="text-white text-lg font-bold ml-2">
+                    Línea de Auspicio
+                  </Text>
+                </View>
+                <Text className="text-gray-400 mb-3">
+                  Seleccione quién le referenció para comprar este evento
+                </Text>
+                <SponsorshipLineSelector
+                  value={sponsorshipLine}
+                  onChange={setSponsorshipLine}
+                  placeholder="Seleccionar línea de auspicio"
+                />
               </View>
 
               {/* Submit Button */}
