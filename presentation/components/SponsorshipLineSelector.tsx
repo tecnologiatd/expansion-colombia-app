@@ -1,48 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Modal, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  ActivityIndicator,
+  TextInput,
+  SectionList,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
-// Opciones predefinidas de líneas de auspicio
-const SPONSORSHIP_LINES = [
-  { id: "jose_bobadilla", name: "Jose Bobadilla - EMBAJADOR CORONA" },
-  { id: "diana_cuellar", name: "Diana Cuellar - DIAMANTE EJECUTIVO" },
-  {
-    id: "mauricio_esperanza",
-    name: "Mauricio Castillo y Esperanza Mosquera - DIAMANTES",
-  },
-  { id: "jorge_pilar", name: "Jorge Ivan Benavides y Pilar López - DIAMANTES" },
-  { id: "fausto_gutierrez", name: "Fausto Gutierrez - DIAMANTES" },
-  { id: "diego_martha", name: "Diego Ortega y Martha Castañeda - DIAMANTES" },
-  { id: "luis_vivian", name: "Luis Granados y Vivian Mosquera - ESMERALDAS" },
-  { id: "marcelo_rojas", name: "Marcelo Rojas - ESMERALDAS" },
-  {
-    id: "andres_blanca",
-    name: "Andres Bolaños y Blanca Bolaños - ESMERALDAS FUNDADORES",
-  },
-  { id: "yesid_angie", name: "Yesid Murillo y Angie Pereira - ESMERALDAS" },
-  { id: "carlos_luz", name: "Carlos Urbano y Luz Angela Pulido - ESMERALDAS" },
-  {
-    id: "francisco_angela",
-    name: "Francisco Alvarez y Angela Gonzalez - ESMERALDAS",
-  },
-  { id: "harold_adriana", name: "Harold Perez y Adriana Sarria - ESMERALDAS" },
-  { id: "jackson_paola", name: "Jackson Arturo y Paola Diaz - ESMERALDAS" },
-  { id: "lina_ramirez", name: "Lina Ramirez - ESMERALDA" },
-  { id: "felix_anayibe", name: "Felix Pardo y Anayibe - ESMERALDAS" },
-  { id: "wilmer_ochoa", name: "Wilmer Ochoa - ESMERALDA" },
-  {
-    id: "william_claudia",
-    name: "William Restrepo y Claudia Soto - ESMERALDAS",
-  },
-  { id: "enrique_ana", name: "Enrique Silvera y Ana Hernandez - ESMERALDAS" },
-  {
-    id: "alexandra_alvaro",
-    name: "Alexandra Rivas y Alvaro Narvaez - ESMERALDAS",
-  },
-  { id: "fredy_restrepo", name: "Fredy Restrepo - ESMERALDAS" },
-  { id: "miller_camel", name: "Miller Camel - ESMERALDA" },
-  { id: "olga_romero", name: "Olga Romero - ESMERALDA" },
-];
+import { useSponsorshipLines } from "@/presentation/hooks/useSponsorshipLines";
 
 interface SponsorshipLineSelectorProps {
   value: string | null;
@@ -56,9 +24,63 @@ const SponsorshipLineSelector: React.FC<SponsorshipLineSelectorProps> = ({
   placeholder = "Seleccionar línea de auspicio",
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
-  // Mostrar el valor actual si existe, o el placeholder si no
+  // Obtener las líneas del backend
+  const {
+    data: sponsorshipLines,
+    isLoading,
+    isError,
+    refetch,
+  } = useSponsorshipLines();
+
+  // Mostrar el valor actual o el placeholder
   const selectedOption = value || placeholder;
+
+  // Procesar los datos para la sección agrupada
+  const getSectionedData = () => {
+    if (!sponsorshipLines || sponsorshipLines.length === 0) return [];
+
+    // Filtramos por el texto de búsqueda si existe
+    const filteredLines = searchText
+      ? sponsorshipLines.filter((line) =>
+          line.name.toLowerCase().includes(searchText.toLowerCase()),
+        )
+      : sponsorshipLines;
+
+    // Agrupamos por categoría
+    const categoriesMap = new Map();
+
+    filteredLines.forEach((line) => {
+      const category = line.category || "Otros";
+      if (!categoriesMap.has(category)) {
+        categoriesMap.set(category, []);
+      }
+      categoriesMap.get(category).push(line);
+    });
+
+    // Convertimos el mapa a un array de secciones
+    const sections = Array.from(categoriesMap, ([title, data]) => ({
+      title,
+      data,
+    }));
+
+    // Ordenamos las secciones por un orden predefinido y luego alfabéticamente
+    const categoryOrder = {
+      Región: 1,
+      EMBAJADOR: 2,
+      DIAMANTE: 3,
+      ESMERALDA: 4,
+      Otros: 99,
+    };
+
+    return sections.sort((a, b) => {
+      const orderA = categoryOrder[a.title] || 50;
+      const orderB = categoryOrder[b.title] || 50;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.title.localeCompare(b.title);
+    });
+  };
 
   return (
     <View>
@@ -90,27 +112,73 @@ const SponsorshipLineSelector: React.FC<SponsorshipLineSelectorProps> = ({
               </TouchableOpacity>
             </View>
 
-            <FlatList
-              data={SPONSORSHIP_LINES}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  className={`p-4 rounded-lg mb-2 ${
-                    value === item.name ? "bg-purple-500" : "bg-gray-700"
-                  }`}
-                  onPress={() => {
-                    onChange(item.name);
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text className="text-white">{item.name}</Text>
+            {/* Búsqueda */}
+            <View className="bg-gray-700 rounded-lg flex-row items-center px-3 mb-4">
+              <Ionicons name="search" size={20} color="gray" />
+              <TextInput
+                className="flex-1 py-2 px-2 text-white"
+                placeholder="Buscar..."
+                placeholderTextColor="gray"
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+              {searchText ? (
+                <TouchableOpacity onPress={() => setSearchText("")}>
+                  <Ionicons name="close-circle" size={20} color="gray" />
                 </TouchableOpacity>
-              )}
-              showsVerticalScrollIndicator={true}
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={10}
-            />
+              ) : null}
+            </View>
+
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#7B3DFF" />
+            ) : isError ? (
+              <View className="items-center py-4">
+                <Text className="text-red-400 mb-2">
+                  Error al cargar las líneas de auspicio
+                </Text>
+                <TouchableOpacity
+                  className="bg-gray-700 px-4 py-2 rounded-lg"
+                  onPress={() => refetch()}
+                >
+                  <Text className="text-white">Reintentar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <SectionList
+                sections={getSectionedData()}
+                keyExtractor={(item, index) => `${item.name}-${index}`}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    className={`p-4 rounded-lg mb-2 ${
+                      value === item.name ? "bg-purple-500" : "bg-gray-700"
+                    }`}
+                    onPress={() => {
+                      onChange(item.name);
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Text className="text-white">{item.name}</Text>
+                  </TouchableOpacity>
+                )}
+                renderSectionHeader={({ section: { title } }) => (
+                  <View className="bg-gray-900 py-2 px-4 rounded-t-lg mt-2">
+                    <Text className="text-purple-400 font-bold">{title}</Text>
+                  </View>
+                )}
+                showsVerticalScrollIndicator={true}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={10}
+                stickySectionHeadersEnabled={false}
+                ListEmptyComponent={() => (
+                  <View className="py-8 items-center">
+                    <Text className="text-gray-400 text-center">
+                      No hay líneas de auspicio disponibles
+                    </Text>
+                  </View>
+                )}
+              />
+            )}
           </View>
         </View>
       </Modal>
