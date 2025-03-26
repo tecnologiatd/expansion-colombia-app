@@ -34,7 +34,7 @@ export default function PaymentScreen() {
         line_items: orderItems,
         meta_data: [
           {
-            key: "linea de auspicio",
+            key: "linea_de_auspicio",
             value: sponsorshipLine as string,
           },
         ],
@@ -117,9 +117,7 @@ export default function PaymentScreen() {
                 {/* Mostrar la línea de auspicio seleccionada */}
                 <View className="flex-row justify-between mb-3">
                   <Text className="text-gray-400">Línea de Auspicio</Text>
-                  <Text className="text-white">
-                    {sponsorshipLine as string}
-                  </Text>
+                  <Text className="text-white">{sponsorshipLine}</Text>
                 </View>
 
                 <View className="h-px bg-gray-700 my-3" />
