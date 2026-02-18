@@ -11,12 +11,14 @@ import { useNotificationStore } from '@/core/stores/notification.store';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
 });
 
-async function registerForPushNotificationsAsync() {
+async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -27,7 +29,9 @@ async function registerForPushNotificationsAsync() {
   }
 
   if (!Device.isDevice) {
-    throw new Error('Debe usar un dispositivo físico para las notificaciones push');
+    // Emulators/simulators cannot receive Expo push tokens.
+    console.warn('Push notifications require a physical device');
+    return null;
   }
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -42,7 +46,8 @@ async function registerForPushNotificationsAsync() {
     throw new Error('Fallo al obtener el token push para la notificación');
   }
 
-  const projectId = Constants?.expoConfig?.extra?.eas?.projectId;
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   if (!projectId) {
     throw new Error('ID del proyecto no encontrado');
   }
@@ -56,13 +61,17 @@ async function registerForPushNotificationsAsync() {
 
 export const usePushNotifications = () => {
   const [expoPushToken, setExpoPushToken] = useState('');
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
   const { addNotification } = useNotificationStore();
 
   useEffect(() => {
     registerForPushNotificationsAsync()
-        .then(setExpoPushToken)
+        .then((token) => {
+          if (token) {
+            setExpoPushToken(token);
+          }
+        })
         .catch(console.error);
 
     notificationListener.current = Notifications.addNotificationReceivedListener(
@@ -80,20 +89,16 @@ export const usePushNotifications = () => {
         (response) => {
           const { data } = response.notification.request.content;
           if (data.route) {
-            router.push(data.route as string);
+            router.push(data.route as any);
           }
         },
     );
 
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
     };
-  }, []);
+  }, [addNotification]);
 
   return {
     expoPushToken,

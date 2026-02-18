@@ -3,38 +3,37 @@ import {
   RefreshControl,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Entypo from "@expo/vector-icons/Entypo";
-import Feather from "@expo/vector-icons/Feather";
 import EventCard from "@/presentation/components/EventCard";
 import { useProducts } from "@/presentation/hooks/useProducts";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import debounce from "lodash.debounce";
 import * as SecureStore from "expo-secure-store";
+import { type Product } from "@/core/interfaces/product.interface";
 
 export default function Tab() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [categories, setCategories] = useState([
-    "Musica",
-    "Festivales",
-    "Deportes",
-  ]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
   const { productsQuery } = useProducts();
 
   // Debounced search handler
-  const onSearch = useCallback(
-    debounce((text) => {
-      setSearchTerm(text);
-    }, 500),
+  const onSearch = useMemo(
+    () =>
+      debounce((text: string) => {
+        setSearchTerm(text);
+      }, 500),
     [],
   );
+
+  useEffect(() => {
+    return () => {
+      onSearch.cancel();
+    };
+  }, [onSearch]);
 
   // Filter products by search and category
   useEffect(() => {
@@ -55,7 +54,7 @@ export default function Tab() {
 
       setFilteredProducts(products);
     }
-  }, [productsQuery.data, searchTerm, selectedCategory]);
+  }, [productsQuery.data, searchTerm]);
 
   // Handle refresh
   const onRefresh = () => {

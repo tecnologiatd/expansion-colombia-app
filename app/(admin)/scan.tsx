@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -32,50 +32,53 @@ export default function ScanScreen() {
     orderDetailsQuery,
     validateTicketMutation,
     refreshData,
-  } = useTicketValidation(qrData.code, qrData.eventId);
+  } = useTicketValidation(qrData.code ?? undefined, qrData.eventId ?? undefined);
 
-  const handleBarCodeScanned = ({ data }: { type: string; data: string }) => {
-    if (scanned) return;
-    setScanned(true);
-
-    const parts = data.split("/");
-    if (parts.length === 2) {
-      setQrData({
-        code: parts[0],
-        eventId: parts[1],
-      });
-    } else {
-      Alert.prompt(
-        "Ingrese ID del Evento",
-        "Este QR requiere un ID de evento para ser validado",
-        [
-          { text: "Cancelar", onPress: resetScan, style: "cancel" },
-          {
-            text: "Validar",
-            onPress: (eventId?: string) => {
-              if (!eventId) {
-                Alert.alert("Error", "El ID del evento es requerido");
-                resetScan();
-                return;
-              }
-              setQrData({
-                code: data,
-                eventId: eventId,
-              });
-            },
-          },
-        ],
-        "plain-text",
-        "",
-        "number-pad",
-      );
-    }
-  };
-
-  const resetScan = () => {
+  const resetScan = useCallback(() => {
     setScanned(false);
     setQrData({ code: null, eventId: null });
-  };
+  }, []);
+
+  const handleBarCodeScanned = useCallback(
+    ({ data }: { type: string; data: string }) => {
+      if (scanned) return;
+      setScanned(true);
+
+      const parts = data.split("/");
+      if (parts.length === 2) {
+        setQrData({
+          code: parts[0],
+          eventId: parts[1],
+        });
+      } else {
+        Alert.prompt(
+          "Ingrese ID del Evento",
+          "Este QR requiere un ID de evento para ser validado",
+          [
+            { text: "Cancelar", onPress: resetScan, style: "cancel" },
+            {
+              text: "Validar",
+              onPress: (eventId?: string) => {
+                if (!eventId) {
+                  Alert.alert("Error", "El ID del evento es requerido");
+                  resetScan();
+                  return;
+                }
+                setQrData({
+                  code: data,
+                  eventId: eventId,
+                });
+              },
+            },
+          ],
+          "plain-text",
+          "",
+          "number-pad",
+        );
+      }
+    },
+    [scanned, resetScan],
+  );
 
   // Procesar ticket cuando tenemos los datos
   useEffect(() => {
@@ -118,10 +121,18 @@ export default function ScanScreen() {
             text: "Validar",
             style: "default",
             onPress: async () => {
+              const scannedCode = qrData.code;
+              const scannedEventId = qrData.eventId;
+              if (!scannedCode || !scannedEventId) {
+                Alert.alert("Error", "No se pudo leer el ticket correctamente.");
+                resetScan();
+                return;
+              }
+
               try {
                 await validateTicketMutation.mutateAsync({
-                  qrCode: `${qrData.code}/${qrData.eventId}`,
-                  eventId: qrData.eventId!,
+                  qrCode: `${scannedCode}/${scannedEventId}`,
+                  eventId: scannedEventId,
                 });
 
                 Alert.alert("Éxito", "Ticket validado correctamente", [
@@ -129,7 +140,7 @@ export default function ScanScreen() {
                     text: "Ver detalles",
                     onPress: () =>
                       router.push(
-                        `/admin/ticket/${qrData.code}/${qrData.eventId}`,
+                        `/admin/ticket/${scannedCode}/${scannedEventId}`,
                       ),
                   },
                   { text: "Escanear otro", onPress: resetScan },
@@ -147,7 +158,16 @@ export default function ScanScreen() {
         ],
       );
     }
-  }, [ticketStatusQuery.data, orderDetailsQuery.data, qrData]);
+  }, [
+    ticketStatusQuery.data,
+    orderDetailsQuery.data,
+    orderDetailsQuery.isLoading,
+    orderDetailsQuery.error,
+    qrData.code,
+    qrData.eventId,
+    validateTicketMutation,
+    resetScan,
+  ]);
 
   if (hasPermission === null) {
     return (

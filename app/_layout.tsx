@@ -30,7 +30,7 @@ export default function Layout() {
       initializeAuth();
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, checkStatus]);
 
   if (!fontsLoaded || !isAuthChecked) return null;
 

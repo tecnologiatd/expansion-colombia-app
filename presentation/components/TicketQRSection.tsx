@@ -4,6 +4,8 @@ import QRCode from "react-native-qrcode-svg";
 import { useGenerateTicket } from "../hooks/useGenerateTicket";
 import { useTicketValidation } from "../hooks/useTicketValidation";
 
+const VALID_ORDER_STATUSES = ["processing", "completed"];
+
 export const TicketQRCard = ({ qrCode, eventId, index, total }) => {
   const { ticketStatusQuery } = useTicketValidation(qrCode, eventId);
 
@@ -83,11 +85,8 @@ export const TicketQRSection = ({
   const [ticketsPerUnit, setTicketsPerUnit] = useState(1);
   const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
 
-  // Lista de estados que indican que la orden está completada
-  const validOrderStatuses = ["processing", "completed"];
-
   useEffect(() => {
-    if (validOrderStatuses.includes(orderStatus?.toLowerCase())) {
+    if (VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase())) {
       generateTicketMutation.mutate({
         orderId,
         eventId,
@@ -95,7 +94,7 @@ export const TicketQRSection = ({
         usagesPerTicket: 1,
       });
     }
-  }, [orderId, orderStatus, eventId, quantity]);
+  }, [orderId, orderStatus, eventId, quantity, generateTicketMutation]);
 
   useEffect(() => {
     if (generateTicketMutation.data?.qrCodes) {
@@ -111,7 +110,7 @@ export const TicketQRSection = ({
   }, [generateTicketMutation.data, quantity]);
 
   // Si la orden no está en un estado válido
-  if (!validOrderStatuses.includes(orderStatus?.toLowerCase())) {
+  if (!VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase())) {
     return (
       <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
         <Text className="text-yellow-500 text-center">

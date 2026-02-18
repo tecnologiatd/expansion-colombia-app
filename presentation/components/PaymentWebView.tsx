@@ -1,5 +1,5 @@
 // presentation/components/PaymentWebView.tsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Modal,
@@ -41,8 +41,24 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [progressPercent, setProgressPercent] = useState(0);
-  const progressTimer = useRef<NodeJS.Timeout | null>(null);
   const [isOpenPay, setIsOpenPay] = useState(false);
+
+  const handleGoBack = useCallback(() => {
+    if (isOpenPay) {
+      // Si OpenPay está activo, mostrar una alerta especial
+      Alert.alert("Procesando pago", "¿Estás seguro de que deseas cancelar?", [
+        { text: "No", style: "cancel" },
+        { text: "Sí, cancelar", style: "destructive", onPress: onClose },
+      ]);
+      return true;
+    }
+
+    if (webViewRef.current) {
+      webViewRef.current.goBack();
+      return true;
+    }
+    return false;
+  }, [isOpenPay, onClose]);
 
   // Función para simular progreso de carga
   const simulateProgress = () => {
@@ -136,24 +152,7 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
       backHandler.remove();
       clearProgress();
     };
-  }, [visible, paymentUrl]);
-
-  const handleGoBack = () => {
-    if (isOpenPay) {
-      // Si OpenPay está activo, mostrar una alerta especial
-      Alert.alert("Procesando pago", "¿Estás seguro de que deseas cancelar?", [
-        { text: "No", style: "cancel" },
-        { text: "Sí, cancelar", style: "destructive", onPress: onClose },
-      ]);
-      return true;
-    }
-
-    if (webViewRef.current) {
-      webViewRef.current.goBack();
-      return true;
-    }
-    return false;
-  };
+  }, [visible, paymentUrl, orderId, handleGoBack]);
 
   // Script para inyectar en el WebView
   const getInjectedJavaScript = () => {
