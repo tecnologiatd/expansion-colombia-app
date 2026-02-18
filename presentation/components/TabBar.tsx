@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import * as Linking from "expo-linking";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -45,14 +44,10 @@ const TabBar: React.FC<BottomTabBarProps> = ({
             }
           };
 
-          const href = Linking.createURL(route.name, {
-            queryParams: route.params,
-          });
-
           return (
             <TouchableOpacity
               key={route.key}
-              href={href}
+              accessibilityRole="tab"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}
               testID={options.tabBarButtonTestID}
@@ -68,7 +63,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
                     ]}
                   >
                     {options.tabBarIcon({
-                      focused: false,
+                      focused: isFocused,
                       color: isFocused ? "#FFFFFF" : "#666666",
                       size: 24,
                     })}
@@ -118,15 +113,7 @@ const styles = StyleSheet.create({
   iconBackground: {
     padding: 8,
     borderRadius: 12,
-    ...Platform.select({
-      ios: {
-        overflow: "hidden",
-      },
-      android: {
-        overflow: "hidden",
-        elevation: 0,
-      },
-    }),
+    overflow: "hidden",
   },
   focusedIconBackground: {
     backgroundColor: "#7B3DFF",

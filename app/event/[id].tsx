@@ -12,13 +12,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Feather from "@expo/vector-icons/Feather";
 import { useEffect, useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import RenderHtml from "react-native-render-html";
 // import Clipboard from "@react-native-clipboard/clipboard";
 import { useProduct } from "@/presentation/hooks/useProduct";
 import { useCartStore } from "@/core/stores/cart-store";
+
+const eventTagsStyles = {
+  p: { color: "white" },
+};
 
 const DetailScreen = () => {
   const { width } = useWindowDimensions();
@@ -94,7 +97,7 @@ const DetailScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-gray-900" edges={["left", "right"]}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
@@ -134,11 +137,7 @@ const DetailScreen = () => {
           </View>
           <View className="mt-8 ">
             <RenderHtml
-              tagsStyles={{
-                p: {
-                  color: "white",
-                },
-              }}
+              tagsStyles={eventTagsStyles}
               contentWidth={width}
               source={{ html: product.description }}
             />

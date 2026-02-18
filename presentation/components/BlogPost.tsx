@@ -5,6 +5,14 @@ import RenderHtml from 'react-native-render-html';
 import { useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 
+const blogTagsStyles = {
+    body: { color: '#fff' },
+    p: { color: '#fff', lineHeight: 24, marginBottom: 16 },
+    h1: { color: '#fff', fontSize: 24, marginVertical: 16 },
+    h2: { color: '#fff', fontSize: 20, marginVertical: 12 },
+    a: { color: '#7B3DFF' },
+};
+
 interface Props {
     id: string;
 }
@@ -63,13 +71,7 @@ const BlogPost = ({ id }: Props) => {
                 <RenderHtml
                     contentWidth={width - 32}
                     source={{ html: post.content.rendered }}
-                    tagsStyles={{
-                        body: { color: '#fff' },
-                        p: { color: '#fff', lineHeight: 24, marginBottom: 16 },
-                        h1: { color: '#fff', fontSize: 24, marginVertical: 16 },
-                        h2: { color: '#fff', fontSize: 20, marginVertical: 12 },
-                        a: { color: '#7B3DFF' },
-                    }}
+                    tagsStyles={blogTagsStyles}
                 />
             </View>
         </ScrollView>
