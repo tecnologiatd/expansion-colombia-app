@@ -17,8 +17,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
 
-  // Añadimos padding inferior para crear espacio entre la barra de navegación y la barra blanca de iOS
-  const bottomPadding = Platform.OS === "ios" ? Math.max(insets.bottom, 10) : 0;
+  const bottomPadding = Platform.OS === "ios" ? Math.max(insets.bottom, 10) : insets.bottom;
 
   return (
     <View style={[styles.container, { paddingBottom: bottomPadding }]}>
