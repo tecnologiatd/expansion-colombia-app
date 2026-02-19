@@ -17,7 +17,7 @@ import PurchasedEventCard from "@/presentation/components/PurchasedEventCard";
 import { AdminAccessButton } from "@/presentation/components/AdminAccessButton";
 
 const ProfileScreen = () => {
-  const { profileQuery } = useProfile();
+  const { profileQuery, userData, orders } = useProfile();
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   const handleRefresh = async () => {
@@ -31,8 +31,6 @@ const ProfileScreen = () => {
       </View>
     );
   }
-
-  const userData = profileQuery.data?.customer;
 
   if (!userData) {
     return (
@@ -55,12 +53,25 @@ const ProfileScreen = () => {
     setIsEditModalVisible(false);
   };
 
+  const profilePages = profileQuery.data?.pages ?? [];
+  const latestPagination = profilePages[profilePages.length - 1]?.pagination;
+  const totalOrders = latestPagination?.totalOrders ?? orders.length;
+  const isRefreshing = profileQuery.isFetching && !profileQuery.isFetchingNextPage;
+
+  const handleLoadMore = async () => {
+    if (!profileQuery.hasNextPage || profileQuery.isFetchingNextPage) {
+      return;
+    }
+
+    await profileQuery.fetchNextPage();
+  };
+
   return (
     <ScrollView
       className="flex-1 bg-gray-900"
       refreshControl={
         <RefreshControl
-          refreshing={profileQuery.isFetching}
+          refreshing={isRefreshing}
           onRefresh={handleRefresh}
           tintColor="#7B3DFF"
         />
@@ -94,7 +105,7 @@ const ProfileScreen = () => {
         <View className="mt-4 flex-row justify-between mb-8">
           <View className="bg-gray-800 p-4 rounded-lg flex-1 mr-2 items-center">
             <Text className="text-purple-500 text-xl font-bold">
-              {profileQuery.data?.orders?.length || 0}
+              {totalOrders}
             </Text>
             <Text className="text-gray-400">Ordenes</Text>
           </View>
@@ -103,7 +114,7 @@ const ProfileScreen = () => {
         {/* Purchased Events */}
         <View>
           <Text className="text-white text-xl font-bold mb-4">Mis Eventos</Text>
-          {!profileQuery.data?.orders?.length ? (
+          {!orders.length ? (
             <View className="bg-gray-800 p-6 rounded-lg items-center">
               <Feather name="shopping-bag" size={48} color="#666" />
               <Text className="text-gray-400 mt-4 text-center">
@@ -117,18 +128,36 @@ const ProfileScreen = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            profileQuery.data.orders.map((order) => (
-              <PurchasedEventCard
-                key={`${order.id}`}
-                event={{
-                  id: order.id,
-                  name: order.line_items[0]?.name,
-                  status: order.status,
-                  image: order.line_items[0]?.image,
-                }}
-                onPress={() => router.push(`/order/${order.id}`)}
-              />
-            ))
+            <>
+              {orders.map((order) => (
+                <PurchasedEventCard
+                  key={`${order.id}`}
+                  event={{
+                    id: order.id,
+                    name: order.line_items[0]?.name,
+                    status: order.status,
+                    image: order.line_items[0]?.image,
+                  }}
+                  onPress={() => router.push(`/order/${order.id}`)}
+                />
+              ))}
+
+              {profileQuery.hasNextPage && (
+                <TouchableOpacity
+                  className="bg-gray-800 p-4 rounded-lg items-center mt-2 mb-2"
+                  onPress={handleLoadMore}
+                  disabled={profileQuery.isFetchingNextPage}
+                >
+                  {profileQuery.isFetchingNextPage ? (
+                    <ActivityIndicator color="#7B3DFF" />
+                  ) : (
+                    <Text className="text-purple-400 font-bold">
+                      Cargar más compras
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </>
           )}
         </View>
 
