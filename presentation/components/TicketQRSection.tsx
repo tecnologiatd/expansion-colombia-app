@@ -94,7 +94,8 @@ export const TicketQRSection = ({
         usagesPerTicket: 1,
       });
     }
-  }, [orderId, orderStatus, eventId, quantity, generateTicketMutation]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId, orderStatus, eventId, quantity]);
 
   useEffect(() => {
     if (generateTicketMutation.data?.qrCodes) {

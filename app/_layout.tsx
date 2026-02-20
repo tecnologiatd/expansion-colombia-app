@@ -71,6 +71,7 @@ export default function Layout() {
             options={{
               headerShown: true,
               headerTitle: "Events",
+              contentStyle: { backgroundColor: '#111827' },
             }}
           />
           <Stack.Screen
@@ -83,6 +84,7 @@ export default function Layout() {
             name="order/[id]"
             options={{
               headerTitle: "Order Details",
+              contentStyle: { backgroundColor: '#111827' },
             }}
           />
         </Stack>

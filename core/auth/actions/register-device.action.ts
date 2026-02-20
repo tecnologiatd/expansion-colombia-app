@@ -32,8 +32,7 @@ export class DeviceService {
         });
       } catch (error) {
         console.error("Error registering device:", error);
-        // Incluso si falla el registro en el backend, mantenemos el token localmente
-        throw error;
+        // Non-fatal: token saved locally, will retry on next login
       }
     }
   }

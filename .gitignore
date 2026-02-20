@@ -52,4 +52,5 @@ app-example
 #Release
 android/
 ios/
-/atd-exapansion-colombia-firebase-adminsdk.json
+
+.env.local

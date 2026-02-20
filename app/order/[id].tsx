@@ -7,7 +7,7 @@ export default function OrderScreen() {
   const { id } = useLocalSearchParams();
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-gray-900" edges={['bottom']}>
       <OrderDetails orderId={id as string} />
     </SafeAreaView>
   );
