@@ -13,6 +13,7 @@ import React, { useState, useRef, useEffect } from "react";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
 import { Link, router, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/presentation/theme/components/ThemedView";
 import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import ExpansionHeader from "@/presentation/components/ExpansionHeader";
@@ -29,6 +30,7 @@ import {
 const Register = () => {
   const { register, error, clearError } = useAuthStore();
   const [isPosting, setIsPosting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Referencias para navegar entre campos del formulario
   const confirmEmailInputRef = useRef<TextInput>(null);
@@ -127,7 +129,7 @@ const Register = () => {
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
           >
-            <View className="w-full flex-1 justify-between px-6 pb-8">
+            <View className="w-full flex-1 justify-between px-6" style={{ paddingBottom: Math.max(insets.bottom + 16, 32) }}>
               <View className="flex-1 justify-center px-6 py-8">
                 <View className="items-center mb-10">
                   <ExpansionHeader />

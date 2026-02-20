@@ -12,6 +12,7 @@ import React, { useCallback, useRef, useEffect } from "react";
 import FormField from "@/presentation/components/FormField";
 import CustomButton from "@/presentation/components/CustomButton";
 import { Link, router, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/presentation/theme/components/ThemedView";
 import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import ExpansionHeader from "@/presentation/components/ExpansionHeader";
@@ -28,6 +29,7 @@ interface LoginFormData {
 const Login = () => {
   const { login, error, clearError } = useAuthStore();
   const [isPosting, setIsPosting] = React.useState(false);
+  const insets = useSafeAreaInsets();
 
   // Referencias para navegar entre campos del formulario
   const passwordInputRef = useRef<TextInput>(null);
@@ -106,7 +108,7 @@ const Login = () => {
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
           >
-            <View className="w-full flex-1 justify-between px-6 pb-8">
+            <View className="w-full flex-1 justify-between px-6" style={{ paddingBottom: Math.max(insets.bottom + 16, 32) }}>
               <View className="flex-1 justify-center px-6 py-8">
                 <CustomButton
                   title="Ver eventos"
@@ -212,7 +214,6 @@ const Login = () => {
                     </View>
                   </TouchableWithoutFeedback>
                 )}
-                <View className="px-8 py-2" />
               </View>
             </View>
           </ScrollView>

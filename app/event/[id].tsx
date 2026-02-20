@@ -97,7 +97,7 @@ const DetailScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900" edges={["left", "right"]}>
+    <SafeAreaView className="flex-1 bg-gray-900" edges={["left", "right", "bottom"]}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />

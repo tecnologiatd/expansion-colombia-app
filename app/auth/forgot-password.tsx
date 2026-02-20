@@ -12,6 +12,7 @@ import {
   Alert,
 } from "react-native";
 import { Link, router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedView } from "@/presentation/theme/components/ThemedView";
 import { ThemedText } from "@/presentation/theme/components/ThemedText";
 import ExpansionHeader from "@/presentation/components/ExpansionHeader";
@@ -23,6 +24,7 @@ import { useNativePasswordReset } from "@/presentation/hooks/useNativePasswordRe
 const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
 
   // Usar el hook simplificado
   const { resetPasswordMutation } = useNativePasswordReset();
@@ -74,7 +76,7 @@ const ForgotPasswordScreen = () => {
       >
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-            <View className="w-full flex-1 justify-between px-6 pb-8">
+            <View className="w-full flex-1 justify-between px-6" style={{ paddingBottom: Math.max(insets.bottom + 16, 32) }}>
               <View className="flex-1 justify-center px-6 py-8">
                 <TouchableOpacity
                   onPress={() => router.back()}
