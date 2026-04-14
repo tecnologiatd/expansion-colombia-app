@@ -14,6 +14,14 @@ import removeTags from "@/helpers/removeHtml";
 interface Props extends TouchableOpacityProps {
   product?: Product; //Avoid using ?
 }
+
+const formatPriceCOP = (value?: number) =>
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+
 const EventCard = ({ product }: Props) => {
   const { height, width } = useWindowDimensions();
   return (
@@ -32,7 +40,9 @@ const EventCard = ({ product }: Props) => {
           style={{ width: "100%", height: 200, resizeMode: "cover" }}
         />
         <View className="absolute top-4 left-4 bg-secondary px-3 py-1 rounded-md">
-          <Text className="text-black font-medium">{product?.price.toLocaleString('es-CO', {style:"currency", currency:"COP"})}</Text>
+          <Text className="text-black font-medium">
+            {formatPriceCOP(product?.price)}
+          </Text>
         </View>
       </View>
       <View className="p-4">

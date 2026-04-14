@@ -34,32 +34,45 @@ function SponsorshipFormModal({
   onSubmit,
   initialData,
   isLoading,
+  availableCategories,
 }: {
   visible: boolean;
   onClose: () => void;
   onSubmit: (data: FormData) => void;
   initialData?: SponsorshipLine;
   isLoading: boolean;
+  availableCategories: string[];
 }) {
   const [form, setForm] = useState<FormData>({
     name: initialData?.name ?? "",
     category: initialData?.category ?? "Región",
     active: initialData?.active ?? true,
   });
+  const [customMode, setCustomMode] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
+      const initialCategory = initialData?.category ?? "Región";
       setForm({
         name: initialData?.name ?? "",
-        category: initialData?.category ?? "Región",
+        category: initialCategory,
         active: initialData?.active ?? true,
       });
+      // If editing a line whose category isn't in the suggestion list, open in custom mode
+      setCustomMode(
+        !!initialData?.category &&
+          !availableCategories.includes(initialData.category),
+      );
     }
-  }, [visible, initialData]);
+  }, [visible, initialData, availableCategories]);
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
       Alert.alert("Error", "El nombre es obligatorio");
+      return;
+    }
+    if (!form.category.trim()) {
+      Alert.alert("Error", "La categoría es obligatoria");
       return;
     }
     onSubmit(form);
@@ -97,21 +110,56 @@ function SponsorshipFormModal({
             />
 
             <Text className="text-gray-400 mb-1">Categoría</Text>
-            <View className="flex-row flex-wrap mb-4">
-              {PREDEFINED_CATEGORIES.map((cat) => (
+            {customMode ? (
+              <View className="mb-4">
+                <TextInput
+                  className="bg-gray-700 text-white p-3 rounded-lg mb-2"
+                  value={form.category}
+                  onChangeText={(t) => setForm((f) => ({ ...f, category: t }))}
+                  placeholder="Nombre de la categoría"
+                  placeholderTextColor="#666"
+                  autoFocus
+                />
                 <TouchableOpacity
-                  key={cat}
-                  onPress={() => setForm((f) => ({ ...f, category: cat }))}
-                  className={`px-3 py-2 rounded-full mr-2 mb-2 ${
-                    form.category === cat ? "bg-purple-500" : "bg-gray-700"
-                  }`}
+                  onPress={() => {
+                    setCustomMode(false);
+                    setForm((f) => ({ ...f, category: "Región" }));
+                  }}
+                  className="flex-row items-center"
                 >
-                  <Text className={form.category === cat ? "text-white font-bold" : "text-gray-300"}>
-                    {cat}
+                  <Ionicons name="arrow-back" size={14} color="#9CA3AF" />
+                  <Text className="text-gray-400 text-xs ml-1">
+                    Elegir de la lista
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+            ) : (
+              <View className="flex-row flex-wrap mb-4">
+                {availableCategories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => setForm((f) => ({ ...f, category: cat }))}
+                    className={`px-3 py-2 rounded-full mr-2 mb-2 ${
+                      form.category === cat ? "bg-purple-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <Text className={form.category === cat ? "text-white font-bold" : "text-gray-300"}>
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  onPress={() => {
+                    setCustomMode(true);
+                    setForm((f) => ({ ...f, category: "" }));
+                  }}
+                  className="px-3 py-2 rounded-full mr-2 mb-2 bg-gray-700 border border-dashed border-gray-500 flex-row items-center"
+                >
+                  <Ionicons name="add" size={14} color="#D1D5DB" />
+                  <Text className="text-gray-300 ml-1">Nueva</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View className="flex-row items-center justify-between mb-6">
               <Text className="text-gray-400">Activa</Text>
@@ -170,6 +218,18 @@ export default function SponsorshipLinesScreen() {
       (a, b) =>
         (categoryOrder[a.title] ?? 50) - (categoryOrder[b.title] ?? 50),
     );
+  }, [query.data]);
+
+  // Predefined categories + any custom ones that already exist in the data
+  const availableCategories = React.useMemo(() => {
+    const existing = new Set(
+      (query.data ?? []).map((l) => l.category).filter((c): c is string => !!c),
+    );
+    const merged = [...PREDEFINED_CATEGORIES];
+    for (const cat of existing) {
+      if (!merged.includes(cat)) merged.push(cat);
+    }
+    return merged;
   }, [query.data]);
 
   const handleCreate = () => {
@@ -338,6 +398,7 @@ export default function SponsorshipLinesScreen() {
         onSubmit={handleSubmit}
         initialData={editingLine}
         isLoading={createMutation.isPending || updateMutation.isPending}
+        availableCategories={availableCategories}
       />
     </SafeAreaView>
   );
