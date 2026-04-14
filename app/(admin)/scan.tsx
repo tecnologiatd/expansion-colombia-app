@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Vibration,
+  Animated,
+  StyleSheet,
 } from "react-native";
 import { Camera, CameraView } from "expo-camera";
 import { router } from "expo-router";
@@ -28,10 +31,16 @@ const cornerBase = {
 export default function ScanScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
   const [qrData, setQrData] = useState<{
     code: string | null;
     eventId: string | null;
   }>({ code: null, eventId: null });
+
+  // Ref-based guard — prevents handler recreation (and native-scanner re-registration)
+  // that used to cause missed frames and require multiple scan attempts.
+  const scannedRef = useRef(false);
+  const flashAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     (async () => {
@@ -48,14 +57,32 @@ export default function ScanScreen() {
   } = useTicketValidation(qrData.code ?? undefined, qrData.eventId ?? undefined);
 
   const resetScan = useCallback(() => {
+    scannedRef.current = false;
     setScanned(false);
     setQrData({ code: null, eventId: null });
   }, []);
 
   const handleBarCodeScanned = useCallback(
     ({ data }: { type: string; data: string }) => {
-      if (scanned) return;
+      // Ref guard — synchronous, doesn't depend on React state timing
+      if (scannedRef.current) return;
+      scannedRef.current = true;
       setScanned(true);
+
+      // Feedback: short vibration + success flash
+      Vibration.vibrate(50);
+      Animated.sequence([
+        Animated.timing(flashAnim, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(flashAnim, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
       const parts = data.split("/");
       if (parts.length === 2) {
@@ -90,7 +117,7 @@ export default function ScanScreen() {
         );
       }
     },
-    [scanned, resetScan],
+    [resetScan, flashAnim],
   );
 
   useEffect(() => {
@@ -218,15 +245,47 @@ export default function ScanScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
       {/* Camera — fills the space above the bottom panel */}
+      {/* Handler stays attached the whole time — ref guard prevents reprocessing. */}
       <CameraView
-        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+        onBarcodeScanned={handleBarCodeScanned}
         barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+        enableTorch={torchOn}
         style={{ flex: 1 }}
       >
         {/* Spotlight overlay: 4 dim regions around the transparent scan frame */}
         <View style={{ flex: 1 }}>
-          {/* Top dim region */}
-          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)" }} />
+          {/* Top dim region — holds torch toggle */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,0.55)",
+              alignItems: "flex-end",
+              justifyContent: "flex-end",
+              paddingRight: 20,
+              paddingBottom: 16,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setTorchOn((v) => !v)}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: torchOn
+                  ? "rgba(251,191,36,0.95)"
+                  : "rgba(0,0,0,0.55)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              accessibilityLabel={torchOn ? "Apagar linterna" : "Encender linterna"}
+            >
+              <Ionicons
+                name={torchOn ? "flashlight" : "flashlight-outline"}
+                size={22}
+                color={torchOn ? "#111" : "white"}
+              />
+            </TouchableOpacity>
+          </View>
 
           {/* Middle row */}
           <View
@@ -237,11 +296,21 @@ export default function ScanScreen() {
           >
             {/* Left dim */}
             <View
-              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)" }}
+              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }}
             />
 
             {/* Transparent scan frame with L-shaped corner markers */}
             <View style={{ width: SCAN_FRAME_SIZE, height: SCAN_FRAME_SIZE }}>
+              {/* Success flash overlay */}
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  backgroundColor: "#A78BFA",
+                  opacity: flashAnim,
+                  borderRadius: 12,
+                }}
+              />
               {/* Top-left */}
               <View
                 style={{
@@ -290,7 +359,7 @@ export default function ScanScreen() {
 
             {/* Right dim */}
             <View
-              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)" }}
+              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }}
             />
           </View>
 
@@ -298,14 +367,14 @@ export default function ScanScreen() {
           <View
             style={{
               flex: 1,
-              backgroundColor: "rgba(0,0,0,0.65)",
+              backgroundColor: "rgba(0,0,0,0.55)",
               alignItems: "center",
               paddingTop: 28,
             }}
           >
             <View
               style={{
-                backgroundColor: "rgba(0,0,0,0.55)",
+                backgroundColor: "rgba(0,0,0,0.65)",
                 paddingHorizontal: 20,
                 paddingVertical: 10,
                 borderRadius: 24,
@@ -314,14 +383,14 @@ export default function ScanScreen() {
               }}
             >
               <Ionicons
-                name={scanned ? "hourglass-outline" : "qr-code-outline"}
+                name={scanned ? "checkmark-circle" : "qr-code-outline"}
                 size={16}
-                color="white"
+                color={scanned ? "#A78BFA" : "white"}
               />
               <Text style={{ color: "white", marginLeft: 8, fontSize: 14 }}>
                 {scanned
-                  ? "Procesando ticket..."
-                  : "Centra el código QR en el marco"}
+                  ? "Ticket detectado"
+                  : "Centra el QR en el marco"}
               </Text>
             </View>
           </View>

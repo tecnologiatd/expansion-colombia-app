@@ -33,6 +33,19 @@ export const AdminAccessButton = () => {
       </TouchableOpacity>
 
       <TouchableOpacity
+        className="bg-purple-500 p-4 rounded-lg flex-row justify-between items-center mb-3"
+        onPress={() => router.push("/(admin)/sponsorship-lines")}
+      >
+        <View className="flex-row items-center">
+          <Ionicons name="people" size={24} color="white" />
+          <Text className="text-white font-medium ml-3">
+            Líneas de Auspicio
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={24} color="white" />
+      </TouchableOpacity>
+
+      <TouchableOpacity
         className="bg-purple-500 p-4 rounded-lg flex-row justify-between items-center"
         onPress={() => setShowNotificationSender(true)}
       >
