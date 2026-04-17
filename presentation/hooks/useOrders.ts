@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useRef } from "react";
 import {
   createOrderAction,
   getOrderByIdAction,
@@ -45,13 +46,34 @@ export const useCreateOrder = () => {
 };
 
 export const useOrderDetails = (orderId: string) => {
-  return useQuery({
+  // Ref flag: next queryFn call should hit backend with ?fresh=1
+  const forceFreshRef = useRef(false);
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["order", orderId],
-    queryFn: () => getOrderByIdAction(orderId),
+    queryFn: async () => {
+      const fresh = forceFreshRef.current;
+      forceFreshRef.current = false;
+      return getOrderByIdAction(orderId, { fresh });
+    },
     enabled: !!orderId,
     staleTime: 1000 * 60, // Consider data fresh for 1 minute
-    retry: 2, // Retry failed requests twice
+    retry: 2,
   });
+
+  // User-triggered refresh: bypass BOTH React Query staleTime AND backend cache.
+  // Also invalidates all ticket statuses so admin-validated tickets reflect as "used".
+  const forceRefetch = useCallback(async () => {
+    forceFreshRef.current = true;
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["order", orderId] }),
+      queryClient.invalidateQueries({ queryKey: ["ticket-status"] }),
+    ]);
+    return query.refetch();
+  }, [orderId, query, queryClient]);
+
+  return { ...query, forceRefetch };
 };
 
 // Función para generar la URL de pago correcta para una orden

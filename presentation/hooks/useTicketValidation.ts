@@ -29,6 +29,9 @@ export const useTicketValidation = (qrCode?: string, eventId?: string) => {
   }, [qrCode]);
 
   // Query para el estado del ticket
+  // staleTime=0 + refetchOnMount='always' → every screen re-entry re-checks
+  // status, so an admin-validated ticket shows "Usado" as soon as user reopens
+  // the order. Cost: 1 request per ticket per screen mount (cheap GET).
   const ticketStatusQuery = useQuery({
     queryKey: ["ticket-status", processedQrCode, eventId],
     queryFn: () => {
@@ -38,8 +41,9 @@ export const useTicketValidation = (qrCode?: string, eventId?: string) => {
       return getTicketStatus(processedQrCode, eventId);
     },
     enabled: !!processedQrCode && !!eventId,
-    staleTime: 30000, // Datos considerados frescos por 30 segundos
-    cacheTime: 60000, // Mantener en caché por 1 minuto
+    staleTime: 0,
+    refetchOnMount: "always",
+    cacheTime: 60000,
   });
 
   // Query para los detalles de la orden

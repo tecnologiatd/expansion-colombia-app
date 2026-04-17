@@ -21,6 +21,7 @@ const OrderDetails = ({ orderId }) => {
     isError,
     error,
     refetch,
+    forceRefetch,
   } = useOrderDetails(orderId);
 
   if (isLoading) {
@@ -39,7 +40,7 @@ const OrderDetails = ({ orderId }) => {
         </Text>
         <TouchableOpacity
           className="bg-purple-500 px-6 py-3 rounded-lg"
-          onPress={refetch}
+          onPress={forceRefetch}
         >
           <Text className="text-white font-bold">Reintentar</Text>
         </TouchableOpacity>
@@ -81,9 +82,9 @@ const OrderDetails = ({ orderId }) => {
           [{ text: "Entendido" }],
         );
 
-        // Después de que el usuario regrese, refrescar los datos
+        // Después de que el usuario regrese, refrescar los datos (bypass cache)
         setTimeout(() => {
-          refetch();
+          forceRefetch();
         }, 1000);
       }
     } catch (error) {
@@ -148,7 +149,7 @@ const OrderDetails = ({ orderId }) => {
     <ScrollView
       className="flex-1 bg-gray-900"
       refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+        <RefreshControl refreshing={isLoading} onRefresh={forceRefetch} />
       }
     >
       {/* Order Status and Info */}

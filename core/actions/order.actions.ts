@@ -41,9 +41,14 @@ export const createOrderAction = async (
   }
 };
 
-export const getOrderByIdAction = async (orderId: string): Promise<Order> => {
+export const getOrderByIdAction = async (
+  orderId: string,
+  opts: { fresh?: boolean } = {},
+): Promise<Order> => {
   try {
-    const { data } = await backendApi.get<Order>(`/orders/${orderId}`);
+    const { data } = await backendApi.get<Order>(`/orders/${orderId}`, {
+      params: opts.fresh ? { fresh: 1 } : undefined,
+    });
     return data;
   } catch (error) {
     console.error("Error fetching order:", error);

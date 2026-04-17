@@ -11,7 +11,6 @@ import {
   Modal,
 } from "react-native";
 import { Camera, CameraView } from "expo-camera";
-import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTicketValidation } from "@/presentation/hooks/useTicketValidation";
 import { Ionicons } from "@expo/vector-icons";
@@ -224,15 +223,6 @@ export default function ScanScreen() {
       eventId,
     });
   }, [qrData, validateTicketMutation]);
-
-  const handleViewDetails = useCallback(() => {
-    const { code, eventId } = qrData;
-    if (!code || !eventId) return;
-    // Reset first so re-entering the screen is clean
-    const path = `/admin/ticket/${code}/${eventId}` as any;
-    resetScan();
-    router.push(path);
-  }, [qrData, resetScan]);
 
   const handleRetryValidation = useCallback(() => {
     // Clear failed mutation so modal returns to "ready" state
@@ -473,7 +463,6 @@ export default function ScanScreen() {
               onCancel={resetScan}
               onRetry={refreshData}
               onRetryValidation={handleRetryValidation}
-              onViewDetails={handleViewDetails}
               onScanAnother={resetScan}
             />
           </View>
@@ -491,7 +480,6 @@ function ModalBody({
   onCancel,
   onRetry,
   onRetryValidation,
-  onViewDetails,
   onScanAnother,
 }: {
   state: ModalState;
@@ -499,7 +487,6 @@ function ModalBody({
   onCancel: () => void;
   onRetry: () => void;
   onRetryValidation: () => void;
-  onViewDetails: () => void;
   onScanAnother: () => void;
 }) {
   switch (state.type) {
@@ -647,24 +634,14 @@ function ModalBody({
           <Text className="text-gray-400 text-center mb-6">
             El acceso ha sido registrado correctamente.
           </Text>
-          <View className="flex-row w-full">
-            <TouchableOpacity
-              onPress={onViewDetails}
-              className="flex-1 bg-gray-700 py-4 rounded-xl mr-2"
-            >
-              <Text className="text-white text-center font-bold">
-                Ver detalles
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onScanAnother}
-              className="flex-1 bg-purple-500 py-4 rounded-xl ml-2"
-            >
-              <Text className="text-white text-center font-bold">
-                Escanear otro
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={onScanAnother}
+            className="bg-purple-500 py-4 rounded-xl w-full"
+          >
+            <Text className="text-white text-center font-bold text-base">
+              Escanear otro
+            </Text>
+          </TouchableOpacity>
         </View>
       );
 
