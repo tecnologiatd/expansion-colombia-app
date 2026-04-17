@@ -10,7 +10,6 @@ import {
   TextInput,
   Switch,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -84,12 +83,17 @@ function SponsorshipFormModal({
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
+        keyboardVerticalOffset={0}
         className="flex-1 justify-end bg-black/50"
       >
-        <View className="bg-gray-800 rounded-t-3xl p-6">
+        <View
+          className="bg-gray-800 rounded-t-3xl p-6"
+          style={{ maxHeight: "90%" }}
+        >
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-white text-xl font-bold">
               {initialData ? "Editar Línea" : "Nueva Línea"}
@@ -99,7 +103,10 @@ function SponsorshipFormModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
             <Text className="text-gray-400 mb-1">Nombre *</Text>
             <TextInput
               className="bg-gray-700 text-white p-3 rounded-lg mb-4"

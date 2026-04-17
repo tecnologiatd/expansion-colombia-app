@@ -29,7 +29,7 @@ const DetailScreen = () => {
   const { productQuery } = useProduct(`${id}`);
 
   const [showModal, setShowModal] = useState(false);
-  const [imageUri, setImageUri] = useState(null);
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   async function onRefresh() {
@@ -96,6 +96,8 @@ const DetailScreen = () => {
     }
   };
 
+  const heroImageUri = product?.images?.[0]?.src?.trim();
+
   return (
     <SafeAreaView className="flex-1 bg-gray-900" edges={["left", "right", "bottom"]}>
       <ScrollView
@@ -104,16 +106,26 @@ const DetailScreen = () => {
         }
       >
         <View className="relative">
-          <TouchableOpacity onPress={handleImagePress}>
-            <Image
-              source={{ uri: product?.images?.[0]?.src ?? "" }}
+          {heroImageUri ? (
+            <TouchableOpacity onPress={handleImagePress}>
+              <Image
+                source={{ uri: heroImageUri }}
+                style={{
+                  width: "100%",
+                  height: 300,
+                  resizeMode: "cover",
+                }}
+              />
+            </TouchableOpacity>
+          ) : (
+            <View
               style={{
                 width: "100%",
                 height: 300,
-                resizeMode: "cover",
+                backgroundColor: "#1f2937",
               }}
             />
-          </TouchableOpacity>
+          )}
           <View className="absolute top-4 left-4 bg-purple-500 px-3 py-1 rounded-md">
             <Text className="text-white font-medium">{product.name}</Text>
           </View>
@@ -150,7 +162,9 @@ const DetailScreen = () => {
             style={styles.modalContent}
             onPress={() => setShowModal(false)}
           >
-            <Image source={{ uri: imageUri }} style={styles.modalImage} />
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.modalImage} />
+            ) : null}
           </TouchableOpacity>
         </View>
       </Modal>

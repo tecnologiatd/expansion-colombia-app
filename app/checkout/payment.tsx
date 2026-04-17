@@ -9,7 +9,13 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from "react-native";
-import { router, useLocalSearchParams, Stack } from "expo-router";
+import {
+  router,
+  useLocalSearchParams,
+  Stack,
+  useNavigation,
+} from "expo-router";
+import { CommonActions } from "@react-navigation/native";
 import { useCreateOrder } from "@/presentation/hooks/useOrders";
 import { useCartStore } from "@/core/stores/cart-store";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,6 +27,7 @@ export default function PaymentScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const { createOrderMutation, prepareOrderItems } = useCreateOrder();
   const { calculateTotal, clearCart } = useCartStore();
+  const navigation = useNavigation();
 
   const handleContinueToPayment = async () => {
     try {
@@ -48,11 +55,23 @@ export default function PaymentScreen() {
         );
 
         if (opened) {
-          // Al volver del navegador, redirigir a la página de detalles del pedido
-          router.replace(`/order/${response.id.toString()}`);
-
           // Limpiar el carrito para evitar compras duplicadas
           clearCart();
+
+          // Reset nav stack so back from order detail goes to home tab
+          // (not cart / billing / payment). User can browse orders from profile.
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 1,
+              routes: [
+                { name: "(tabs)" },
+                {
+                  name: "order/[id]",
+                  params: { id: response.id.toString() },
+                },
+              ],
+            }),
+          );
         }
       } else {
         Alert.alert("Error", "No se recibió la URL de pago del servidor");
