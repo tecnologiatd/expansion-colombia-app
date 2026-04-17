@@ -26,7 +26,8 @@ interface FormData {
   active: boolean;
 }
 
-const PREDEFINED_CATEGORIES = ["Región", "EMBAJADOR", "DIAMANTE", "ESMERALDA"];
+const PREDEFINED_CATEGORIES = ["EMBAJADOR", "DIAMANTE", "ESMERALDA"];
+const DEFAULT_CATEGORY = "EMBAJADOR";
 
 function SponsorshipFormModal({
   visible,
@@ -45,20 +46,19 @@ function SponsorshipFormModal({
 }) {
   const [form, setForm] = useState<FormData>({
     name: initialData?.name ?? "",
-    category: initialData?.category ?? "Región",
+    category: initialData?.category ?? DEFAULT_CATEGORY,
     active: initialData?.active ?? true,
   });
   const [customMode, setCustomMode] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
-      const initialCategory = initialData?.category ?? "Región";
+      const initialCategory = initialData?.category ?? DEFAULT_CATEGORY;
       setForm({
         name: initialData?.name ?? "",
         category: initialCategory,
         active: initialData?.active ?? true,
       });
-      // If editing a line whose category isn't in the suggestion list, open in custom mode
       setCustomMode(
         !!initialData?.category &&
           !availableCategories.includes(initialData.category),
@@ -123,7 +123,7 @@ function SponsorshipFormModal({
                 <TouchableOpacity
                   onPress={() => {
                     setCustomMode(false);
-                    setForm((f) => ({ ...f, category: "Región" }));
+                    setForm((f) => ({ ...f, category: DEFAULT_CATEGORY }));
                   }}
                   className="flex-row items-center"
                 >
@@ -143,7 +143,13 @@ function SponsorshipFormModal({
                       form.category === cat ? "bg-purple-500" : "bg-gray-700"
                     }`}
                   >
-                    <Text className={form.category === cat ? "text-white font-bold" : "text-gray-300"}>
+                    <Text
+                      className={
+                        form.category === cat
+                          ? "text-white font-bold"
+                          : "text-gray-300"
+                      }
+                    >
                       {cat}
                     </Text>
                   </TouchableOpacity>
@@ -196,7 +202,7 @@ export default function SponsorshipLinesScreen() {
   const [formVisible, setFormVisible] = useState(false);
   const [editingLine, setEditingLine] = useState<SponsorshipLine | undefined>();
 
-  // Group lines by category for SectionList
+  // Group lines by category for SectionList — sorted by order within each category
   const sections = React.useMemo(() => {
     if (!query.data) return [];
 
@@ -207,11 +213,15 @@ export default function SponsorshipLinesScreen() {
       map.get(cat)!.push(line);
     }
 
+    // Sort items within each section by `order` ASC
+    for (const [, items] of map) {
+      items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    }
+
     const categoryOrder: Record<string, number> = {
-      Región: 1,
-      EMBAJADOR: 2,
-      DIAMANTE: 3,
-      ESMERALDA: 4,
+      EMBAJADOR: 1,
+      DIAMANTE: 2,
+      ESMERALDA: 3,
     };
 
     return Array.from(map, ([title, data]) => ({ title, data })).sort(
@@ -223,7 +233,9 @@ export default function SponsorshipLinesScreen() {
   // Predefined categories + any custom ones that already exist in the data
   const availableCategories = React.useMemo(() => {
     const existing = new Set(
-      (query.data ?? []).map((l) => l.category).filter((c): c is string => !!c),
+      (query.data ?? [])
+        .map((l) => l.category)
+        .filter((c): c is string => !!c),
     );
     const merged = [...PREDEFINED_CATEGORIES];
     for (const cat of existing) {
@@ -243,21 +255,20 @@ export default function SponsorshipLinesScreen() {
   };
 
   const handleDelete = (line: SponsorshipLine) => {
-    Alert.alert(
-      "Eliminar",
-      `¿Eliminar "${line.name}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: () => deleteMutation.mutate(line.id),
-        },
-      ],
-    );
+    Alert.alert("Eliminar", `¿Eliminar "${line.name}"?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: () => deleteMutation.mutate(line.id),
+      },
+    ]);
   };
 
-  const handleDeleteCategory = (category: string, lines: SponsorshipLine[]) => {
+  const handleDeleteCategory = (
+    category: string,
+    lines: SponsorshipLine[],
+  ) => {
     Alert.alert(
       "Eliminar categoría",
       `¿Eliminar la categoría "${category}" y sus ${lines.length} línea${lines.length === 1 ? "" : "s"}? Esta acción no se puede deshacer.`,
@@ -280,11 +291,41 @@ export default function SponsorshipLinesScreen() {
     );
   };
 
+  /** Swap the `order` values of two adjacent items within the same section. */
+  const handleMove = async (
+    item: SponsorshipLine,
+    sectionItems: SponsorshipLine[],
+    direction: "up" | "down",
+  ) => {
+    const idx = sectionItems.findIndex((l) => l.id === item.id);
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sectionItems.length) return;
+
+    const other = sectionItems[targetIdx];
+    const itemOrder = item.order ?? idx * 10;
+    const otherOrder = other.order ?? targetIdx * 10;
+
+    try {
+      await Promise.all([
+        updateMutation.mutateAsync({ id: item.id, order: otherOrder }),
+        updateMutation.mutateAsync({ id: other.id, order: itemOrder }),
+      ]);
+    } catch {
+      Alert.alert("Error", "No se pudo reordenar. Inténtalo de nuevo.");
+    }
+  };
+
   const handleSubmit = (form: FormData) => {
+    // When creating or moving to a different category, place at the end
     let order = editingLine?.order;
     if (!editingLine || editingLine.category !== form.category.trim()) {
-      const itemsInCat = query.data?.filter(l => l.category === form.category.trim()) || [];
-      order = itemsInCat.length > 0 ? Math.max(...itemsInCat.map(i => i.order)) + 1 : 1;
+      const itemsInCat =
+        query.data?.filter((l) => l.category === form.category.trim()) || [];
+      const maxOrder =
+        itemsInCat.length > 0
+          ? Math.max(...itemsInCat.map((i) => i.order ?? 0))
+          : 0;
+      order = maxOrder + 10;
     }
 
     const payload = {
@@ -318,6 +359,8 @@ export default function SponsorshipLinesScreen() {
     );
   }
 
+  const isReordering = updateMutation.isPending;
+
   return (
     <SafeAreaView className="flex-1 bg-gray-900" edges={["bottom"]}>
       <SectionList
@@ -328,7 +371,10 @@ export default function SponsorshipLinesScreen() {
           <View className="bg-gray-900 px-4 py-2 border-b border-gray-800 flex-row items-center justify-between">
             <Text className="text-purple-400 font-bold text-base">
               {title}
-              <Text className="text-gray-500 font-normal"> · {data.length}</Text>
+              <Text className="text-gray-500 font-normal">
+                {" "}
+                · {data.length}
+              </Text>
             </Text>
             <TouchableOpacity
               hitSlop={8}
@@ -339,40 +385,76 @@ export default function SponsorshipLinesScreen() {
             </TouchableOpacity>
           </View>
         )}
-        renderItem={({ item }) => (
-          <View
-            className={`mx-4 my-1 p-4 rounded-lg flex-row items-center justify-between ${
-              item.active ? "bg-gray-800" : "bg-gray-800/50"
-            }`}
-          >
-            <TouchableOpacity
-              className="flex-1 mr-3"
-              onPress={() => handleEdit(item)}
-            >
-              <Text
-                className={`font-medium ${item.active ? "text-white" : "text-gray-500"}`}
-              >
-                {item.name}
-              </Text>
-            </TouchableOpacity>
+        renderItem={({ item, index, section }) => {
+          const sectionItems = section.data;
+          const isFirst = index === 0;
+          const isLast = index === sectionItems.length - 1;
 
-            <View className="flex-row items-center">
-              <Switch
-                value={item.active}
-                onValueChange={() => handleToggleActive(item)}
-                trackColor={{ false: "#555", true: "#7B3DFF" }}
-                thumbColor="white"
-                style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-              />
+          return (
+            <View
+              className={`mx-4 my-1 rounded-lg flex-row items-center ${
+                item.active ? "bg-gray-800" : "bg-gray-800/50"
+              }`}
+            >
+              {/* Sort arrows */}
+              <View className="w-9 items-center justify-center py-3 pl-2">
+                <TouchableOpacity
+                  onPress={() => handleMove(item, sectionItems, "up")}
+                  disabled={isFirst || isReordering}
+                  className="py-1"
+                  hitSlop={4}
+                >
+                  <Ionicons
+                    name="chevron-up"
+                    size={16}
+                    color={isFirst ? "#374151" : "#9CA3AF"}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleMove(item, sectionItems, "down")}
+                  disabled={isLast || isReordering}
+                  className="py-1"
+                  hitSlop={4}
+                >
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={isLast ? "#374151" : "#9CA3AF"}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Name — tap to edit */}
               <TouchableOpacity
-                className="ml-2 p-2"
-                onPress={() => handleDelete(item)}
+                className="flex-1 px-2 py-4"
+                onPress={() => handleEdit(item)}
               >
-                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                <Text
+                  className={`font-medium ${item.active ? "text-white" : "text-gray-500"}`}
+                >
+                  {item.name}
+                </Text>
               </TouchableOpacity>
+
+              {/* Active toggle + delete */}
+              <View className="flex-row items-center pr-2">
+                <Switch
+                  value={item.active}
+                  onValueChange={() => handleToggleActive(item)}
+                  trackColor={{ false: "#555", true: "#7B3DFF" }}
+                  thumbColor="white"
+                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                />
+                <TouchableOpacity
+                  className="ml-1 p-2"
+                  onPress={() => handleDelete(item)}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        )}
+          );
+        }}
         ListEmptyComponent={
           <View className="p-8 items-center">
             <Text className="text-gray-400">

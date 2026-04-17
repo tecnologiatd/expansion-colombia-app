@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Vibration,
   Animated,
   StyleSheet,
+  Modal,
 } from "react-native";
 import { Camera, CameraView } from "expo-camera";
 import { router } from "expo-router";
@@ -27,6 +28,22 @@ const cornerBase = {
   height: CORNER_SIZE,
   borderColor: CORNER_COLOR,
 };
+
+// Validation flow state — derived purely from queries/mutation, no side effects.
+type ModalState =
+  | { type: "hidden" }
+  | { type: "loading"; stage: "ticket" | "order" }
+  | { type: "error"; message: string }
+  | { type: "used"; lastUsedAt?: string; usageCount: number; maxUsages: number }
+  | {
+      type: "ready";
+      customer: { name: string; email: string; phone: string };
+      usageCount: number;
+      maxUsages: number;
+    }
+  | { type: "validating" }
+  | { type: "success" }
+  | { type: "failed"; message: string };
 
 export default function ScanScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -60,7 +77,9 @@ export default function ScanScreen() {
     scannedRef.current = false;
     setScanned(false);
     setQrData({ code: null, eventId: null });
-  }, []);
+    // Reset mutation so next scan doesn't start in success/failure state
+    validateTicketMutation.reset();
+  }, [validateTicketMutation]);
 
   const handleBarCodeScanned = useCallback(
     ({ data }: { type: string; data: string }) => {
@@ -86,10 +105,7 @@ export default function ScanScreen() {
 
       const parts = data.split("/");
       if (parts.length === 2) {
-        setQrData({
-          code: parts[0],
-          eventId: parts[1],
-        });
+        setQrData({ code: parts[0], eventId: parts[1] });
       } else {
         Alert.prompt(
           "Ingrese ID del Evento",
@@ -104,10 +120,7 @@ export default function ScanScreen() {
                   resetScan();
                   return;
                 }
-                setQrData({
-                  code: data,
-                  eventId: eventId,
-                });
+                setQrData({ code: data, eventId });
               },
             },
           ],
@@ -120,94 +133,113 @@ export default function ScanScreen() {
     [resetScan, flashAnim],
   );
 
-  useEffect(() => {
-    if (!ticketStatusQuery.data || !qrData.code || !qrData.eventId) return;
+  // Pure derivation — the modal is a function of query + mutation state.
+  // No useEffect, no side effects, no re-firing.
+  const modalState: ModalState = useMemo(() => {
+    if (!scanned || !qrData.code || !qrData.eventId) {
+      return { type: "hidden" };
+    }
 
-    const ticket = ticketStatusQuery.data;
-    const orderData = orderDetailsQuery.data;
+    // Mutation states take priority once the admin has pressed "Validar".
+    // These persist until resetScan() calls validateTicketMutation.reset().
+    if (validateTicketMutation.isPending) return { type: "validating" };
+    if (validateTicketMutation.isSuccess) return { type: "success" };
+    if (validateTicketMutation.isError) {
+      const err = validateTicketMutation.error as Error | undefined;
+      return {
+        type: "failed",
+        message: err?.message || "Error al validar el ticket.",
+      };
+    }
 
+    // Ticket status query
+    if (ticketStatusQuery.isLoading) {
+      return { type: "loading", stage: "ticket" };
+    }
+    if (ticketStatusQuery.error) {
+      return {
+        type: "error",
+        message: "No se pudo verificar el ticket. Toca reintentar.",
+      };
+    }
+    const ticket: any = ticketStatusQuery.data;
+    if (!ticket) return { type: "loading", stage: "ticket" };
+
+    // Already fully used
     if (ticket.usageCount >= ticket.maxUsages) {
-      Alert.alert(
-        "Ticket Inválido",
-        `Este ticket ya ha sido utilizado completamente.\n\nÚltimo uso: ${new Date(
-          ticket.usageHistory[ticket.usageHistory.length - 1].timestamp,
-        ).toLocaleString()}`,
-        [{ text: "Escanear otro", onPress: resetScan }],
-      );
-      return;
+      const history = ticket.usageHistory ?? [];
+      const last = history[history.length - 1];
+      return {
+        type: "used",
+        lastUsedAt: last?.timestamp,
+        usageCount: ticket.usageCount,
+        maxUsages: ticket.maxUsages,
+      };
     }
 
-    if (
-      !orderData &&
-      !orderDetailsQuery.isLoading &&
-      !orderDetailsQuery.error
-    ) {
-      return;
+    // Order details query
+    if (orderDetailsQuery.isLoading) {
+      return { type: "loading", stage: "order" };
     }
-
-    if (orderData) {
-      Alert.alert(
-        "Validar Ticket",
-        `¿Deseas validar este ticket?\n\n` +
-          `Cliente: ${orderData.billing.first_name} ${orderData.billing.last_name}\n` +
-          `Email: ${orderData.billing.email}\n` +
-          `Teléfono: ${orderData.billing.phone}\n\n` +
-          `Usos: ${ticket.usageCount} de ${ticket.maxUsages}\n` +
-          `Usos restantes: ${ticket.maxUsages - ticket.usageCount}`,
-        [
-          { text: "Cancelar", style: "cancel", onPress: resetScan },
-          {
-            text: "Validar",
-            style: "default",
-            onPress: async () => {
-              const scannedCode = qrData.code;
-              const scannedEventId = qrData.eventId;
-              if (!scannedCode || !scannedEventId) {
-                Alert.alert("Error", "No se pudo leer el ticket correctamente.");
-                resetScan();
-                return;
-              }
-
-              try {
-                await validateTicketMutation.mutateAsync({
-                  qrCode: `${scannedCode}/${scannedEventId}`,
-                  eventId: scannedEventId,
-                });
-
-                Alert.alert("Éxito", "Ticket validado correctamente", [
-                  {
-                    text: "Ver detalles",
-                    onPress: () =>
-                      router.push(
-                        `/admin/ticket/${scannedCode}/${scannedEventId}`,
-                      ),
-                  },
-                  { text: "Escanear otro", onPress: resetScan },
-                ]);
-              } catch (error) {
-                console.error("Validation error:", error);
-                Alert.alert(
-                  "Error",
-                  "Error al validar el ticket. Intente nuevamente.",
-                  [{ text: "OK", onPress: resetScan }],
-                );
-              }
-            },
-          },
-        ],
-      );
+    if (orderDetailsQuery.error) {
+      return {
+        type: "error",
+        message: "No se pudieron cargar los datos del cliente.",
+      };
     }
+    const order: any = orderDetailsQuery.data;
+    if (!order) return { type: "loading", stage: "order" };
+
+    return {
+      type: "ready",
+      customer: {
+        name: `${order.billing.first_name} ${order.billing.last_name}`,
+        email: order.billing.email,
+        phone: order.billing.phone,
+      },
+      usageCount: ticket.usageCount,
+      maxUsages: ticket.maxUsages,
+    };
   }, [
-    ticketStatusQuery.data,
-    orderDetailsQuery.data,
-    orderDetailsQuery.isLoading,
-    orderDetailsQuery.error,
+    scanned,
     qrData.code,
     qrData.eventId,
-    validateTicketMutation,
-    resetScan,
+    ticketStatusQuery.isLoading,
+    ticketStatusQuery.error,
+    ticketStatusQuery.data,
+    orderDetailsQuery.isLoading,
+    orderDetailsQuery.error,
+    orderDetailsQuery.data,
+    validateTicketMutation.isPending,
+    validateTicketMutation.isSuccess,
+    validateTicketMutation.isError,
+    validateTicketMutation.error,
   ]);
 
+  const handleConfirmValidate = useCallback(() => {
+    const { code, eventId } = qrData;
+    if (!code || !eventId) return;
+    validateTicketMutation.mutate({
+      qrCode: `${code}/${eventId}`,
+      eventId,
+    });
+  }, [qrData, validateTicketMutation]);
+
+  const handleViewDetails = useCallback(() => {
+    const { code, eventId } = qrData;
+    if (!code || !eventId) return;
+    // Reset first so re-entering the screen is clean
+    const path = `/admin/ticket/${code}/${eventId}` as any;
+    resetScan();
+    router.push(path);
+  }, [qrData, resetScan]);
+
+  const handleRetryValidation = useCallback(() => {
+    // Clear failed mutation so modal returns to "ready" state
+    validateTicketMutation.reset();
+  }, [validateTicketMutation]);
+
+  // Permission states
   if (hasPermission === null) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-900">
@@ -232,27 +264,26 @@ export default function ScanScreen() {
           onPress={() => Camera.requestCameraPermissionsAsync()}
         >
           <Ionicons name="camera" size={20} color="white" />
-          <Text className="text-white font-bold ml-2 text-base">Dar Permiso</Text>
+          <Text className="text-white font-bold ml-2 text-base">
+            Dar Permiso
+          </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const isLoading =
-    scanned && (ticketStatusQuery.isLoading || orderDetailsQuery.isLoading);
-  const hasError = ticketStatusQuery.error || orderDetailsQuery.error;
+  const isBusy = modalState.type === "validating";
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
-      {/* Camera — fills the space above the bottom panel */}
-      {/* Handler stays attached the whole time — ref guard prevents reprocessing. */}
+      {/* Camera — handler stays attached the whole time; ref guard prevents reprocessing */}
       <CameraView
         onBarcodeScanned={handleBarCodeScanned}
         barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
         enableTorch={torchOn}
         style={{ flex: 1 }}
       >
-        {/* Spotlight overlay: 4 dim regions around the transparent scan frame */}
+        {/* Spotlight overlay */}
         <View style={{ flex: 1 }}>
           {/* Top dim region — holds torch toggle */}
           <View
@@ -277,7 +308,9 @@ export default function ScanScreen() {
                 alignItems: "center",
                 justifyContent: "center",
               }}
-              accessibilityLabel={torchOn ? "Apagar linterna" : "Encender linterna"}
+              accessibilityLabel={
+                torchOn ? "Apagar linterna" : "Encender linterna"
+              }
             >
               <Ionicons
                 name={torchOn ? "flashlight" : "flashlight-outline"}
@@ -288,20 +321,9 @@ export default function ScanScreen() {
           </View>
 
           {/* Middle row */}
-          <View
-            style={{
-              flexDirection: "row",
-              height: SCAN_FRAME_SIZE,
-            }}
-          >
-            {/* Left dim */}
-            <View
-              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }}
-            />
-
-            {/* Transparent scan frame with L-shaped corner markers */}
+          <View style={{ flexDirection: "row", height: SCAN_FRAME_SIZE }}>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} />
             <View style={{ width: SCAN_FRAME_SIZE, height: SCAN_FRAME_SIZE }}>
-              {/* Success flash overlay */}
               <Animated.View
                 pointerEvents="none"
                 style={{
@@ -311,7 +333,6 @@ export default function ScanScreen() {
                   borderRadius: 12,
                 }}
               />
-              {/* Top-left */}
               <View
                 style={{
                   ...cornerBase,
@@ -322,7 +343,6 @@ export default function ScanScreen() {
                   borderTopLeftRadius: CORNER_RADIUS,
                 }}
               />
-              {/* Top-right */}
               <View
                 style={{
                   ...cornerBase,
@@ -333,7 +353,6 @@ export default function ScanScreen() {
                   borderTopRightRadius: CORNER_RADIUS,
                 }}
               />
-              {/* Bottom-left */}
               <View
                 style={{
                   ...cornerBase,
@@ -344,7 +363,6 @@ export default function ScanScreen() {
                   borderBottomLeftRadius: CORNER_RADIUS,
                 }}
               />
-              {/* Bottom-right */}
               <View
                 style={{
                   ...cornerBase,
@@ -356,14 +374,10 @@ export default function ScanScreen() {
                 }}
               />
             </View>
-
-            {/* Right dim */}
-            <View
-              style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }}
-            />
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} />
           </View>
 
-          {/* Bottom dim region — holds the instruction pill */}
+          {/* Bottom dim region */}
           <View
             style={{
               flex: 1,
@@ -388,91 +402,316 @@ export default function ScanScreen() {
                 color={scanned ? "#A78BFA" : "white"}
               />
               <Text style={{ color: "white", marginLeft: 8, fontSize: 14 }}>
-                {scanned
-                  ? "Ticket detectado"
-                  : "Centra el QR en el marco"}
+                {scanned ? "Ticket detectado" : "Centra el QR en el marco"}
               </Text>
             </View>
           </View>
         </View>
       </CameraView>
 
-      {/* Bottom status panel */}
+      {/* Simplified bottom panel — modal handles all post-scan UI now */}
       <SafeAreaView edges={["bottom"]} style={{ backgroundColor: "#111827" }}>
         <View style={{ padding: 16 }}>
-          {/* Loading row */}
-          {isLoading && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                paddingVertical: 10,
-                marginBottom: 8,
-              }}
-            >
-              <ActivityIndicator size="small" color="#7B3DFF" />
-              <Text style={{ color: "white", marginLeft: 10, fontSize: 15 }}>
-                {ticketStatusQuery.isLoading
-                  ? "Verificando ticket..."
-                  : "Cargando detalles de la orden..."}
-              </Text>
-            </View>
-          )}
-
-          {/* Error row */}
-          {hasError && (
-            <TouchableOpacity
-              onPress={refreshData}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "rgba(239,68,68,0.15)",
-                padding: 14,
-                borderRadius: 12,
-                marginBottom: 12,
-              }}
-            >
-              <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
-              <Text
-                style={{ color: "#FCA5A5", marginLeft: 10, flex: 1, fontSize: 14 }}
-              >
-                Error al cargar el ticket. Toca para reintentar.
-              </Text>
-              <Ionicons name="refresh-outline" size={18} color="#EF4444" />
-            </TouchableOpacity>
-          )}
-
-          {/* Primary action button */}
-          <TouchableOpacity
-            onPress={scanned ? resetScan : undefined}
+          <View
             style={{
-              backgroundColor: scanned ? "#7B3DFF" : "#1F2937",
-              paddingVertical: 16,
-              borderRadius: 14,
               flexDirection: "row",
-              justifyContent: "center",
               alignItems: "center",
+              justifyContent: "center",
+              paddingVertical: 14,
             }}
           >
             <Ionicons
-              name={scanned ? "scan-outline" : "radio-button-on-outline"}
-              size={22}
-              color={scanned ? "white" : "#6B7280"}
+              name="scan-outline"
+              size={20}
+              color={scanned ? "#A78BFA" : "#6B7280"}
             />
             <Text
               style={{
-                color: scanned ? "white" : "#6B7280",
-                fontWeight: "bold",
+                color: scanned ? "#A78BFA" : "#9CA3AF",
                 marginLeft: 8,
-                fontSize: 16,
+                fontSize: 15,
+                fontWeight: "500",
               }}
             >
-              {scanned ? "Escanear otro ticket" : "Listo para escanear"}
+              {scanned ? "Procesando..." : "Listo para escanear"}
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      {/* Validation Modal — fully declarative, no side effects */}
+      <Modal
+        visible={modalState.type !== "hidden"}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => {
+          // Block back-button dismiss while validating to avoid orphan mutations
+          if (isBusy) return;
+          resetScan();
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#1F2937",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 24,
+              paddingBottom: 36,
+            }}
+          >
+            <ModalBody
+              state={modalState}
+              onConfirm={handleConfirmValidate}
+              onCancel={resetScan}
+              onRetry={refreshData}
+              onRetryValidation={handleRetryValidation}
+              onViewDetails={handleViewDetails}
+              onScanAnother={resetScan}
+            />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+// ── Modal Body Renderers ────────────────────────────────────────────────
+
+function ModalBody({
+  state,
+  onConfirm,
+  onCancel,
+  onRetry,
+  onRetryValidation,
+  onViewDetails,
+  onScanAnother,
+}: {
+  state: ModalState;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onRetry: () => void;
+  onRetryValidation: () => void;
+  onViewDetails: () => void;
+  onScanAnother: () => void;
+}) {
+  switch (state.type) {
+    case "loading":
+      return (
+        <View className="items-center py-8">
+          <ActivityIndicator size="large" color="#7B3DFF" />
+          <Text className="text-white text-base mt-4">
+            {state.stage === "ticket"
+              ? "Verificando ticket..."
+              : "Cargando datos del cliente..."}
+          </Text>
+        </View>
+      );
+
+    case "error":
+      return (
+        <View className="items-center py-2">
+          <View className="w-16 h-16 rounded-full bg-red-500/20 items-center justify-center mb-4">
+            <Ionicons name="alert-circle" size={36} color="#EF4444" />
+          </View>
+          <Text className="text-white text-lg font-bold mb-2">
+            No se pudo cargar
+          </Text>
+          <Text className="text-gray-400 text-center mb-6">
+            {state.message}
+          </Text>
+          <View className="flex-row w-full">
+            <TouchableOpacity
+              onPress={onCancel}
+              className="flex-1 bg-gray-700 py-4 rounded-xl mr-2"
+            >
+              <Text className="text-white text-center font-bold">Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onRetry}
+              className="flex-1 bg-purple-500 py-4 rounded-xl ml-2"
+            >
+              <Text className="text-white text-center font-bold">
+                Reintentar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+
+    case "used":
+      return (
+        <View className="items-center py-2">
+          <View className="w-16 h-16 rounded-full bg-red-500/20 items-center justify-center mb-4">
+            <Ionicons name="close-circle" size={40} color="#EF4444" />
+          </View>
+          <Text className="text-white text-xl font-bold mb-2">
+            Ticket ya utilizado
+          </Text>
+          <View className="bg-gray-800 rounded-xl p-4 w-full mb-6">
+            <Row label="Usos" value={`${state.usageCount} de ${state.maxUsages}`} />
+            {state.lastUsedAt && (
+              <Row
+                label="Último uso"
+                value={new Date(state.lastUsedAt).toLocaleString()}
+              />
+            )}
+          </View>
+          <TouchableOpacity
+            onPress={onScanAnother}
+            className="bg-purple-500 py-4 rounded-xl w-full"
+          >
+            <Text className="text-white text-center font-bold text-base">
+              Escanear otro
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      );
+
+    case "ready":
+      return (
+        <View>
+          <Text className="text-white text-xl font-bold mb-1">
+            Validar Ticket
+          </Text>
+          <Text className="text-gray-400 mb-4">
+            Revisa los datos antes de validar
+          </Text>
+          <View className="bg-gray-800 rounded-xl p-4 mb-4">
+            <Row label="Cliente" value={state.customer.name} />
+            <Row label="Email" value={state.customer.email} />
+            <Row label="Teléfono" value={state.customer.phone} />
+          </View>
+          <View className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-6 flex-row items-center">
+            <Ionicons
+              name="ticket-outline"
+              size={20}
+              color="#A78BFA"
+            />
+            <Text className="text-white ml-3 flex-1">
+              Usos: {state.usageCount} de {state.maxUsages}
+              {"  "}
+              <Text className="text-gray-400">
+                ({state.maxUsages - state.usageCount} restante
+                {state.maxUsages - state.usageCount === 1 ? "" : "s"})
+              </Text>
+            </Text>
+          </View>
+          <View className="flex-row">
+            <TouchableOpacity
+              onPress={onCancel}
+              className="flex-1 bg-gray-700 py-4 rounded-xl mr-2"
+            >
+              <Text className="text-white text-center font-bold">Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onConfirm}
+              className="flex-1 bg-purple-500 py-4 rounded-xl ml-2 flex-row items-center justify-center"
+            >
+              <Ionicons name="checkmark" size={20} color="white" />
+              <Text className="text-white text-center font-bold ml-1">
+                Validar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+
+    case "validating":
+      return (
+        <View className="items-center py-8">
+          <ActivityIndicator size="large" color="#7B3DFF" />
+          <Text className="text-white text-lg font-bold mt-4">
+            Validando ticket...
+          </Text>
+          <Text className="text-gray-400 mt-1">No cierres esta ventana</Text>
+        </View>
+      );
+
+    case "success":
+      return (
+        <View className="items-center py-2">
+          <View className="w-16 h-16 rounded-full bg-green-500/20 items-center justify-center mb-4">
+            <Ionicons name="checkmark-circle" size={44} color="#22C55E" />
+          </View>
+          <Text className="text-white text-xl font-bold mb-2">
+            ¡Ticket validado!
+          </Text>
+          <Text className="text-gray-400 text-center mb-6">
+            El acceso ha sido registrado correctamente.
+          </Text>
+          <View className="flex-row w-full">
+            <TouchableOpacity
+              onPress={onViewDetails}
+              className="flex-1 bg-gray-700 py-4 rounded-xl mr-2"
+            >
+              <Text className="text-white text-center font-bold">
+                Ver detalles
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onScanAnother}
+              className="flex-1 bg-purple-500 py-4 rounded-xl ml-2"
+            >
+              <Text className="text-white text-center font-bold">
+                Escanear otro
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+
+    case "failed":
+      return (
+        <View className="items-center py-2">
+          <View className="w-16 h-16 rounded-full bg-red-500/20 items-center justify-center mb-4">
+            <Ionicons name="close-circle" size={40} color="#EF4444" />
+          </View>
+          <Text className="text-white text-xl font-bold mb-2">
+            Error al validar
+          </Text>
+          <Text className="text-gray-400 text-center mb-6">{state.message}</Text>
+          <View className="flex-row w-full">
+            <TouchableOpacity
+              onPress={onCancel}
+              className="flex-1 bg-gray-700 py-4 rounded-xl mr-2"
+            >
+              <Text className="text-white text-center font-bold">Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onRetryValidation}
+              className="flex-1 bg-purple-500 py-4 rounded-xl ml-2"
+            >
+              <Text className="text-white text-center font-bold">
+                Reintentar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+
+    default:
+      return null;
+  }
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row justify-between py-1">
+      <Text className="text-gray-400">{label}</Text>
+      <Text
+        className="text-white font-medium ml-4 flex-1 text-right"
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
