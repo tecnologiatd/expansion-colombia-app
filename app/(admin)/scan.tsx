@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -11,8 +17,12 @@ import {
   Modal,
 } from "react-native";
 import { Camera, CameraView } from "expo-camera";
+import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTicketValidation } from "@/presentation/hooks/useTicketValidation";
+import { useTicketSync } from "@/presentation/hooks/useTicketSync";
+import { useConnectivityStore } from "@/core/offline/connectivity";
+import { formatTimeAgo } from "@/presentation/components/OfflineBanner";
 import { Ionicons } from "@expo/vector-icons";
 
 const SCAN_FRAME_SIZE = 260;
@@ -39,9 +49,10 @@ type ModalState =
       customer: { name: string; email: string; phone: string };
       usageCount: number;
       maxUsages: number;
+      offline?: boolean;
     }
   | { type: "validating" }
-  | { type: "success" }
+  | { type: "success"; offline?: boolean }
   | { type: "failed"; message: string };
 
 export default function ScanScreen() {
@@ -70,7 +81,15 @@ export default function ScanScreen() {
     orderDetailsQuery,
     validateTicketMutation,
     refreshData,
-  } = useTicketValidation(qrData.code ?? undefined, qrData.eventId ?? undefined);
+    statusFromLocal,
+  } = useTicketValidation(
+    qrData.code ?? undefined,
+    qrData.eventId ?? undefined,
+  );
+
+  // Sync automático del espejo offline mientras esta pantalla está montada
+  const { pendingCount, lastSyncAt, isSyncing, syncError } = useTicketSync();
+  const isOnline = useConnectivityStore((state) => state.isOnline);
 
   const resetScan = useCallback(() => {
     scannedRef.current = false;
@@ -142,7 +161,12 @@ export default function ScanScreen() {
     // Mutation states take priority once the admin has pressed "Validar".
     // These persist until resetScan() calls validateTicketMutation.reset().
     if (validateTicketMutation.isPending) return { type: "validating" };
-    if (validateTicketMutation.isSuccess) return { type: "success" };
+    if (validateTicketMutation.isSuccess) {
+      return {
+        type: "success",
+        offline: validateTicketMutation.data?.offline === true,
+      };
+    }
     if (validateTicketMutation.isError) {
       const err = validateTicketMutation.error as Error | undefined;
       return {
@@ -156,9 +180,12 @@ export default function ScanScreen() {
       return { type: "loading", stage: "ticket" };
     }
     if (ticketStatusQuery.error) {
+      const err = ticketStatusQuery.error as Error | undefined;
       return {
         type: "error",
-        message: "No se pudo verificar el ticket. Toca reintentar.",
+        message: err?.message?.includes("sin conexión")
+          ? err.message
+          : "No se pudo verificar el ticket. Toca reintentar.",
       };
     }
     const ticket: any = ticketStatusQuery.data;
@@ -173,6 +200,22 @@ export default function ScanScreen() {
         lastUsedAt: last?.timestamp,
         usageCount: ticket.usageCount,
         maxUsages: ticket.maxUsages,
+      };
+    }
+
+    // Estado obtenido del espejo local (sin conexión): el nombre viene del
+    // snapshot del ticket y no hay query de orden que esperar.
+    if (statusFromLocal) {
+      return {
+        type: "ready",
+        customer: {
+          name: ticket.customerName || "No disponible sin conexión",
+          email: "—",
+          phone: "—",
+        },
+        usageCount: ticket.usageCount,
+        maxUsages: ticket.maxUsages,
+        offline: true,
       };
     }
 
@@ -206,6 +249,7 @@ export default function ScanScreen() {
     ticketStatusQuery.isLoading,
     ticketStatusQuery.error,
     ticketStatusQuery.data,
+    statusFromLocal,
     orderDetailsQuery.isLoading,
     orderDetailsQuery.error,
     orderDetailsQuery.data,
@@ -213,6 +257,7 @@ export default function ScanScreen() {
     validateTicketMutation.isSuccess,
     validateTicketMutation.isError,
     validateTicketMutation.error,
+    validateTicketMutation.data,
   ]);
 
   const handleConfirmValidate = useCallback(() => {
@@ -234,7 +279,9 @@ export default function ScanScreen() {
     return (
       <View className="flex-1 justify-center items-center bg-gray-900">
         <ActivityIndicator size="large" color="#7B3DFF" />
-        <Text className="text-white mt-4">Solicitando permiso de cámara...</Text>
+        <Text className="text-white mt-4">
+          Solicitando permiso de cámara...
+        </Text>
       </View>
     );
   }
@@ -426,6 +473,60 @@ export default function ScanScreen() {
               {scanned ? "Procesando..." : "Listo para escanear"}
             </Text>
           </View>
+
+          {/* Estado de conexión y sincronización offline */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingBottom: 4,
+            }}
+          >
+            <Ionicons
+              name={isOnline ? "cloud-done-outline" : "cloud-offline-outline"}
+              size={14}
+              color={isOnline ? "#22C55E" : "#EAB308"}
+            />
+            <Text style={{ color: "#9CA3AF", marginLeft: 6, fontSize: 12 }}>
+              {isOnline ? "En línea" : "Sin conexión"}
+              {pendingCount > 0
+                ? ` · ${pendingCount} validación${pendingCount === 1 ? "" : "es"} por sincronizar`
+                : ""}
+              {isSyncing
+                ? " · sincronizando…"
+                : lastSyncAt
+                  ? ` · sync ${formatTimeAgo(new Date(lastSyncAt).getTime()) ?? ""}`
+                  : ""}
+            </Text>
+          </View>
+          {syncError && (
+            <Text
+              style={{
+                color: "#EAB308",
+                fontSize: 12,
+                textAlign: "center",
+                paddingBottom: 4,
+              }}
+            >
+              {syncError}
+            </Text>
+          )}
+
+          <TouchableOpacity
+            onPress={() => router.push("/(admin)/conflicts")}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingTop: 8,
+            }}
+          >
+            <Ionicons name="alert-circle-outline" size={14} color="#9CA3AF" />
+            <Text style={{ color: "#9CA3AF", marginLeft: 6, fontSize: 12 }}>
+              Revisar conflictos de validación
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
 
@@ -543,7 +644,10 @@ function ModalBody({
             Ticket ya utilizado
           </Text>
           <View className="bg-gray-800 rounded-xl p-4 w-full mb-6">
-            <Row label="Usos" value={`${state.usageCount} de ${state.maxUsages}`} />
+            <Row
+              label="Usos"
+              value={`${state.usageCount} de ${state.maxUsages}`}
+            />
             {state.lastUsedAt && (
               <Row
                 label="Último uso"
@@ -571,17 +675,25 @@ function ModalBody({
           <Text className="text-gray-400 mb-4">
             Revisa los datos antes de validar
           </Text>
+          {state.offline && (
+            <View className="bg-yellow-500/20 rounded-xl p-3 mb-4 flex-row items-center">
+              <Ionicons
+                name="cloud-offline-outline"
+                size={16}
+                color="#EAB308"
+              />
+              <Text className="text-yellow-500 ml-2 flex-1">
+                Modo sin conexión — datos del último sync
+              </Text>
+            </View>
+          )}
           <View className="bg-gray-800 rounded-xl p-4 mb-4">
             <Row label="Cliente" value={state.customer.name} />
             <Row label="Email" value={state.customer.email} />
             <Row label="Teléfono" value={state.customer.phone} />
           </View>
           <View className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-6 flex-row items-center">
-            <Ionicons
-              name="ticket-outline"
-              size={20}
-              color="#A78BFA"
-            />
+            <Ionicons name="ticket-outline" size={20} color="#A78BFA" />
             <Text className="text-white ml-3 flex-1">
               Usos: {state.usageCount} de {state.maxUsages}
               {"  "}
@@ -629,10 +741,14 @@ function ModalBody({
             <Ionicons name="checkmark-circle" size={44} color="#22C55E" />
           </View>
           <Text className="text-white text-xl font-bold mb-2">
-            ¡Ticket validado!
+            {state.offline
+              ? "Ticket validado (sin conexión)"
+              : "¡Ticket validado!"}
           </Text>
           <Text className="text-gray-400 text-center mb-6">
-            El acceso ha sido registrado correctamente.
+            {state.offline
+              ? "Se sincronizará automáticamente cuando vuelva la conexión."
+              : "El acceso ha sido registrado correctamente."}
           </Text>
           <TouchableOpacity
             onPress={onScanAnother}
@@ -654,7 +770,9 @@ function ModalBody({
           <Text className="text-white text-xl font-bold mb-2">
             Error al validar
           </Text>
-          <Text className="text-gray-400 text-center mb-6">{state.message}</Text>
+          <Text className="text-gray-400 text-center mb-6">
+            {state.message}
+          </Text>
           <View className="flex-row w-full">
             <TouchableOpacity
               onPress={onCancel}

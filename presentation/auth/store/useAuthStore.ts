@@ -1,5 +1,7 @@
 // presentation/auth/store/useAuthStore.ts
 import { create } from "zustand";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { jwtDecode } from "jwt-decode";
 import { AuthStore, User } from "@/core/interfaces/auth";
 import {
   authCheckStatus,
@@ -8,6 +10,43 @@ import {
 } from "@/core/auth/actions/auth-actions";
 import { SecureStorageAdapter } from "@/helpers/adapters/secure-storage.adapter";
 import { backendApi } from "@/core/api/wordpress-api";
+
+const USER_SNAPSHOT_KEY = "auth-user-snapshot";
+
+// Snapshot mínimo del usuario (sin token) para restaurar la sesión offline.
+const saveUserSnapshot = async (user: User) => {
+  try {
+    await AsyncStorage.setItem(USER_SNAPSHOT_KEY, JSON.stringify(user));
+  } catch {
+    // best-effort: sin snapshot la app sigue funcionando online
+  }
+};
+
+const loadUserSnapshot = async (): Promise<User | undefined> => {
+  try {
+    const raw = await AsyncStorage.getItem(USER_SNAPSHOT_KEY);
+    return raw ? (JSON.parse(raw) as User) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const { exp } = jwtDecode<{ exp?: number }>(token);
+    return typeof exp === "number" && exp * 1000 < Date.now();
+  } catch {
+    // Token ilegible: tratarlo como expirado
+    return true;
+  }
+};
+
+// Solo una respuesta 401/403 del backend prueba que el token es inválido.
+// Errores de red, timeouts o 5xx no deben destruir la sesión.
+const isAuthRejection = (error: any): boolean => {
+  const status = error?.response?.status;
+  return status === 401 || status === 403;
+};
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   status: "unauthenticated",
@@ -27,33 +66,25 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       backendApi.defaults.headers.common["Authorization"] =
         `Bearer ${resp.token}`;
 
+      let user: User = resp.user;
       try {
         // Obtener información del usuario incluyendo el rol
         const customerResp = await backendApi.get("/customer");
-        const role = customerResp.data.role || "subscriber";
-
-        // Actualizar el estado con la información completa
-        set({
-          status: "authenticated",
-          token: resp.token,
-          user: {
-            ...resp.user,
-            role,
-          },
-          error: null, // Resetear cualquier error previo
-        });
+        user = { ...resp.user, role: customerResp.data.role || "subscriber" };
       } catch (error) {
         console.error("Error fetching user role:", error);
         // Si falla la obtención del rol, continuar con el login pero sin rol
-        set({
-          status: "authenticated",
-          token: resp.token,
-          user: resp.user,
-          error: null, // Resetear cualquier error previo
-        });
       }
 
+      set({
+        status: "authenticated",
+        token: resp.token,
+        user,
+        error: null, // Resetear cualquier error previo
+      });
+
       await SecureStorageAdapter.setItem("token", resp.token);
+      await saveUserSnapshot(user);
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -71,22 +102,34 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
 
   checkStatus: async () => {
+    const storedToken = await SecureStorageAdapter.getItem("token");
+
+    if (!storedToken) {
+      set({
+        status: "unauthenticated",
+        token: undefined,
+        user: undefined,
+        error: null,
+      });
+      return false;
+    }
+
+    if (isTokenExpired(storedToken)) {
+      await SecureStorageAdapter.deleteItem("token");
+      await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
+      set({
+        status: "unauthenticated",
+        token: undefined,
+        user: undefined,
+        error: null,
+      });
+      return false;
+    }
+
+    backendApi.defaults.headers.common["Authorization"] =
+      `Bearer ${storedToken}`;
+
     try {
-      const storedToken = await SecureStorageAdapter.getItem("token");
-
-      if (!storedToken) {
-        set({
-          status: "unauthenticated",
-          token: undefined,
-          user: undefined,
-          error: null,
-        });
-        return false;
-      }
-
-      backendApi.defaults.headers.common["Authorization"] =
-        `Bearer ${storedToken}`;
-
       const resp = await authCheckStatus();
 
       if (!resp?.user) {
@@ -97,49 +140,65 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           error: null,
         });
         await SecureStorageAdapter.deleteItem("token");
+        await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
         return false;
       }
 
+      let user: User = resp.user;
       try {
         // Obtener información del usuario incluyendo el rol
         const customerResp = await backendApi.get("/customer");
         const role = customerResp.data.role || "subscriber";
-
-        set({
-          status: "authenticated",
-          token: storedToken,
-          user: {
-            ...resp.user,
-            role,
-          },
-          error: null,
-        });
+        user = { ...resp.user, role };
       } catch (error) {
         console.error("Error fetching user role:", error);
-        set({
-          status: "authenticated",
-          token: storedToken,
-          user: resp.user,
-          error: null,
-        });
+        // Sin rol fresco: conservar el del snapshot si existe
+        const snapshot = await loadUserSnapshot();
+        if (snapshot?.role) {
+          user = { ...resp.user, role: snapshot.role };
+        }
       }
+
+      set({
+        status: "authenticated",
+        token: storedToken,
+        user,
+        error: null,
+      });
+      await saveUserSnapshot(user);
 
       return true;
     } catch (error) {
-      console.error("Check status error:", error);
+      if (isAuthRejection(error)) {
+        console.error("Check status error (token rechazado):", error);
+        set({
+          status: "unauthenticated",
+          token: undefined,
+          user: undefined,
+          error: null,
+        });
+        await SecureStorageAdapter.deleteItem("token");
+        await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
+        return false;
+      }
+
+      // Error de red / backend caído o saturado: conservar el token y
+      // restaurar la sesión desde el snapshot para operar offline.
+      console.warn("Check status sin conexión, restaurando sesión local");
+      const snapshot = await loadUserSnapshot();
       set({
-        status: "unauthenticated",
-        token: undefined,
-        user: undefined,
+        status: "authenticated",
+        token: storedToken,
+        user: snapshot ?? { username: "" },
         error: null,
       });
-      await SecureStorageAdapter.deleteItem("token");
-      return false;
+      return true;
     }
   },
 
   logout: async () => {
     await SecureStorageAdapter.deleteItem("token");
+    await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
     delete backendApi.defaults.headers.common["Authorization"];
     set({
       status: "unauthenticated",
@@ -171,30 +230,26 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       backendApi.defaults.headers.common["Authorization"] =
         `Bearer ${resp.data.token}`;
 
+      let user: User = resp.data.user;
       try {
         const customerResp = await backendApi.get("/customer");
-        const role = customerResp.data.role || "subscriber";
-
-        set({
-          status: "authenticated",
-          token: resp.data.token,
-          user: {
-            ...resp.data.user,
-            role,
-          },
-          error: null,
-        });
+        user = {
+          ...resp.data.user,
+          role: customerResp.data.role || "subscriber",
+        };
       } catch (error) {
         console.error("Error fetching user role:", error);
-        set({
-          status: "authenticated",
-          token: resp.data.token,
-          user: resp.data.user,
-          error: null,
-        });
       }
 
+      set({
+        status: "authenticated",
+        token: resp.data.token,
+        user,
+        error: null,
+      });
+
       await SecureStorageAdapter.setItem("token", resp.data.token);
+      await saveUserSnapshot(user);
       return true;
     } catch (error) {
       console.error("Register error:", error);

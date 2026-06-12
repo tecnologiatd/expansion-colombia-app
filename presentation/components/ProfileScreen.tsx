@@ -15,16 +15,19 @@ import EditProfileModal from "@/presentation/components/EditProfileModal";
 import { LogoutButton } from "@/presentation/auth/components/LogoutIconButton";
 import PurchasedEventCard from "@/presentation/components/PurchasedEventCard";
 import { AdminAccessButton } from "@/presentation/components/AdminAccessButton";
+import { OfflineBanner } from "@/presentation/components/OfflineBanner";
+import { useConnectivityStore } from "@/core/offline/connectivity";
 
 const ProfileScreen = () => {
   const { profileQuery, userData, orders } = useProfile();
+  const isOnline = useConnectivityStore((state) => state.isOnline);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   const handleRefresh = async () => {
     await profileQuery.refetch();
   };
 
-  if (profileQuery.isLoading) {
+  if (profileQuery.isLoading && !profileQuery.isPaused) {
     return (
       <View className="justify-center items-center flex-1">
         <ActivityIndicator size="large" color="#7B3DFF" />
@@ -56,7 +59,8 @@ const ProfileScreen = () => {
   const profilePages = profileQuery.data?.pages ?? [];
   const latestPagination = profilePages[profilePages.length - 1]?.pagination;
   const totalOrders = latestPagination?.totalOrders ?? orders.length;
-  const isRefreshing = profileQuery.isFetching && !profileQuery.isFetchingNextPage;
+  const isRefreshing =
+    profileQuery.isFetching && !profileQuery.isFetchingNextPage;
 
   const handleLoadMore = async () => {
     if (!profileQuery.hasNextPage || profileQuery.isFetchingNextPage) {
@@ -77,6 +81,13 @@ const ProfileScreen = () => {
         />
       }
     >
+      {(!isOnline || profileQuery.isPaused) && (
+        <View className="pt-4">
+          <OfflineBanner
+            dataUpdatedAt={profileQuery.dataUpdatedAt || undefined}
+          />
+        </View>
+      )}
       <View className="p-4">
         {/* Profile Header */}
         <View className="flex-row items-center justify-between mb-8">

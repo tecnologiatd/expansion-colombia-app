@@ -3,13 +3,19 @@ import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { useGenerateTicket } from "../hooks/useGenerateTicket";
 import { useTicketValidation } from "../hooks/useTicketValidation";
+import { useTicketCodesStore } from "@/core/stores/ticket-codes.store";
+import {
+  isServerUnreachableError,
+  useConnectivityStore,
+} from "@/core/offline/connectivity";
+import { OfflineBanner, formatTimeAgo } from "./OfflineBanner";
 
 const VALID_ORDER_STATUSES = ["processing", "completed"];
 
 export const TicketQRCard = ({ qrCode, eventId, index, total }) => {
   const { ticketStatusQuery } = useTicketValidation(qrCode, eventId);
 
-  if (ticketStatusQuery.isLoading) {
+  if (ticketStatusQuery.isLoading && !ticketStatusQuery.isPaused) {
     return (
       <View className="bg-gray-800 rounded-lg p-4 mb-4">
         <ActivityIndicator size="small" color="#7B3DFF" />
@@ -18,6 +24,10 @@ export const TicketQRCard = ({ qrCode, eventId, index, total }) => {
   }
 
   const ticketStatus = ticketStatusQuery.data;
+  const statusTimeAgo =
+    ticketStatusQuery.isError || ticketStatusQuery.isPaused
+      ? formatTimeAgo(ticketStatusQuery.dataUpdatedAt || undefined)
+      : null;
 
   return (
     <View className="bg-gray-800 rounded-lg p-6 mb-4">
@@ -35,25 +45,38 @@ export const TicketQRCard = ({ qrCode, eventId, index, total }) => {
       </View>
 
       <View className="mt-4">
-        <View
-          className={`p-4 rounded-lg ${
-            ticketStatus?.usageCount >= ticketStatus?.maxUsages
-              ? "bg-red-500/20"
-              : "bg-green-500/20"
-          }`}
-        >
-          <Text
-            className={`text-center text-lg font-bold ${
-              ticketStatus?.usageCount >= ticketStatus?.maxUsages
-                ? "text-red-500"
-                : "text-green-500"
+        {ticketStatus ? (
+          <View
+            className={`p-4 rounded-lg ${
+              ticketStatus.usageCount >= ticketStatus.maxUsages
+                ? "bg-red-500/20"
+                : "bg-green-500/20"
             }`}
           >
-            {ticketStatus?.usageCount >= ticketStatus?.maxUsages
-              ? "Ticket Usado"
-              : "Ticket Válido"}
-          </Text>
-        </View>
+            <Text
+              className={`text-center text-lg font-bold ${
+                ticketStatus.usageCount >= ticketStatus.maxUsages
+                  ? "text-red-500"
+                  : "text-green-500"
+              }`}
+            >
+              {ticketStatus.usageCount >= ticketStatus.maxUsages
+                ? "Ticket Usado"
+                : "Ticket Válido"}
+            </Text>
+            {statusTimeAgo && (
+              <Text className="text-yellow-500 text-center text-xs mt-1">
+                Estado actualizado {statusTimeAgo}
+              </Text>
+            )}
+          </View>
+        ) : (
+          <View className="p-4 rounded-lg bg-gray-700/50">
+            <Text className="text-gray-300 text-center">
+              Estado no disponible sin conexión
+            </Text>
+          </View>
+        )}
 
         {ticketStatus?.usageHistory && ticketStatus.usageHistory.length > 0 && (
           <View className="mt-4">
@@ -80,13 +103,18 @@ export const TicketQRSection = ({
   eventName,
 }) => {
   const { generateTicketMutation } = useGenerateTicket();
+  const isOnline = useConnectivityStore((state) => state.isOnline);
+  const cachedCodes = useTicketCodesStore((state) =>
+    state.getCodes(String(orderId), String(eventId)),
+  );
   const [generatedCodes, setGeneratedCodes] = useState([]);
   const [isPackage, setIsPackage] = useState(false);
   const [ticketsPerUnit, setTicketsPerUnit] = useState(1);
   const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
 
   useEffect(() => {
-    if (VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase())) {
+    // Sin conexión no tiene sentido pedir la generación; usamos el cache
+    if (isOnline && VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase())) {
       generateTicketMutation.mutate({
         orderId,
         eventId,
@@ -94,12 +122,27 @@ export const TicketQRSection = ({
         usagesPerTicket: 1,
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId, orderStatus, eventId, quantity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId, orderStatus, eventId, quantity, isOnline]);
+
+  // El backend no entregó códigos (offline o caído): usar los persistidos.
+  // La generación es idempotente, así que los códigos guardados son los mismos
+  // que devolvería el servidor.
+  const serverFailed =
+    !isOnline ||
+    (generateTicketMutation.isError &&
+      isServerUnreachableError(generateTicketMutation.error));
+  const usingCachedCodes =
+    serverFailed && !generateTicketMutation.data?.qrCodes && !!cachedCodes;
 
   useEffect(() => {
-    if (generateTicketMutation.data?.qrCodes) {
-      const codes = generateTicketMutation.data.qrCodes;
+    const codes = generateTicketMutation.data?.qrCodes
+      ? generateTicketMutation.data.qrCodes
+      : usingCachedCodes
+        ? cachedCodes.qrCodes
+        : null;
+
+    if (codes) {
       setGeneratedCodes(codes);
 
       // Determinar si es un paquete basado en la cantidad de códigos generados
@@ -108,7 +151,7 @@ export const TicketQRSection = ({
         setTicketsPerUnit(Math.round(codes.length / quantity));
       }
     }
-  }, [generateTicketMutation.data, quantity]);
+  }, [generateTicketMutation.data, quantity, usingCachedCodes, cachedCodes]);
 
   // Si la orden no está en un estado válido
   if (!VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase())) {
@@ -121,7 +164,7 @@ export const TicketQRSection = ({
     );
   }
 
-  if (generateTicketMutation.isPending) {
+  if (generateTicketMutation.isPending && !usingCachedCodes) {
     return (
       <View className="m-4 bg-gray-800 p-4 rounded-xl items-center">
         <ActivityIndicator size="large" color="#7B3DFF" />
@@ -130,12 +173,25 @@ export const TicketQRSection = ({
     );
   }
 
-  if (generateTicketMutation.isError) {
+  if (generateTicketMutation.isError && !usingCachedCodes) {
     return (
       <View className="m-4 bg-red-500/20 p-4 rounded-xl">
         <Text className="text-red-500 text-center">
           Error al generar los códigos QR. Por favor, intente de nuevo más
           tarde.
+        </Text>
+      </View>
+    );
+  }
+
+  // Sin conexión y sin códigos guardados de una sesión anterior
+  if (serverFailed && generatedCodes.length === 0) {
+    return (
+      <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
+        <Text className="text-yellow-500 text-center">
+          Sin conexión. Los códigos QR estarán disponibles cuando vuelva la
+          conexión. Abre esta pantalla con internet al menos una vez para
+          guardarlos en el dispositivo.
         </Text>
       </View>
     );
@@ -159,6 +215,13 @@ export const TicketQRSection = ({
 
   return (
     <View className="p-4">
+      {usingCachedCodes && (
+        <OfflineBanner
+          message="Mostrando tickets guardados — sin conexión"
+          dataUpdatedAt={cachedCodes?.savedAt}
+        />
+      )}
+
       <View className="flex-row justify-between items-center mb-4">
         <Text className="text-white text-lg font-bold">
           Tickets ({generatedCodes.length})

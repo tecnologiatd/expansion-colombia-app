@@ -35,6 +35,16 @@ export default function AdminLayout() {
             headerTintColor: "#fff",
           }}
         />
+        <Stack.Screen
+          name="conflicts"
+          options={{
+            title: "Conflictos de Validación",
+            headerStyle: {
+              backgroundColor: "#111111",
+            },
+            headerTintColor: "#fff",
+          }}
+        />
       </Stack>
     </AdminGuard>
   );

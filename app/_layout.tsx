@@ -2,13 +2,44 @@ import { SplashScreen } from "expo-router";
 import { Stack } from "expo-router/stack";
 import React, { useEffect } from "react";
 import { useFonts } from "expo-font";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar, Platform } from "react-native";
 import "./global.css";
 import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
 import CustomHeader from "@/presentation/components/CustomHeader";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 import AuthGuard from "@/presentation/auth/components/AuthGuard";
+import { initConnectivity } from "@/core/offline/connectivity";
+
+const CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 días
+
+// Queries que se restauran al abrir la app sin conexión
+const PERSISTED_QUERY_PREFIXES = [
+  "profile",
+  "order",
+  "ticket-status",
+  "tickets",
+  "products",
+  "product",
+];
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // gcTime debe superar maxAge del persister o nada se persiste
+      gcTime: CACHE_MAX_AGE,
+      retry: 1,
+    },
+  },
+});
+
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: "rq-cache",
+});
 
 export default function Layout() {
   const { expoPushToken } = usePushNotifications();
@@ -19,6 +50,10 @@ export default function Layout() {
     FortunaDotRegular: require("../assets/fonts/FortunaDotRegular.ttf"),
     DesignSystemC: require("../assets/fonts/DesignSystemC-500R.ttf"),
   });
+
+  useEffect(() => {
+    initConnectivity();
+  }, []);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -34,10 +69,19 @@ export default function Layout() {
 
   if (!fontsLoaded || !isAuthChecked) return null;
 
-  const queryClient = new QueryClient();
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: asyncStoragePersister,
+        maxAge: CACHE_MAX_AGE,
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) =>
+            query.state.status === "success" &&
+            PERSISTED_QUERY_PREFIXES.includes(String(query.queryKey[0])),
+        },
+      }}
+    >
       <StatusBar barStyle="light-content" backgroundColor="#1F2B43" />
       <AuthGuard>
         <Stack
@@ -71,7 +115,7 @@ export default function Layout() {
             options={{
               headerShown: true,
               headerTitle: "Events",
-              contentStyle: { backgroundColor: '#111827' },
+              contentStyle: { backgroundColor: "#111827" },
             }}
           />
           <Stack.Screen
@@ -84,11 +128,11 @@ export default function Layout() {
             name="order/[id]"
             options={{
               headerTitle: "Order Details",
-              contentStyle: { backgroundColor: '#111827' },
+              contentStyle: { backgroundColor: "#111827" },
             }}
           />
         </Stack>
       </AuthGuard>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

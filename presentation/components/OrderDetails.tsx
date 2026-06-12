@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { getPaymentUrl, useOrderDetails } from "@/presentation/hooks/useOrders";
 import { TicketQRSection } from "@/presentation/components/TicketQRSection";
+import { OfflineBanner } from "@/presentation/components/OfflineBanner";
+import { useConnectivityStore } from "@/core/offline/connectivity";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthBrowser } from "@/presentation/utils/auth-browser";
 
@@ -22,9 +24,12 @@ const OrderDetails = ({ orderId }) => {
     error,
     refetch,
     forceRefetch,
+    isPaused,
+    dataUpdatedAt,
   } = useOrderDetails(orderId);
+  const isOnline = useConnectivityStore((state) => state.isOnline);
 
-  if (isLoading) {
+  if (isLoading && !isPaused) {
     return (
       <View className="flex-1 bg-gray-900 justify-center items-center">
         <ActivityIndicator size="large" color="#7B3DFF" />
@@ -36,7 +41,9 @@ const OrderDetails = ({ orderId }) => {
     return (
       <View className="flex-1 bg-gray-900 justify-center items-center p-4">
         <Text className="text-white text-lg text-center mb-4">
-          Error al cargar los detalles del pedido
+          {isPaused
+            ? "Sin conexión y sin datos guardados de este pedido"
+            : "Error al cargar los detalles del pedido"}
         </Text>
         <TouchableOpacity
           className="bg-purple-500 px-6 py-3 rounded-lg"
@@ -152,6 +159,12 @@ const OrderDetails = ({ orderId }) => {
         <RefreshControl refreshing={isLoading} onRefresh={forceRefetch} />
       }
     >
+      {(!isOnline || isPaused) && (
+        <View className="pt-4">
+          <OfflineBanner dataUpdatedAt={dataUpdatedAt || undefined} />
+        </View>
+      )}
+
       {/* Order Status and Info */}
       <View className="p-4 bg-gray-800 rounded-lg m-4">
         <View className="flex-row justify-between items-center mb-4">

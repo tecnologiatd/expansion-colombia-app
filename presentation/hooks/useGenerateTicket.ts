@@ -1,6 +1,7 @@
 // presentation/hooks/useGenerateTicket.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { generateTicketQR } from "@/core/actions/generate-ticket.action";
+import { useTicketCodesStore } from "@/core/stores/ticket-codes.store";
 
 export const useGenerateTicket = () => {
   const queryClient = useQueryClient();
@@ -19,6 +20,14 @@ export const useGenerateTicket = () => {
           ["tickets", variables.orderId, variables.eventId],
           data.qrCodes,
         );
+        // Persistir para poder mostrar los QR sin conexión
+        useTicketCodesStore
+          .getState()
+          .saveCodes(
+            String(variables.orderId),
+            String(variables.eventId),
+            data.qrCodes,
+          );
       }
     },
     onError: (error) => {

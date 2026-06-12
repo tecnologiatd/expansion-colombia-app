@@ -3027,6 +3027,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-community/netinfo@npm:11.5.2":
+  version: 11.5.2
+  resolution: "@react-native-community/netinfo@npm:11.5.2"
+  peerDependencies:
+    react: "*"
+    react-native: ">=0.59"
+  checksum: 10c0/d5301d7d8b363753b6980f5d17dc47ad4933fc46e4010aceb937c0f673b35a6648f259df930b2b48d99344a90ff7a187344486100c4874462d88545f1647bef5
+  languageName: node
+  linkType: hard
+
 "@react-native/assets-registry@npm:0.83.4":
   version: 0.83.4
   resolution: "@react-native/assets-registry@npm:0.83.4"
@@ -3351,10 +3361,48 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/query-async-storage-persister@npm:^5.101.0":
+  version: 5.101.0
+  resolution: "@tanstack/query-async-storage-persister@npm:5.101.0"
+  dependencies:
+    "@tanstack/query-core": "npm:5.101.0"
+    "@tanstack/query-persist-client-core": "npm:5.101.0"
+  checksum: 10c0/e6f5278051c206614f7bb6494d60d175932330ae4640166cc34702183aaad5f7481a6ce6af1f4265dfb4e02659e06c77b6d3c24246c79b8eaab66b790a742fbd
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-core@npm:5.101.0":
+  version: 5.101.0
+  resolution: "@tanstack/query-core@npm:5.101.0"
+  checksum: 10c0/e3aacbb762887214b71d8f959930644594e2321b0cdca8eac098f894cbb75d1e32d45dc34a4b818fb8c68b344398905cf30f17c69cd87283adf73e64457e9320
+  languageName: node
+  linkType: hard
+
 "@tanstack/query-core@npm:5.67.2":
   version: 5.67.2
   resolution: "@tanstack/query-core@npm:5.67.2"
   checksum: 10c0/1824fbd72d07a575a71565d7fd975270b51bdf311dcfcafe21cf83c4b704af06962bbdd49019994a27edb32013aef51180bf412cca8399ac2d4cf0dc6cc8993c
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-persist-client-core@npm:5.101.0":
+  version: 5.101.0
+  resolution: "@tanstack/query-persist-client-core@npm:5.101.0"
+  dependencies:
+    "@tanstack/query-core": "npm:5.101.0"
+  checksum: 10c0/08da24210aed18090a5cede03449f046e2aeae955518d8bfab01121237e41f6a311c635cedcd6bcc66b729ac560d49405527ced2612c8bc88fbbeaaee18ab92d
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query-persist-client@npm:^5.101.0":
+  version: 5.101.0
+  resolution: "@tanstack/react-query-persist-client@npm:5.101.0"
+  dependencies:
+    "@tanstack/query-persist-client-core": "npm:5.101.0"
+  peerDependencies:
+    "@tanstack/react-query": ^5.101.0
+    react: ^18 || ^19
+  checksum: 10c0/4a25223d0d21760c72b5988b9cacb5873bf825603aa5aecfd8662fbe8b97c651dfb971429ba23c1aeab83a22767ecbf06babf4bb165b4fca03f0685e3118543e
   languageName: node
   linkType: hard
 
@@ -4208,6 +4256,13 @@ __metadata:
   dependencies:
     possible-typed-array-names: "npm:^1.0.0"
   checksum: 10c0/d07226ef4f87daa01bd0fe80f8f310982e345f372926da2e5296aecc25c41cab440916bbaa4c5e1034b453af3392f67df5961124e4b586df1e99793a1374bdb2
+  languageName: node
+  linkType: hard
+
+"await-lock@npm:^2.2.2":
+  version: 2.2.2
+  resolution: "await-lock@npm:2.2.2"
+  checksum: 10c0/bedf00dad44c6325a655bf3bd523ab9e1ce41023da6a8c379990c76ac1d942ac7e5301627ab84ba37917ab5247506ba429b7f6e4bf77074093f255571b9ad5ee
   languageName: node
   linkType: hard
 
@@ -6491,9 +6546,12 @@ __metadata:
     "@expo/vector-icons": "npm:^15.1.1"
     "@hookform/resolvers": "npm:^3.10.0"
     "@react-native-async-storage/async-storage": "npm:2.2.0"
+    "@react-native-community/netinfo": "npm:11.5.2"
     "@react-navigation/bottom-tabs": "npm:^7.15.9"
     "@react-navigation/native": "npm:^7.1.8"
+    "@tanstack/query-async-storage-persister": "npm:^5.101.0"
     "@tanstack/react-query": "npm:^5.67.2"
+    "@tanstack/react-query-persist-client": "npm:^5.101.0"
     "@types/jest": "npm:^29.5.14"
     "@types/lodash.debounce": "npm:^4.0.9"
     "@types/react": "npm:~19.2.10"
@@ -6506,6 +6564,7 @@ __metadata:
     expo: "npm:~55.0.15"
     expo-camera: "npm:~55.0.15"
     expo-constants: "npm:~55.0.14"
+    expo-crypto: "npm:~55.0.15"
     expo-dev-client: "npm:~55.0.27"
     expo-device: "npm:~55.0.15"
     expo-font: "npm:~55.0.6"
@@ -6514,6 +6573,7 @@ __metadata:
     expo-router: "npm:~55.0.12"
     expo-secure-store: "npm:~55.0.13"
     expo-splash-screen: "npm:~55.0.18"
+    expo-sqlite: "npm:~55.0.16"
     expo-status-bar: "npm:~55.0.5"
     expo-system-ui: "npm:~55.0.15"
     expo-updates: "npm:~55.0.20"
@@ -6610,6 +6670,15 @@ __metadata:
     expo: "*"
     react-native: "*"
   checksum: 10c0/6b36fe1ed3f3ae5fe64a4e61717c56dcd7644192f309de14bfb0a47f1b1d00e0e7662a6e2a780e63d2ac38a5309a058d1b0198f8241d157704a95e76ae736489
+  languageName: node
+  linkType: hard
+
+"expo-crypto@npm:~55.0.15":
+  version: 55.0.15
+  resolution: "expo-crypto@npm:55.0.15"
+  peerDependencies:
+    expo: "*"
+  checksum: 10c0/536472114113669bba66892265fb696c822ceb3eddda965ed08a2173292c1b7ba5bdcae255cc7fe98acd4da9b9437cb2f319661355420a9978c7753b2db66385
   languageName: node
   linkType: hard
 
@@ -6909,6 +6978,19 @@ __metadata:
   peerDependencies:
     expo: "*"
   checksum: 10c0/d7f129548b7fc79a2bbf27d5a86fb1056c25a90c96d6e32ab800ccbd647d131eb40d528def9e58ac3e3bbdf4801222e6854e838d6a0dd77366bf86a9cd4906d7
+  languageName: node
+  linkType: hard
+
+"expo-sqlite@npm:~55.0.16":
+  version: 55.0.16
+  resolution: "expo-sqlite@npm:55.0.16"
+  dependencies:
+    await-lock: "npm:^2.2.2"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+  checksum: 10c0/479883a862bd6b47086ecab69f9200b8fd24e2d1283ff4e98d5e7e4058e7c291e98113873a99cf60fa6693e3b8c89b715f339b89ca3784b1ad082e5cd7ce1d0a
   languageName: node
   linkType: hard
 
