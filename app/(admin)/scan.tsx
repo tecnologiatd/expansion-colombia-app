@@ -15,6 +15,7 @@ import {
   Animated,
   StyleSheet,
   Modal,
+  useAnimatedValue,
 } from "react-native";
 import { Camera, CameraView } from "expo-camera";
 import { router } from "expo-router";
@@ -67,7 +68,7 @@ export default function ScanScreen() {
   // Ref-based guard — prevents handler recreation (and native-scanner re-registration)
   // that used to cause missed frames and require multiple scan attempts.
   const scannedRef = useRef(false);
-  const flashAnim = useRef(new Animated.Value(0)).current;
+  const flashAnim = useAnimatedValue(0);
 
   useEffect(() => {
     (async () => {
@@ -364,7 +365,7 @@ export default function ScanScreen() {
               <Animated.View
                 pointerEvents="none"
                 style={{
-                  ...StyleSheet.absoluteFillObject,
+                  ...StyleSheet.absoluteFill,
                   backgroundColor: "#A78BFA",
                   opacity: flashAnim,
                   borderRadius: 12,

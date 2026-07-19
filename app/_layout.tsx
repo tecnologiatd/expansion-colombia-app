@@ -7,12 +7,22 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar, Platform } from "react-native";
+import * as Sentry from "@sentry/react-native";
 import "./global.css";
 import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
 import CustomHeader from "@/presentation/components/CustomHeader";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 import AuthGuard from "@/presentation/auth/components/AuthGuard";
 import { initConnectivity } from "@/core/offline/connectivity";
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  // Sin DSN (p. ej. desarrollo local) Sentry queda desactivado
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN && !__DEV__,
+  // No enviar PII de los compradores en los eventos
+  sendDefaultPii: false,
+  tracesSampleRate: 0.2,
+});
 
 const CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 días
 
@@ -41,7 +51,7 @@ const asyncStoragePersister = createAsyncStoragePersister({
   key: "rq-cache",
 });
 
-export default function Layout() {
+function Layout() {
   const { expoPushToken } = usePushNotifications();
   const { checkStatus } = useAuthStore();
   const [isAuthChecked, setIsAuthChecked] = React.useState(false);
@@ -136,3 +146,6 @@ export default function Layout() {
     </PersistQueryClientProvider>
   );
 }
+
+// Sentry.wrap captura errores de render/navegación del árbol completo
+export default Sentry.wrap(Layout);

@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { BottomTabBarProps } from "expo-router/js-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TabBar: React.FC<BottomTabBarProps> = ({
@@ -16,7 +16,8 @@ const TabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
 
-  const bottomPadding = Platform.OS === "ios" ? Math.max(insets.bottom, 10) : insets.bottom;
+  const bottomPadding =
+    Platform.OS === "ios" ? Math.max(insets.bottom, 10) : insets.bottom;
 
   return (
     <View style={[styles.container, { paddingBottom: bottomPadding }]}>

@@ -15,7 +15,7 @@ import {
   Stack,
   useNavigation,
 } from "expo-router";
-import { CommonActions } from "@react-navigation/native";
+import { CommonActions } from "expo-router/react-navigation";
 import { useCreateOrder } from "@/presentation/hooks/useOrders";
 import { useCartStore } from "@/core/stores/cart-store";
 import { SafeAreaView } from "react-native-safe-area-context";

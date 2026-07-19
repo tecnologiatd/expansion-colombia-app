@@ -91,7 +91,8 @@ export const PaymentWebView: React.FC<PaymentWebViewProps> = ({
   };
 
   useEffect(() => {
-    // Iniciar la simulación de progreso
+    // Iniciar la simulación de progreso (UI de carga, no estado derivado)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     const clearProgress = simulateProgress();
 
     // Cargar el token y preparar URL
@@ -596,7 +597,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   loadingContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#111111",
