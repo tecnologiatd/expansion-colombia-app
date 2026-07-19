@@ -3,7 +3,6 @@ import { z } from "zod";
 export const registerSchema = z
   .object({
     email: z
-      .string()
       .email("Ingresa un correo electrónico válido")
       .min(1, "El correo electrónico es obligatorio"),
     confirmEmail: z.string().min(1, "Confirma tu correo electrónico"),
