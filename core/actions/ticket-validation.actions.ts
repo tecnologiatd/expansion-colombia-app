@@ -7,6 +7,7 @@ export interface TicketStatus {
   usageCount: number;
   maxUsages: number;
   remainingUsages: number;
+  revoked?: boolean | number;
   usageHistory: {
     timestamp: Date;
     validatedBy: string;

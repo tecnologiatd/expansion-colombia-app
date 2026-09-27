@@ -19,10 +19,13 @@ import CustomButton from "@/presentation/components/CustomButton";
 import { BillingAddress } from "@/core/interfaces/customer.interface";
 import { Ionicons } from "@expo/vector-icons";
 import SponsorshipLineSelector from "@/presentation/components/SponsorshipLineSelector";
+import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
+import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
 
 export default function BillingScreen() {
   const { costumerQuery } = useCustomer();
   const { updateCustomerMutation } = useUpdateCustomer();
+  const { isMaintenance, maintenanceMessage } = useSiteStatus();
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [billingData, setBillingData] = useState<BillingAddress>({
@@ -61,6 +64,14 @@ export default function BillingScreen() {
   }, [costumerQuery.data]);
 
   const handleContinue = async () => {
+    if (isMaintenance) {
+      Alert.alert(
+        "Mantenimiento",
+        maintenanceMessage ??
+          "Las compras están pausadas por mantenimiento. Intenta de nuevo más tarde.",
+      );
+      return;
+    }
     const requiredFields = [
       "first_name",
       "last_name",
@@ -147,6 +158,9 @@ export default function BillingScreen() {
             </View>
 
             <View className="px-6">
+              {isMaintenance && (
+                <MaintenanceBanner message={maintenanceMessage} />
+              )}
               {/* Personal Information Section */}
               <View className="mb-8">
                 <View className="flex-row items-center mb-4">
@@ -291,11 +305,13 @@ export default function BillingScreen() {
                   title={
                     updateCustomerMutation.isPending
                       ? "Procesando..."
-                      : "Continuar al pago"
+                      : isMaintenance
+                        ? "Compras en pausa"
+                        : "Continuar al pago"
                   }
                   onPress={handleContinue}
                   className="bg-purple-500"
-                  disabled={updateCustomerMutation.isPending}
+                  disabled={updateCustomerMutation.isPending || isMaintenance}
                 />
               </View>
             </View>

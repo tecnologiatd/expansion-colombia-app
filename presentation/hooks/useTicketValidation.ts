@@ -37,6 +37,7 @@ const localTicketStatus = (
     usageCount: local.usageCount,
     maxUsages: local.maxUsages,
     remainingUsages: local.maxUsages - local.usageCount,
+    revoked: local.revoked,
     usageHistory: [],
     source: "local",
     customerName: local.customerName,
@@ -95,6 +96,7 @@ export const useTicketValidation = (qrCode?: string, eventId?: string) => {
           "Ticket no encontrado (sin conexión). Sincroniza cuando vuelva la conexión.",
         );
       }
+      if (local.revoked) throw new Error("Entrada revocada. No se puede validar.");
       return local;
     },
     enabled: !!processedQrCode && !!eventId,

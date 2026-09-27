@@ -1,6 +1,6 @@
 // presentation/hooks/usePushNotifications.ts
 import { useState, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -63,16 +63,23 @@ export const usePushNotifications = () => {
   const [expoPushToken, setExpoPushToken] = useState('');
   const notificationListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const refreshingToken = useRef(false);
   const { addNotification } = useNotificationStore();
 
   useEffect(() => {
-    registerForPushNotificationsAsync()
-        .then((token) => {
-          if (token) {
-            setExpoPushToken(token);
-          }
-        })
-        .catch(console.error);
+    const refresh = async () => {
+      if (refreshingToken.current) return;
+      refreshingToken.current = true;
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (token) setExpoPushToken(token);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        refreshingToken.current = false;
+      }
+    };
+    void refresh();
 
     notificationListener.current = Notifications.addNotificationReceivedListener(
         (notification) => {
@@ -80,7 +87,7 @@ export const usePushNotifications = () => {
           addNotification({
             title: title || '',
             body: body || '',
-            route: data.route as string | undefined,
+            route: data?.route as string | undefined,
           });
         },
     );
@@ -88,13 +95,22 @@ export const usePushNotifications = () => {
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
         (response) => {
           const { data } = response.notification.request.content;
-          if (data.route) {
+          if (data?.route) {
             router.push(data.route as any);
           }
         },
     );
 
+    const foreground = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refresh();
+    });
+    const tokenChange = Notifications.addPushTokenListener(() => {
+      void refresh();
+    });
+
     return () => {
+      foreground.remove();
+      tokenChange.remove();
       notificationListener.current?.remove();
       responseListener.current?.remove();
     };

@@ -16,6 +16,7 @@ interface TicketCodesStore {
   codes: Record<string, SavedCodes>;
   saveCodes: (orderId: string, eventId: string, qrCodes: string[]) => void;
   getCodes: (orderId: string, eventId: string) => SavedCodes | undefined;
+  clearCodes: () => void;
 }
 
 const keyFor = (orderId: string, eventId: string) => `${orderId}:${eventId}`;
@@ -35,6 +36,7 @@ export const useTicketCodesStore = create<TicketCodesStore>()(
       },
 
       getCodes: (orderId, eventId) => get().codes[keyFor(orderId, eventId)],
+      clearCodes: () => set({ codes: {} }),
     }),
     {
       name: "ticket-codes-storage",

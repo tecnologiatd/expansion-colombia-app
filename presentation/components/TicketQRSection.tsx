@@ -48,19 +48,21 @@ export const TicketQRCard = ({ qrCode, eventId, index, total }) => {
         {ticketStatus ? (
           <View
             className={`p-4 rounded-lg ${
-              ticketStatus.usageCount >= ticketStatus.maxUsages
+              ticketStatus.revoked || ticketStatus.usageCount >= ticketStatus.maxUsages
                 ? "bg-red-500/20"
                 : "bg-green-500/20"
             }`}
           >
             <Text
               className={`text-center text-lg font-bold ${
-                ticketStatus.usageCount >= ticketStatus.maxUsages
+                ticketStatus.revoked || ticketStatus.usageCount >= ticketStatus.maxUsages
                   ? "text-red-500"
                   : "text-green-500"
               }`}
             >
-              {ticketStatus.usageCount >= ticketStatus.maxUsages
+              {ticketStatus.revoked
+                ? "Ticket Revocado"
+                : ticketStatus.usageCount >= ticketStatus.maxUsages
                 ? "Ticket Usado"
                 : "Ticket Válido"}
             </Text>

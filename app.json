@@ -2,7 +2,7 @@
   "expo": {
     "name": "Expansión Colombia",
     "slug": "expansion-colombia",
-    "version": "1.1",
+    "version": "1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "expansioncolombia",

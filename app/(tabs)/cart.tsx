@@ -5,16 +5,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useCartStore } from "@/core/stores/cart-store";
 import { CartItem } from "@/presentation/components/CartItem";
+import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
 import { useCustomer } from "@/presentation/hooks/useCustomer";
+import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 
 const CartScreen = () => {
   const { items, calculateTotal, clearCart } = useCartStore();
   const { costumerQuery } = useCustomer();
   const { status } = useAuthStore();
+  const { isMaintenance, maintenanceMessage } = useSiteStatus();
 
   const handleCheckout = async () => {
     console.log("Checkout", status);
+    if (isMaintenance) {
+      Alert.alert(
+        "Mantenimiento",
+        maintenanceMessage ??
+          "Las compras están pausadas por mantenimiento. Intenta de nuevo más tarde.",
+      );
+      return;
+    }
     if (status !== "authenticated") {
       Alert.alert(
         "Iniciar Sesión",
@@ -55,6 +66,7 @@ const CartScreen = () => {
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
       <View className="p-4">
+        {isMaintenance && <MaintenanceBanner message={maintenanceMessage} />}
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-white text-2xl font-bold">
             Carrito de Compras
@@ -84,12 +96,16 @@ const CartScreen = () => {
         </View>
         <TouchableOpacity
           className={`rounded-lg py-4 mt-8 justify-center items-center ${
-            items.length === 0 ? "bg-purple-400" : "bg-purple-500"
+            items.length === 0 || isMaintenance
+              ? "bg-purple-400"
+              : "bg-purple-500"
           }`}
           onPress={handleCheckout}
-          disabled={items.length === 0}
+          disabled={items.length === 0 || isMaintenance}
         >
-          <Text className="text-white font-bold text-lg">Continuar</Text>
+          <Text className="text-white font-bold text-lg">
+            {isMaintenance ? "Compras en pausa" : "Continuar"}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

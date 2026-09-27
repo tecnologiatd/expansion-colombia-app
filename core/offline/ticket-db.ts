@@ -11,6 +11,7 @@ export interface LocalTicket {
   orderId: string;
   usageCount: number;
   maxUsages: number;
+  revoked?: boolean | number;
   customerName: string | null;
   updatedAt: string;
 }
@@ -31,6 +32,7 @@ db.execSync(`
     orderId TEXT NOT NULL,
     usageCount INTEGER NOT NULL DEFAULT 0,
     maxUsages INTEGER NOT NULL DEFAULT 1,
+    revoked INTEGER NOT NULL DEFAULT 0,
     customerName TEXT,
     updatedAt TEXT
   );
@@ -47,17 +49,22 @@ db.execSync(`
     value TEXT
   );
 `);
+const ticketColumns = db.getAllSync<{ name: string }>("PRAGMA table_info(tickets)");
+if (!ticketColumns.some((column) => column.name === "revoked")) {
+  db.execSync("ALTER TABLE tickets ADD COLUMN revoked INTEGER NOT NULL DEFAULT 0");
+}
 
 export const upsertTickets = (tickets: LocalTicket[]) => {
   if (!tickets.length) return;
   db.withTransactionSync(() => {
     for (const ticket of tickets) {
       db.runSync(
-        `INSERT INTO tickets (qrCode, eventId, orderId, usageCount, maxUsages, customerName, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO tickets (qrCode, eventId, orderId, usageCount, maxUsages, revoked, customerName, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(qrCode) DO UPDATE SET
            usageCount = excluded.usageCount,
            maxUsages = excluded.maxUsages,
+           revoked = excluded.revoked,
            customerName = excluded.customerName,
            updatedAt = excluded.updatedAt`,
         [
@@ -66,6 +73,7 @@ export const upsertTickets = (tickets: LocalTicket[]) => {
           ticket.orderId,
           ticket.usageCount,
           ticket.maxUsages,
+          ticket.revoked ? 1 : 0,
           ticket.customerName,
           ticket.updatedAt,
         ],

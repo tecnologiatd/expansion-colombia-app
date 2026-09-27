@@ -16,6 +16,10 @@ export interface CartItem extends Product {
 // Cart Store Interface
 interface CartStore {
   items: CartItem[];
+  pendingOrderId: number | null;
+  pendingCartKey: string | null;
+  setPendingOrder: (orderId: number) => void;
+  getPendingOrderId: () => number | null;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
@@ -28,6 +32,17 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      pendingOrderId: null,
+      pendingCartKey: null,
+      setPendingOrder: (orderId) => set((state) => ({
+        pendingOrderId: orderId,
+        pendingCartKey: JSON.stringify(state.items.map((item) => [item.id, item.quantity]).sort((a, b) => Number(a[0]) - Number(b[0]))),
+      })),
+      getPendingOrderId: () => {
+        const state = get();
+        const currentKey = JSON.stringify(state.items.map((item) => [item.id, item.quantity]).sort((a, b) => Number(a[0]) - Number(b[0])));
+        return currentKey === state.pendingCartKey ? state.pendingOrderId : null;
+      },
 
       addToCart: (product) => {
         set((state) => {
@@ -71,7 +86,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [] });
+        set({ items: [], pendingOrderId: null, pendingCartKey: null });
       },
 
       calculateTotal: () => {
@@ -85,7 +100,7 @@ export const useCartStore = create<CartStore>()(
       name: "cart-storage", // unique name
       storage: createJSONStorage(() => AsyncStorage),
       // Optional: specify which parts of the state to persist
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ items: state.items, pendingOrderId: state.pendingOrderId, pendingCartKey: state.pendingCartKey }),
     },
   ),
 );

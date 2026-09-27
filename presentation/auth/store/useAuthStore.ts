@@ -10,6 +10,11 @@ import {
 } from "@/core/auth/actions/auth-actions";
 import { SecureStorageAdapter } from "@/helpers/adapters/secure-storage.adapter";
 import { backendApi } from "@/core/api/wordpress-api";
+import { DeviceService } from "@/core/auth/actions/register-device.action";
+import { clearPrivateQueryCache } from "@/core/api/query-cache";
+import { useTicketCodesStore } from "@/core/stores/ticket-codes.store";
+import { useCartStore } from "@/core/stores/cart-store";
+import { useNotificationStore } from "@/core/stores/notification.store";
 
 const USER_SNAPSHOT_KEY = "auth-user-snapshot";
 
@@ -61,6 +66,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     try {
       const resp = await authLogin(username, password);
       if (!resp?.token || !resp?.user) return false;
+      if (get().user?.username && get().user?.username !== resp.user.username) {
+        useCartStore.getState().clearCart();
+        useTicketCodesStore.getState().clearCodes();
+      }
 
       // Configurar el token
       backendApi.defaults.headers.common["Authorization"] =
@@ -85,6 +94,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
       await SecureStorageAdapter.setItem("token", resp.token);
       await saveUserSnapshot(user);
+      await clearPrivateQueryCache();
+      void DeviceService.registerDevice();
       return true;
     } catch (error) {
       console.error("Login error:", error);
@@ -105,6 +116,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     const storedToken = await SecureStorageAdapter.getItem("token");
 
     if (!storedToken) {
+      if (await loadUserSnapshot()) useCartStore.getState().clearCart();
+      await clearPrivateQueryCache();
+      useTicketCodesStore.getState().clearCodes();
       set({
         status: "unauthenticated",
         token: undefined,
@@ -115,8 +129,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     }
 
     if (isTokenExpired(storedToken)) {
+      useCartStore.getState().clearCart();
       await SecureStorageAdapter.deleteItem("token");
       await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
+      await clearPrivateQueryCache();
+      useTicketCodesStore.getState().clearCodes();
       set({
         status: "unauthenticated",
         token: undefined,
@@ -133,6 +150,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const resp = await authCheckStatus();
 
       if (!resp?.user) {
+        useCartStore.getState().clearCart();
         set({
           status: "unauthenticated",
           token: undefined,
@@ -141,6 +159,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         });
         await SecureStorageAdapter.deleteItem("token");
         await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
+        await clearPrivateQueryCache();
+        useTicketCodesStore.getState().clearCodes();
         return false;
       }
 
@@ -166,10 +186,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         error: null,
       });
       await saveUserSnapshot(user);
+      void DeviceService.registerDevice();
 
       return true;
     } catch (error) {
       if (isAuthRejection(error)) {
+        useCartStore.getState().clearCart();
         console.error("Check status error (token rechazado):", error);
         set({
           status: "unauthenticated",
@@ -179,6 +201,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         });
         await SecureStorageAdapter.deleteItem("token");
         await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
+        await clearPrivateQueryCache();
+        useTicketCodesStore.getState().clearCodes();
         return false;
       }
 
@@ -197,8 +221,13 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
 
   logout: async () => {
+    await DeviceService.detachCurrentUser();
     await SecureStorageAdapter.deleteItem("token");
     await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
+    await clearPrivateQueryCache();
+    useTicketCodesStore.getState().clearCodes();
+    useCartStore.getState().clearCart();
+    useNotificationStore.getState().clearAll();
     delete backendApi.defaults.headers.common["Authorization"];
     set({
       status: "unauthenticated",
@@ -250,6 +279,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
       await SecureStorageAdapter.setItem("token", resp.data.token);
       await saveUserSnapshot(user);
+      await clearPrivateQueryCache();
+      void DeviceService.registerDevice();
       return true;
     } catch (error) {
       console.error("Register error:", error);

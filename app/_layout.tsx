@@ -2,10 +2,8 @@ import { SplashScreen } from "expo-router";
 import { Stack } from "expo-router/stack";
 import React, { useEffect } from "react";
 import { useFonts } from "expo-font";
-import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { queryClient, asyncStoragePersister, CACHE_MAX_AGE, PERSISTED_QUERY_PREFIXES } from "@/core/api/query-cache";
 import { StatusBar, Platform } from "react-native";
 import * as Sentry from "@sentry/react-native";
 import "./global.css";
@@ -22,33 +20,6 @@ Sentry.init({
   // No enviar PII de los compradores en los eventos
   sendDefaultPii: false,
   tracesSampleRate: 0.2,
-});
-
-const CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 días
-
-// Queries que se restauran al abrir la app sin conexión
-const PERSISTED_QUERY_PREFIXES = [
-  "profile",
-  "order",
-  "ticket-status",
-  "tickets",
-  "products",
-  "product",
-];
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // gcTime debe superar maxAge del persister o nada se persiste
-      gcTime: CACHE_MAX_AGE,
-      retry: 1,
-    },
-  },
-});
-
-const asyncStoragePersister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  key: "rq-cache",
 });
 
 function Layout() {

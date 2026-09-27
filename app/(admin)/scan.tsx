@@ -191,6 +191,7 @@ export default function ScanScreen() {
     }
     const ticket: any = ticketStatusQuery.data;
     if (!ticket) return { type: "loading", stage: "ticket" };
+    if (ticket.revoked) return { type: "error", message: "Esta entrada fue revocada." };
 
     // Already fully used
     if (ticket.usageCount >= ticket.maxUsages) {

@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import EditProfileModal from "@/presentation/components/EditProfileModal";
 import { LogoutButton } from "@/presentation/auth/components/LogoutIconButton";
+import { CheckForUpdateButton } from "@/presentation/components/CheckForUpdateButton";
 import PurchasedEventCard from "@/presentation/components/PurchasedEventCard";
 import { AdminAccessButton } from "@/presentation/components/AdminAccessButton";
 import { OfflineBanner } from "@/presentation/components/OfflineBanner";
@@ -176,6 +177,7 @@ const ProfileScreen = () => {
         <View className="mt-8">
           <Text className="text-white text-xl font-bold mb-4">Ajustes</Text>
           <LogoutButton />
+          <CheckForUpdateButton />
         </View>
       </View>
 

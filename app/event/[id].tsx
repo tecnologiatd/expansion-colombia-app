@@ -17,7 +17,9 @@ import { Redirect, router, useLocalSearchParams } from "expo-router";
 import RenderHtml from "react-native-render-html";
 // import Clipboard from "@react-native-clipboard/clipboard";
 import { useProduct } from "@/presentation/hooks/useProduct";
+import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
 import { useCartStore } from "@/core/stores/cart-store";
+import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
 
 const eventTagsStyles = {
   p: { color: "white" },
@@ -27,6 +29,7 @@ const DetailScreen = () => {
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams();
   const { productQuery } = useProduct(`${id}`);
+  const { isMaintenance, maintenanceMessage } = useSiteStatus();
 
   const [showModal, setShowModal] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -47,6 +50,15 @@ const DetailScreen = () => {
   const { addToCart } = useCartStore();
 
   const handleAddToCart = () => {
+    // En mantenimiento el evento se puede ver, pero no comprar
+    if (isMaintenance) {
+      Alert.alert(
+        "Mantenimiento",
+        maintenanceMessage ??
+          "Las compras están pausadas por mantenimiento. Intenta de nuevo más tarde.",
+      );
+      return;
+    }
     if (productQuery.data) {
       const productToAdd = {
         id: productQuery.data.id, // Use actual product ID
@@ -131,6 +143,7 @@ const DetailScreen = () => {
           </View>
         </View>
         <View className="p-4">
+          {isMaintenance && <MaintenanceBanner message={maintenanceMessage} />}
           <View className="flex-row items-center justify-between">
             <Text className="text-white text-2xl font-bold">
               {product.name}
@@ -169,12 +182,18 @@ const DetailScreen = () => {
         </View>
       </Modal>
       <TouchableOpacity
-        className="bg-purple-500 rounded-lg py-4 mt-8 justify-center items-center"
+        className={`rounded-lg py-4 mt-8 justify-center items-center ${
+          isMaintenance ? "bg-purple-400" : "bg-purple-500"
+        }`}
         onPress={handleAddToCart}
         disabled={!productQuery.data} // Disable if product is not loaded
       >
         <Text className="text-white font-bold text-lg">
-          {productQuery.isLoading ? "Cargando..." : "Comprar"}
+          {productQuery.isLoading
+            ? "Cargando..."
+            : isMaintenance
+              ? "No disponible por mantenimiento"
+              : "Comprar"}
         </Text>
       </TouchableOpacity>
     </SafeAreaView>

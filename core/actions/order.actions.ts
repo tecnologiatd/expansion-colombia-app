@@ -1,5 +1,10 @@
 import { backendApi } from "@/core/api/wordpress-api";
 import { Order } from "@/core/interfaces/order.interface";
+import { AxiosError } from "axios";
+
+// Marcador para que las pantallas distingan el bloqueo por mantenimiento
+// del resto de errores al crear el pedido.
+export const MAINTENANCE_ERROR = "MAINTENANCE";
 
 export interface CreateOrderParams {
   billing: {
@@ -36,6 +41,13 @@ export const createOrderAction = async (
     const { data } = await backendApi.post<Order>("/orders", params);
     return data;
   } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    if (axiosError.response?.status === 503) {
+      // El backend bloquea la creación de pedidos en modo mantenimiento
+      throw new Error(
+        `${MAINTENANCE_ERROR}:${axiosError.response.data?.message ?? "Compras en pausa por mantenimiento"}`,
+      );
+    }
     console.error("Error creating order:", error);
     throw new Error("Failed to create order");
   }

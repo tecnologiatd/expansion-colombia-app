@@ -1,7 +1,6 @@
 // presentation/utils/auth-browser.ts
 import * as Linking from "expo-linking";
-import { SecureStorageAdapter } from "@/helpers/adapters/secure-storage.adapter";
-import { Alert, Platform } from "react-native";
+import { Alert } from "react-native";
 
 /**
  * Clase utilitaria para manejar la autenticación a través del navegador externo
@@ -23,24 +22,11 @@ export class AuthBrowser {
     } = {},
   ): Promise<boolean> {
     try {
-      // Obtener el token almacenado
-      const token = await SecureStorageAdapter.getItem("token");
-
-      if (!token) {
-        console.warn("No token available for authentication");
-        // Si no hay token, abrimos la URL sin autenticación
-        return await Linking.openURL(url);
-      }
-
-      // Construir URL con token de autenticación
+      // El backend entrega un permiso de pago breve y limitado al pedido.
       const urlObj = new URL(url);
-
-      // Verificar si ya existe un parámetro auth_token
-      const existingAuthToken = urlObj.searchParams.get("auth_token");
-
-      // Solo añadir el token si no existe ya
-      if (!existingAuthToken) {
-        urlObj.searchParams.append("auth_token", token);
+      if (!urlObj.searchParams.has("auth_token")) {
+        Alert.alert("Error", "Actualiza el pedido para obtener un enlace de pago nuevo.");
+        return false;
       }
 
       // Añadir parámetros adicionales si se proporcionan
@@ -60,7 +46,6 @@ export class AuthBrowser {
 
       // URL final con todos los parámetros
       const authUrl = urlObj.toString();
-      console.log("Opening payment URL:", authUrl); // Debug
 
       // Mostrar alerta antes de abrir el navegador (opcional)
       if (options.showAlert) {
@@ -119,17 +104,7 @@ export class AuthBrowser {
       // Usar directamente el esquema de la app para la URL de retorno
       const appReturnUrl = `expansioncolombia://order/${orderId}`;
 
-      // Extraer URL base sin parámetros para evitar conflictos
-      let baseUrl = paymentUrl;
-      const questionMarkIndex = paymentUrl.indexOf("?");
-
-      if (questionMarkIndex !== -1) {
-        // Si ya tiene parámetros, usamos la URL completa
-        // y confiamos en la verificación de parámetros duplicados
-        baseUrl = paymentUrl;
-      }
-
-      return this.openAuthUrl(baseUrl, {
+      return this.openAuthUrl(paymentUrl, {
         showAlert: true,
         alertTitle: "Procesando Pago",
         alertMessage:

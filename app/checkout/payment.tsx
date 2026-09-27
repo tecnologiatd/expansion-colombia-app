@@ -17,6 +17,9 @@ import {
 } from "expo-router";
 import { CommonActions } from "expo-router/react-navigation";
 import { useCreateOrder } from "@/presentation/hooks/useOrders";
+import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
+import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
+import { MAINTENANCE_ERROR, getOrderByIdAction } from "@/core/actions/order.actions";
 import { useCartStore } from "@/core/stores/cart-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,17 +29,28 @@ export default function PaymentScreen() {
   const { billingData, sponsorshipLine } = useLocalSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
   const { createOrderMutation, prepareOrderItems } = useCreateOrder();
-  const { calculateTotal, clearCart } = useCartStore();
+  const { calculateTotal, clearCart, getPendingOrderId, setPendingOrder } = useCartStore();
+  const { isMaintenance, maintenanceMessage } = useSiteStatus();
   const navigation = useNavigation();
 
   const handleContinueToPayment = async () => {
+    if (isMaintenance) {
+      Alert.alert(
+        "Mantenimiento",
+        maintenanceMessage ??
+          "Las compras están pausadas por mantenimiento. Intenta de nuevo más tarde.",
+      );
+      return;
+    }
     try {
       setIsProcessing(true);
       const parsedBilling = JSON.parse(billingData as string);
       const orderItems = prepareOrderItems();
 
       // Crear la orden incluyendo la línea de auspicio como metadato personalizado
-      const response = await createOrderMutation.mutateAsync({
+      const pendingOrderId = getPendingOrderId();
+      let response = pendingOrderId ? await getOrderByIdAction(String(pendingOrderId), { fresh: true }) : null;
+      if (!response || response.status !== "pending") response = await createOrderMutation.mutateAsync({
         billing: parsedBilling,
         line_items: orderItems,
         meta_data: [
@@ -46,6 +60,7 @@ export default function PaymentScreen() {
           },
         ],
       });
+      if (response?.id && response.status === "pending") setPendingOrder(response.id);
 
       if (response?.payment_url) {
         // Abrir la URL en el navegador con autenticación automática
@@ -78,9 +93,16 @@ export default function PaymentScreen() {
       }
     } catch (error) {
       console.error("Error al procesar la orden:", error);
+      const message =
+        error instanceof Error && error.message.startsWith(MAINTENANCE_ERROR)
+          ? error.message.split(":").slice(1).join(":").trim() ||
+            "Las compras están pausadas por mantenimiento. Intenta de nuevo más tarde."
+          : "Hubo un problema procesando tu orden. Por favor intenta de nuevo.";
       Alert.alert(
-        "Error",
-        "Hubo un problema procesando tu orden. Por favor intenta de nuevo.",
+        error instanceof Error && error.message.startsWith(MAINTENANCE_ERROR)
+          ? "Mantenimiento"
+          : "Error",
+        message,
       );
     } finally {
       setIsProcessing(false);
@@ -115,6 +137,9 @@ export default function PaymentScreen() {
             contentContainerStyle={{ paddingBottom: 100 }} // Espacio para el botón fijo
           >
             <View className="flex-1 p-4">
+              {isMaintenance && (
+                <MaintenanceBanner message={maintenanceMessage} />
+              )}
               {/* Resumen de compra */}
               <View className="bg-gray-800 p-6 rounded-lg mb-6">
                 <Text className="text-white text-xl font-bold mb-4">
@@ -191,12 +216,16 @@ export default function PaymentScreen() {
           {/* Botón fijo en la parte inferior */}
           <View className="absolute bottom-0 left-0 right-0 p-4 bg-gray-900 border-t border-gray-800">
             <TouchableOpacity
-              className={`bg-purple-500 p-4 rounded-lg ${isProcessing ? "opacity-50" : ""}`}
+              className={`bg-purple-500 p-4 rounded-lg ${isProcessing || isMaintenance ? "opacity-50" : ""}`}
               onPress={handleContinueToPayment}
-              disabled={isProcessing}
+              disabled={isProcessing || isMaintenance}
             >
               <Text className="text-white text-center font-bold text-lg">
-                {isProcessing ? "Procesando..." : "Continuar al Pago"}
+                {isProcessing
+                  ? "Procesando..."
+                  : isMaintenance
+                    ? "Compras en pausa"
+                    : "Continuar al Pago"}
               </Text>
             </TouchableOpacity>
           </View>

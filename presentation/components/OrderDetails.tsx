@@ -9,7 +9,8 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
-import { getPaymentUrl, useOrderDetails } from "@/presentation/hooks/useOrders";
+import { useOrderDetails } from "@/presentation/hooks/useOrders";
+import { getOrderByIdAction } from "@/core/actions/order.actions";
 import { TicketQRSection } from "@/presentation/components/TicketQRSection";
 import { OfflineBanner } from "@/presentation/components/OfflineBanner";
 import { useConnectivityStore } from "@/core/offline/connectivity";
@@ -62,21 +63,13 @@ const OrderDetails = ({ orderId }) => {
 
   const handlePayment = async () => {
     try {
-      // Construir la URL de pago correcta
-      let paymentUrl;
-
-      if (order.order_key && order.id) {
-        // Usamos la nueva función para generar la URL correcta
-        paymentUrl = getPaymentUrl(order.id.toString(), order.order_key);
-      } else if (order?.payment_url) {
-        // Fallback a la URL proporcionada por la API
-        paymentUrl = order.payment_url;
-      } else {
+      const currentOrder = await getOrderByIdAction(orderId, { fresh: true });
+      const paymentUrl = currentOrder?.payment_url;
+      if (!paymentUrl) {
         Alert.alert("Error", "No se pudo generar la URL de pago");
         return;
       }
 
-      console.log("Abriendo URL de pago:", paymentUrl);
 
       // Utilizar AuthBrowser para abrir el navegador con autenticación
       const opened = await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
@@ -239,7 +232,7 @@ const OrderDetails = ({ orderId }) => {
       </View>
 
       {/* Payment Action */}
-      {order.status === "pending" && (
+      {["pending", "failed"].includes(order.status) && (
         <View className="m-4">
           <TouchableOpacity
             className="bg-purple-500 p-4 rounded-lg flex-row justify-center items-center"
