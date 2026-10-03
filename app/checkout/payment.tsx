@@ -63,7 +63,8 @@ export default function PaymentScreen() {
       if (response?.id && response.status === "pending") setPendingOrder(response.id);
 
       if (response?.payment_url) {
-        // Abrir la URL en el navegador con autenticación automática
+        // Abre el pago y resuelve cuando el usuario vuelve a la app; la
+        // pantalla del pedido consulta el estado mientras siga pendiente.
         const opened = await AuthBrowser.openPaymentUrl(
           response.payment_url,
           response.id.toString(),

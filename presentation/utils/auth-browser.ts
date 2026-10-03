@@ -1,19 +1,22 @@
 // presentation/utils/auth-browser.ts
-import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { Alert } from "react-native";
 
 /**
- * Clase utilitaria para manejar la autenticación a través del navegador externo
+ * Clase utilitaria para abrir el pago de WordPress en una sesión de navegador
+ * dentro de la app.
  */
 export class AuthBrowser {
   /**
-   * Abre una URL en el navegador externo con el token de autenticación
-   * @param url URL base a abrir
-   * @param options Opciones adicionales
-   * @returns Promise que se resuelve cuando se ha abierto el navegador
+   * Abre una URL en una sesión de navegador del sistema y espera a que se cierre
+   * o a que la página redirija a `returnUrl`.
+   * En iOS la sesión es efímera: no comparte cookies con Safari, así que una
+   * sesión vieja de otra cuenta no puede bloquear el pago.
+   * @returns true si la sesión se mostró (el usuario pudo pagar o no)
    */
   static async openAuthUrl(
     url: string,
+    returnUrl: string,
     options: {
       showAlert?: boolean;
       alertTitle?: string;
@@ -25,7 +28,10 @@ export class AuthBrowser {
       // El backend entrega un permiso de pago breve y limitado al pedido.
       const urlObj = new URL(url);
       if (!urlObj.searchParams.has("auth_token")) {
-        Alert.alert("Error", "Actualiza el pedido para obtener un enlace de pago nuevo.");
+        Alert.alert(
+          "Error",
+          "Actualiza el pedido para obtener un enlace de pago nuevo.",
+        );
         return false;
       }
 
@@ -47,6 +53,27 @@ export class AuthBrowser {
       // URL final con todos los parámetros
       const authUrl = urlObj.toString();
 
+      const openSession = async () => {
+        try {
+          const result = await WebBrowser.openAuthSessionAsync(
+            authUrl,
+            returnUrl,
+            {
+              preferEphemeralSession: true,
+            },
+          );
+          // "locked": ya hay otra sesión de navegador abierta
+          return result.type !== "locked";
+        } catch (error) {
+          console.error("Error opening URL:", error);
+          Alert.alert(
+            "Error",
+            "No se pudo abrir el navegador. Por favor intente nuevamente.",
+          );
+          return false;
+        }
+      };
+
       // Mostrar alerta antes de abrir el navegador (opcional)
       if (options.showAlert) {
         return new Promise((resolve) => {
@@ -62,19 +89,7 @@ export class AuthBrowser {
               },
               {
                 text: "Continuar",
-                onPress: async () => {
-                  try {
-                    const opened = await Linking.openURL(authUrl);
-                    resolve(!!opened);
-                  } catch (error) {
-                    console.error("Error opening URL:", error);
-                    Alert.alert(
-                      "Error",
-                      "No se pudo abrir el navegador. Por favor intente nuevamente.",
-                    );
-                    resolve(false);
-                  }
-                },
+                onPress: async () => resolve(await openSession()),
               },
             ],
           );
@@ -82,7 +97,7 @@ export class AuthBrowser {
       }
 
       // Abrir directamente sin alerta
-      return await Linking.openURL(authUrl);
+      return await openSession();
     } catch (error) {
       console.error("Error opening auth URL:", error);
       Alert.alert(
@@ -94,7 +109,7 @@ export class AuthBrowser {
   }
 
   /**
-   * Método especializado para abrir la URL de pago con autenticación
+   * Abre el pago del pedido y resuelve cuando el usuario vuelve a la app.
    */
   static async openPaymentUrl(
     paymentUrl: string,
@@ -104,11 +119,11 @@ export class AuthBrowser {
       // Usar directamente el esquema de la app para la URL de retorno
       const appReturnUrl = `expansioncolombia://order/${orderId}`;
 
-      return this.openAuthUrl(paymentUrl, {
+      return this.openAuthUrl(paymentUrl, appReturnUrl, {
         showAlert: true,
         alertTitle: "Procesando Pago",
         alertMessage:
-          "Se abrirá el navegador para completar el pago. Tu sesión se mantendrá automáticamente.",
+          "Se abrirá la página de pago segura. Al terminar volverás automáticamente a la aplicación.",
         additionalParams: {
           order_id: orderId,
           return_url: appReturnUrl,

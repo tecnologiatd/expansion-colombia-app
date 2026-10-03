@@ -15,7 +15,7 @@ import { initConnectivity } from "@/core/offline/connectivity";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  // Sin DSN (p. ej. desarrollo local) Sentry queda desactivado
+  // Solo en produccion: sin DSN o en desarrollo Sentry queda desactivado
   enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN && !__DEV__,
   // No enviar PII de los compradores en los eventos
   sendDefaultPii: false,

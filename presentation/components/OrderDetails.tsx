@@ -25,6 +25,7 @@ const OrderDetails = ({ orderId }) => {
     error,
     refetch,
     forceRefetch,
+    watchPayment,
     isPaused,
     dataUpdatedAt,
   } = useOrderDetails(orderId);
@@ -70,23 +71,9 @@ const OrderDetails = ({ orderId }) => {
         return;
       }
 
-
-      // Utilizar AuthBrowser para abrir el navegador con autenticación
+      // Resuelve cuando el usuario vuelve del navegador de pago
       const opened = await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
-
-      if (opened) {
-        // Informar al usuario sobre el proceso
-        Alert.alert(
-          "Pago en Proceso",
-          "Una vez completado el pago, serás redirigido automáticamente de vuelta a la aplicación.",
-          [{ text: "Entendido" }],
-        );
-
-        // Después de que el usuario regrese, refrescar los datos (bypass cache)
-        setTimeout(() => {
-          forceRefetch();
-        }, 1000);
-      }
+      if (opened) watchPayment();
     } catch (error) {
       console.error("Error al abrir URL de pago:", error);
       Alert.alert(
