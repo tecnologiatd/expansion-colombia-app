@@ -1,4 +1,5 @@
 import React from "react";
+import { imageSource } from "@/helpers/image-source";
 import {
   View,
   Text,
@@ -60,7 +61,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                 >
                   {item.images && item.images[0] && (
                     <Image
-                      source={{ uri: item.images[0].src }}
+                      source={imageSource(item.images[0].src)}
                       className="w-16 h-16 rounded-lg mr-3"
                     />
                   )}

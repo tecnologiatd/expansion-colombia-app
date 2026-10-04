@@ -29,9 +29,9 @@ export default function TicketDetailsScreen() {
 
   const { ticketStatusQuery } = useTicketValidation(qrCode, eventId);
 
-  const { data: orderData } = ticketStatusQuery.data?.orderId
-    ? useOrderDetails(ticketStatusQuery.data?.orderId)
-    : { data: null };
+  const { data: orderData } = useOrderDetails(
+    ticketStatusQuery.data?.orderId ?? "",
+  );
 
   if (ticketStatusQuery.isLoading) {
     return (
@@ -41,7 +41,7 @@ export default function TicketDetailsScreen() {
     );
   }
 
-  if (ticketStatusQuery.error) {
+  if (ticketStatusQuery.error || !ticketStatusQuery.data) {
     return (
       <View
         style={{
@@ -85,7 +85,7 @@ export default function TicketDetailsScreen() {
             className={`p-2 rounded ${isFullyUsed ? "bg-red-500/20" : "bg-green-500/20"}`}
           >
             <Text className={isFullyUsed ? "text-red-500" : "text-green-500"}>
-              {isFullyUsed ? "Completamente Usadao" : "Válido"}
+              {isFullyUsed ? "Entrada usada" : "Válido"}
             </Text>
           </View>
 

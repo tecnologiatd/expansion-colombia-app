@@ -1,4 +1,9 @@
 // presentation/auth/store/useAuthStore.ts
+import { isAxiosError } from "axios";
+import {
+  clearScannerCatalog,
+  ensureScannerOwner,
+} from "@/core/offline/ticket-db";
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from "jwt-decode";
@@ -53,6 +58,15 @@ const isAuthRejection = (error: any): boolean => {
   return status === 401 || status === 403;
 };
 
+const errorText = (error: unknown, fallback: string): string => {
+  if (
+    isAxiosError<{ message?: string }>(error) &&
+    error.response?.data?.message
+  )
+    return error.response.data.message;
+  return error instanceof Error ? error.message : fallback;
+};
+
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   status: "unauthenticated",
   token: undefined,
@@ -66,6 +80,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     try {
       const resp = await authLogin(username, password);
       if (!resp?.token || !resp?.user) return false;
+      ensureScannerOwner(resp.user.username);
       if (get().user?.username && get().user?.username !== resp.user.username) {
         useCartStore.getState().clearCart();
         useTicketCodesStore.getState().clearCodes();
@@ -101,9 +116,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       console.error("Login error:", error);
       let errorMessage =
         "Credenciales inválidas. Por favor, intente nuevamente.";
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      }
+      errorMessage = errorText(error, errorMessage);
       set({
         status: "unauthenticated",
         error: errorMessage,
@@ -221,6 +234,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
 
   logout: async () => {
+    clearScannerCatalog();
     await DeviceService.detachCurrentUser();
     await SecureStorageAdapter.deleteItem("token");
     await AsyncStorage.removeItem(USER_SNAPSHOT_KEY);
@@ -246,7 +260,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         // Guardamos el mensaje de error específico del backend
         set({
           status: "unauthenticated",
-          error: resp.error.message || "Error durante el registro",
+          error: resp.error?.message ?? "Error durante el registro",
         });
         return false;
       }
@@ -287,11 +301,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       // Manejar mejor los errores, intentando extraer el mensaje del error
       let errorMessage = "Error durante el registro";
 
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
+      errorMessage = errorText(error, errorMessage);
 
       set({
         status: "unauthenticated",

@@ -2,7 +2,7 @@
 // Orquestador del sync de escaneo offline: primero PUSH (drena la cola de
 // validaciones offline), luego PULL (espejo incremental de tickets).
 // El orden push→pull garantiza que el pull ya refleje lo subido.
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { create } from "zustand";
 import {
@@ -20,8 +20,13 @@ import {
   upsertTickets,
 } from "@/core/offline/ticket-db";
 import { useConnectivityStore } from "@/core/offline/connectivity";
-
-const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
+import { ensureScannerOwner } from "@/core/offline/ticket-db";
+import {
+  canSyncTickets,
+  nextSyncDelay,
+  SYNC_JITTER_MS,
+} from "@/core/offline/sync-schedule";
 const PUSH_CHUNK_SIZE = 200;
 
 interface TicketSyncState {
@@ -42,28 +47,60 @@ export const useTicketSyncStore = create<TicketSyncState>()((set) => ({
 }));
 
 // Mutex a nivel de módulo: un solo sync a la vez aunque haya varios triggers
-let syncInFlight = false;
+let syncInFlight: Promise<boolean> | null = null;
+const automaticSchedule = {
+  token: undefined as string | undefined,
+  lastAttemptAt: null as number | null,
+  failures: 0,
+};
 
-export const syncTickets = async (): Promise<void> => {
-  if (syncInFlight) return;
-  if (!useConnectivityStore.getState().isOnline) return;
+const runSync = async (signal?: AbortSignal): Promise<boolean> => {
+  const session = useAuthStore.getState();
+  if (
+    !canSyncTickets(session.status, session.user?.role) ||
+    !session.token ||
+    !session.user?.username
+  )
+    return false;
+  if (!useConnectivityStore.getState().isOnline || signal?.aborted)
+    return false;
+  const operator = session.user!.username;
+  const sameSession = () => {
+    const current = useAuthStore.getState();
+    return (
+      current.token === session.token &&
+      current.user?.username === operator &&
+      canSyncTickets(current.status, current.user?.role)
+    );
+  };
+  const assertCurrent = () => {
+    if (signal?.aborted || !sameSession()) throw new Error("Sync cancelled");
+  };
+  automaticSchedule.token = session.token;
+  automaticSchedule.lastAttemptAt = Date.now();
 
-  syncInFlight = true;
   useTicketSyncStore.setState({ isSyncing: true, syncError: null });
 
   try {
+    ensureScannerOwner(operator);
     // 1. PUSH: drenar la cola. Solo se borran filas con resultado por ítem
     //    del servidor (duplicate/applied/not_found cuentan como procesadas),
     //    así matar la app a mitad de sync nunca pierde ni duplica validaciones.
     const deviceId = await getDeviceId();
+    assertCurrent();
     let pending = getPendingValidations();
     while (pending.length > 0) {
       const chunk = pending.slice(0, PUSH_CHUNK_SIZE);
-      const response = await pushValidationBatch(deviceId, chunk);
+      const response = await pushValidationBatch(deviceId, chunk, signal);
+      assertCurrent();
       removePendingValidations(response.results.map((r) => r.localId));
       if (response.results.length === 0) break;
       pending = getPendingValidations();
     }
+    if (getPendingCount() > 0)
+      throw new Error(
+        "Quedan escaneos pendientes. Vuelve a sincronizar antes de descargar el catálogo.",
+      );
 
     // 2. PULL incremental: cursor = serverTime devuelto por el servidor
     //    (nunca el reloj del dispositivo).
@@ -71,13 +108,29 @@ export const syncTickets = async (): Promise<void> => {
     let page = 1;
     let serverTime: string | null = null;
     let activeEventIds: string[] | null = null;
+    let cursor: string | undefined;
+    let until: string | undefined;
 
     for (;;) {
-      const data = await fetchTicketSyncPage(since, page);
+      assertCurrent();
+      const data = await fetchTicketSyncPage(
+        since,
+        page,
+        cursor,
+        until,
+        signal,
+      );
+      assertCurrent();
       upsertTickets(data.tickets);
-      serverTime = data.serverTime;
+      serverTime ??= data.serverTime;
+      until ??= data.snapshotUntil;
       activeEventIds = data.activeEventIds;
-      if (page >= data.totalPages || data.tickets.length === 0) break;
+      if (data.nextCursor !== undefined) {
+        if (!data.nextCursor) break;
+        if (data.nextCursor === cursor)
+          throw new Error("El catálogo no avanzó. Vuelve a sincronizar.");
+        cursor = data.nextCursor;
+      } else if (page >= data.totalPages || data.tickets.length === 0) break;
       page += 1;
     }
 
@@ -87,7 +140,15 @@ export const syncTickets = async (): Promise<void> => {
     if (serverTime) {
       setLastSyncAt(serverTime);
     }
+    automaticSchedule.failures = 0;
+    return true;
   } catch (error: any) {
+    if (signal?.aborted || !sameSession()) {
+      if (automaticSchedule.token === session.token)
+        automaticSchedule.lastAttemptAt = null;
+      return false;
+    }
+    automaticSchedule.failures += 1;
     const status = error?.response?.status;
     useTicketSyncStore.setState({
       syncError:
@@ -96,8 +157,8 @@ export const syncTickets = async (): Promise<void> => {
           : "No se pudo sincronizar. Se reintentará automáticamente.",
     });
     console.warn("Ticket sync failed:", error?.message ?? error);
+    return false;
   } finally {
-    syncInFlight = false;
     useTicketSyncStore.setState({
       isSyncing: false,
       pendingCount: getPendingCount(),
@@ -106,40 +167,84 @@ export const syncTickets = async (): Promise<void> => {
   }
 };
 
-/**
- * Montar en el layout admin: dispara el sync al entrar, al recuperar
- * conexión, al volver la app a primer plano y cada 5 minutos.
- */
+export const syncTickets = (signal?: AbortSignal): Promise<boolean> => {
+  if (syncInFlight) return syncInFlight;
+  const operation = runSync(signal);
+  syncInFlight = operation;
+  void operation.finally(() => {
+    if (syncInFlight === operation) syncInFlight = null;
+  });
+  return operation;
+};
+
+// Montar UNA vez en el layout raíz. Solo operadores autenticados, online y
+// en primer plano: incremental cada cinco minutos, jitter y backoff de errores.
+export const useAutomaticTicketSync = () => {
+  const status = useAuthStore((state) => state.status);
+  const role = useAuthStore((state) => state.user?.role);
+  const token = useAuthStore((state) => state.token);
+  const isOnline = useConnectivityStore((state) => state.isOnline);
+  const [appState, setAppState] = useState(AppState.currentState);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", setAppState);
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
+    if (
+      !canSyncTickets(status, role) ||
+      !token ||
+      !isOnline ||
+      (appState !== null && appState !== "active")
+    )
+      return;
+    if (automaticSchedule.token !== token) {
+      automaticSchedule.token = token;
+      automaticSchedule.lastAttemptAt = null;
+      automaticSchedule.failures = 0;
+    }
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const controller = new AbortController();
+    const schedule = () => {
+      if (stopped) return;
+      timer = setTimeout(
+        run,
+        nextSyncDelay(
+          automaticSchedule.lastAttemptAt,
+          automaticSchedule.failures,
+        ) +
+          Math.random() * SYNC_JITTER_MS,
+      );
+    };
+    const run = async () => {
+      if (stopped) return;
+      // Un sync manual puede haberse ejecutado mientras esperaba este timer.
+      if (
+        nextSyncDelay(
+          automaticSchedule.lastAttemptAt,
+          automaticSchedule.failures,
+        ) === 0
+      )
+        await syncTickets(controller.signal);
+      schedule();
+    };
+    schedule();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [status, role, token, isOnline, appState]);
+};
+
+// Consumidores del escáner: solo estado/acción; no crean timers adicionales.
 export const useTicketSync = () => {
   const { isSyncing, lastSyncAt, pendingCount, syncError, refreshCounts } =
     useTicketSyncStore();
-  const isOnline = useConnectivityStore((state) => state.isOnline);
-
   const syncNow = useCallback(() => syncTickets(), []);
-
-  // Al montar (entrar al área admin) y al reconectar
   useEffect(() => {
     refreshCounts();
-    if (isOnline) {
-      syncTickets();
-    }
-  }, [isOnline, refreshCounts]);
-
-  // Al volver la app a primer plano
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") {
-        syncTickets();
-      }
-    });
-    return () => subscription.remove();
-  }, []);
-
-  // Intervalo mientras el área admin esté montada
-  useEffect(() => {
-    const interval = setInterval(() => syncTickets(), SYNC_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, []);
+  }, [refreshCounts]);
 
   return { isSyncing, lastSyncAt, pendingCount, syncError, syncNow };
 };

@@ -1,14 +1,21 @@
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
+import { imageSource } from "@/helpers/image-source";
 
-const PurchasedEventCard = ({ event, onPress }) => (
+const PurchasedEventCard = ({
+  event,
+  onPress,
+}: {
+  event: { id: number; name: string; status: string; image?: { src: string } };
+  onPress: () => void;
+}) => (
   <TouchableOpacity
     className="bg-gray-800 rounded-lg p-4 mb-4 flex-row items-center"
     onPress={onPress}
   >
     {event.image && (
       <Image
-        source={{ uri: event.image.src }}
+        source={imageSource(event.image.src)}
         className="w-16 h-16 rounded-lg"
       />
     )}

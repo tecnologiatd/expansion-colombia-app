@@ -42,9 +42,7 @@ const DetailScreen = () => {
   }
 
   useEffect(() => {
-    if (productQuery.data?.images?.[0]?.src) {
-      setImageUri(productQuery.data.images[0].src);
-    }
+    setImageUri(productQuery.data?.images?.[0]?.src?.trim() || null);
   }, [productQuery.data]);
 
   const { addToCart } = useCartStore();
@@ -63,7 +61,7 @@ const DetailScreen = () => {
       const productToAdd = {
         id: productQuery.data.id, // Use actual product ID
         name: productQuery.data.name,
-        price: parseFloat(productQuery.data.price), // Ensure price is a number
+        price: Number(productQuery.data.price), // Ensure price is a number
         imageUrl: productQuery.data.images?.[0]?.src || "", // Use first image or empty string
       };
 
@@ -111,7 +109,10 @@ const DetailScreen = () => {
   const heroImageUri = product?.images?.[0]?.src?.trim();
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900" edges={["left", "right", "bottom"]}>
+    <SafeAreaView
+      className="flex-1 bg-gray-900"
+      edges={["left", "right", "bottom"]}
+    >
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />

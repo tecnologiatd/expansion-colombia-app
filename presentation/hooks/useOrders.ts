@@ -6,6 +6,7 @@ import {
   getOrderByIdAction,
 } from "@/core/actions/order.actions";
 import { useCartStore } from "@/core/stores/cart-store";
+import { isPaidOrder, isWaitingOrder } from "@/core/checkout/payment-policy";
 
 export const useCreateOrder = () => {
   const queryClient = useQueryClient();
@@ -42,10 +43,10 @@ export const useCreateOrder = () => {
 };
 
 // Tras volver del pago, consultar el pedido mientras siga pendiente. Las
-// consultas periódicas leen la caché del backend, que el webhook de estado
-// de WordPress refresca, así que no cargan a WooCommerce.
-const PAYMENT_WATCH_MS = 3 * 60 * 1000;
-const PAYMENT_POLL_MS = 4000;
+// consultas periódicas usan la caché breve del backend y el webhook firmado
+// invalida estados; WooCommerce se consulta al vencer la caché.
+const PAYMENT_WATCH_MS = 30 * 60 * 1000;
+const PAYMENT_POLL_MS = 10000;
 
 export const useOrderDetails = (orderId: string) => {
   // Ref flag: next queryFn call should hit backend with ?fresh=1
@@ -58,13 +59,16 @@ export const useOrderDetails = (orderId: string) => {
     queryFn: async () => {
       const fresh = forceFreshRef.current;
       forceFreshRef.current = false;
-      return getOrderByIdAction(orderId, { fresh });
+      const order = await getOrderByIdAction(orderId, { fresh });
+      if (isPaidOrder(order.status))
+        useCartStore.getState().completePendingOrder(order.id);
+      return order;
     },
     enabled: !!orderId,
     staleTime: 1000 * 60, // Consider data fresh for 1 minute
     retry: 2,
     refetchInterval: (query) =>
-      query.state.data?.status === "pending" &&
+      isWaitingOrder(query.state.data?.status) &&
       Date.now() < watchUntilRef.current
         ? PAYMENT_POLL_MS
         : false,
@@ -74,10 +78,7 @@ export const useOrderDetails = (orderId: string) => {
   // Also invalidates all ticket statuses so admin-validated tickets reflect as "used".
   const forceRefetch = useCallback(async () => {
     forceFreshRef.current = true;
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["order", orderId] }),
-      queryClient.invalidateQueries({ queryKey: ["ticket-status"] }),
-    ]);
+    await queryClient.invalidateQueries({ queryKey: ["ticket-status"] });
     return query.refetch();
   }, [orderId, query, queryClient]);
 
@@ -95,7 +96,7 @@ export const useOrderDetails = (orderId: string) => {
         "order",
         orderId,
       ]);
-      if (state === "active" && order?.status === "pending") watchPayment();
+      if (state === "active" && isWaitingOrder(order?.status)) watchPayment();
     });
     return () => subscription.remove();
   }, [orderId, queryClient, watchPayment]);

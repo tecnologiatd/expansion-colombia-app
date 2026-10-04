@@ -18,7 +18,13 @@ import Feather from "@expo/vector-icons/Feather";
 import { Ionicons } from "@expo/vector-icons";
 import { useUpdateCustomer } from "@/presentation/hooks/useUpdateCustomer";
 
-const EditProfileModal = ({ visible, onClose, userData, onSave }) => {
+interface Props {
+  visible: boolean;
+  onClose: () => void;
+  userData: import("@/core/interfaces/customer.interface").Customer;
+  onSave: () => void;
+}
+const EditProfileModal = ({ visible, onClose, userData, onSave }: Props) => {
   const { updateCustomerMutation } = useUpdateCustomer();
   const [isSaving, setIsSaving] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);

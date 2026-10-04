@@ -7,6 +7,8 @@ import { LocalTicket, PendingValidation } from "@/core/offline/ticket-db";
 const DEVICE_ID_KEY = "scanner-device-id";
 
 export interface TicketSyncPage {
+  nextCursor?: string | null;
+  snapshotUntil?: string;
   serverTime: string;
   page: number;
   totalPages: number;
@@ -16,10 +18,7 @@ export interface TicketSyncPage {
 }
 
 export type BatchValidationStatus =
-  | "applied"
-  | "applied_conflict"
-  | "duplicate"
-  | "not_found";
+  "applied" | "applied_conflict" | "duplicate" | "not_found";
 
 export interface BatchValidationResult {
   localId: string;
@@ -45,10 +44,17 @@ export const getDeviceId = async (): Promise<string> => {
 export const fetchTicketSyncPage = async (
   since: string | null,
   page: number,
+  cursor?: string,
+  until?: string,
+  signal?: AbortSignal,
 ): Promise<TicketSyncPage> => {
   const { data } = await backendApi.get<TicketSyncPage>("/tickets/sync", {
+    signal,
     params: {
       page,
+      mode: "cursor",
+      ...(cursor ? { cursor } : {}),
+      ...(until ? { until } : {}),
       ...(since ? { since } : {}),
     },
   });
@@ -58,10 +64,12 @@ export const fetchTicketSyncPage = async (
 export const pushValidationBatch = async (
   deviceId: string,
   validations: PendingValidation[],
+  signal?: AbortSignal,
 ): Promise<BatchValidateResponse> => {
   const { data } = await backendApi.post<BatchValidateResponse>(
     "/tickets/validate/batch",
     { deviceId, validations },
+    { signal },
   );
   return data;
 };

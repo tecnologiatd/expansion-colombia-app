@@ -9,7 +9,7 @@ import { NotificationBell } from "./NotificationBell";
 interface Props {
   title?: string;
   navigation?: any;
-  back?: boolean;
+  back?: boolean | { title?: string; href?: string };
 }
 
 const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {

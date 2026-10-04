@@ -1,14 +1,7 @@
 import React, { useState } from "react";
-import {
-  TouchableOpacity,
-  Text,
-  Alert,
-  ActivityIndicator,
-  Button,
-} from "react-native";
+import { TouchableOpacity, Text, Alert, ActivityIndicator } from "react-native";
 import * as Updates from "expo-updates";
 import { Feather } from "@expo/vector-icons";
-import * as Sentry from "@sentry/react-native";
 
 export const CheckForUpdateButton = () => {
   const [isChecking, setIsChecking] = useState(false);
@@ -51,11 +44,17 @@ export const CheckForUpdateButton = () => {
   };
 
   return (
-    <Button
-      title="Try!"
-      onPress={() => {
-        Sentry.captureException(new Error("First error"));
-      }}
-    />
+    <TouchableOpacity
+      disabled={isChecking}
+      onPress={handleCheckForUpdate}
+      className="bg-gray-800 p-4 rounded-lg flex-row justify-between items-center mt-2"
+    >
+      <Text className="text-white">Buscar actualización</Text>
+      {isChecking ? (
+        <ActivityIndicator color="#7B3DFF" />
+      ) : (
+        <Feather name="refresh-cw" size={20} color="white" />
+      )}
+    </TouchableOpacity>
   );
 };

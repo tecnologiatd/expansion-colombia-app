@@ -66,7 +66,7 @@ const SponsorshipLineSelector: React.FC<SponsorshipLineSelectorProps> = ({
     }));
 
     // Ordenamos las secciones por un orden predefinido y luego alfabéticamente
-    const categoryOrder = {
+    const categoryOrder: Record<string, number> = {
       Región: 1,
       EMBAJADOR: 2,
       DIAMANTE: 3,

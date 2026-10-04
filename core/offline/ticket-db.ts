@@ -49,9 +49,13 @@ db.execSync(`
     value TEXT
   );
 `);
-const ticketColumns = db.getAllSync<{ name: string }>("PRAGMA table_info(tickets)");
+const ticketColumns = db.getAllSync<{ name: string }>(
+  "PRAGMA table_info(tickets)",
+);
 if (!ticketColumns.some((column) => column.name === "revoked")) {
-  db.execSync("ALTER TABLE tickets ADD COLUMN revoked INTEGER NOT NULL DEFAULT 0");
+  db.execSync(
+    "ALTER TABLE tickets ADD COLUMN revoked INTEGER NOT NULL DEFAULT 0",
+  );
 }
 
 export const upsertTickets = (tickets: LocalTicket[]) => {
@@ -62,7 +66,9 @@ export const upsertTickets = (tickets: LocalTicket[]) => {
         `INSERT INTO tickets (qrCode, eventId, orderId, usageCount, maxUsages, revoked, customerName, updatedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(qrCode) DO UPDATE SET
-           usageCount = excluded.usageCount,
+           usageCount = excluded.usageCount + (
+             SELECT COUNT(*) FROM pending_validations WHERE qrCode = excluded.qrCode
+           ),
            maxUsages = excluded.maxUsages,
            revoked = excluded.revoked,
            customerName = excluded.customerName,
@@ -94,6 +100,50 @@ export const incrementLocalUsage = (qrCode: string) => {
     "UPDATE tickets SET usageCount = usageCount + 1 WHERE qrCode = ?",
     [qrCode],
   );
+};
+
+export const recordOfflineValidation = (
+  validation: PendingValidation,
+): LocalTicket => {
+  let updated: LocalTicket | null = null;
+  db.withTransactionSync(() => {
+    const ticket = getTicketByQr(validation.qrCode);
+    if (!ticket || ticket.eventId !== validation.eventId)
+      throw new Error("Entrada no encontrada. Sincroniza el catálogo.");
+    if (ticket.revoked) throw new Error("Entrada revocada.");
+    if (ticket.usageCount >= ticket.maxUsages)
+      throw new Error("Esta entrada ya se usó.");
+    enqueueValidation(validation);
+    incrementLocalUsage(validation.qrCode);
+    updated = { ...ticket, usageCount: ticket.usageCount + 1 };
+  });
+  return updated!;
+};
+
+export const ensureScannerOwner = (username: string) => {
+  const previous = getSyncMeta("scannerOwner");
+  if (previous && previous !== username) {
+    if (getPendingCount())
+      throw new Error(
+        "Hay escaneos pendientes del operador anterior. Inicia sesión con esa cuenta y sincroniza antes de cambiar.",
+      );
+    db.withTransactionSync(() => {
+      db.runSync("DELETE FROM tickets");
+      db.runSync("DELETE FROM sync_meta");
+    });
+  }
+  setSyncMeta("scannerOwner", username);
+};
+
+export const clearScannerCatalog = () => {
+  if (getPendingCount())
+    throw new Error(
+      "Sincroniza los escaneos pendientes antes de cerrar sesión.",
+    );
+  db.withTransactionSync(() => {
+    db.runSync("DELETE FROM tickets");
+    db.runSync("DELETE FROM sync_meta");
+  });
 };
 
 export const enqueueValidation = (validation: PendingValidation) => {
@@ -158,12 +208,16 @@ export const setLastSyncAt = (value: string) =>
 // Limpia tickets (y su PII de nombre) de eventos que ya no están activos.
 export const pruneEventsNotIn = (eventIds: string[]) => {
   if (!eventIds.length) {
-    db.runSync("DELETE FROM tickets");
+    db.runSync(`DELETE FROM tickets WHERE NOT EXISTS (
+      SELECT 1 FROM pending_validations WHERE qrCode = tickets.qrCode
+    )`);
     return;
   }
   const placeholders = eventIds.map(() => "?").join(",");
   db.runSync(
-    `DELETE FROM tickets WHERE eventId NOT IN (${placeholders})`,
+    `DELETE FROM tickets WHERE eventId NOT IN (${placeholders}) AND NOT EXISTS (
+      SELECT 1 FROM pending_validations WHERE qrCode = tickets.qrCode
+    )`,
     eventIds,
   );
 };

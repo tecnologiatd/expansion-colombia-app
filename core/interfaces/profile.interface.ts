@@ -1,15 +1,16 @@
-import {Customer} from "@/core/interfaces/customer.interface";
-import {Order} from "@/core/interfaces/order.interface";
+import { Customer } from "@/core/interfaces/customer.interface";
+import { Order } from "@/core/interfaces/order.interface";
 
 export interface ProfilePagination {
-    currentPage?: number;
-    totalPages?: number;
-    perPage?: number;
-    totalOrders?: number;
+  currentPage?: number;
+  totalPages?: number;
+  perPage?: number;
+  totalOrders?: number;
+  hasNextPage?: boolean;
 }
 
-export default interface Profile{
-    customer: Customer;
-    orders: Order[];
-    pagination?: ProfilePagination;
+export default interface Profile {
+  customer: Customer;
+  orders: Order[];
+  pagination?: ProfilePagination;
 }

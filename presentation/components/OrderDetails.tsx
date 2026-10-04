@@ -1,5 +1,5 @@
 // presentation/components/OrderDetails.tsx
-import React from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -16,8 +16,11 @@ import { OfflineBanner } from "@/presentation/components/OfflineBanner";
 import { useConnectivityStore } from "@/core/offline/connectivity";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthBrowser } from "@/presentation/utils/auth-browser";
+import { isPayableOrder } from "@/core/checkout/payment-policy";
 
-const OrderDetails = ({ orderId }) => {
+const OrderDetails = ({ orderId }: { orderId: string }) => {
+  const openingRef = useRef(false);
+  const [opening, setOpening] = useState(false);
   const {
     data: order,
     isLoading,
@@ -63,8 +66,15 @@ const OrderDetails = ({ orderId }) => {
   );
 
   const handlePayment = async () => {
+    if (openingRef.current) return;
+    openingRef.current = true;
+    setOpening(true);
     try {
       const currentOrder = await getOrderByIdAction(orderId, { fresh: true });
+      if (!isPayableOrder(currentOrder.status)) {
+        await forceRefetch();
+        return;
+      }
       const paymentUrl = currentOrder?.payment_url;
       if (!paymentUrl) {
         Alert.alert("Error", "No se pudo generar la URL de pago");
@@ -73,17 +83,20 @@ const OrderDetails = ({ orderId }) => {
 
       // Resuelve cuando el usuario vuelve del navegador de pago
       const opened = await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
-      if (opened) watchPayment();
+      void watchPayment();
     } catch (error) {
       console.error("Error al abrir URL de pago:", error);
       Alert.alert(
         "Error",
         "No se pudo abrir la página de pago. Por favor intenta nuevamente.",
       );
+    } finally {
+      openingRef.current = false;
+      setOpening(false);
     }
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("es-CO", {
       year: "numeric",
       month: "long",
@@ -91,7 +104,7 @@ const OrderDetails = ({ orderId }) => {
     });
   };
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: string) => {
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
       currency: "COP",
@@ -99,7 +112,9 @@ const OrderDetails = ({ orderId }) => {
     }).format(parseFloat(amount));
   };
 
-  const getStatusConfig = (status) => {
+  const getStatusConfig = (
+    status: string,
+  ): { color: string; icon: keyof typeof Ionicons.glyphMap; text: string } => {
     switch (status) {
       case "processing":
         return {
@@ -124,6 +139,18 @@ const OrderDetails = ({ orderId }) => {
           color: "text-yellow-400",
           icon: "alert-circle",
           text: "Pendiente",
+        };
+      case "on-hold":
+        return {
+          color: "text-yellow-400",
+          icon: "time-outline",
+          text: "Esperando confirmación del banco",
+        };
+      case "failed":
+        return {
+          color: "text-red-400",
+          icon: "alert-circle",
+          text: "Pago no completado",
         };
       default:
         return { color: "text-gray-400", icon: "help-circle", text: status };
@@ -224,10 +251,11 @@ const OrderDetails = ({ orderId }) => {
           <TouchableOpacity
             className="bg-purple-500 p-4 rounded-lg flex-row justify-center items-center"
             onPress={handlePayment}
+            disabled={opening}
           >
             <Ionicons name="card-outline" size={20} color="white" />
             <Text className="text-white font-bold text-lg ml-2">
-              Completar Pago
+              {opening ? "Abriendo pago..." : "Completar pago"}
             </Text>
           </TouchableOpacity>
         </View>

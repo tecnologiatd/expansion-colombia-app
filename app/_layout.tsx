@@ -12,6 +12,7 @@ import CustomHeader from "@/presentation/components/CustomHeader";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 import AuthGuard from "@/presentation/auth/components/AuthGuard";
 import { initConnectivity } from "@/core/offline/connectivity";
+import { useAutomaticTicketSync } from "@/presentation/hooks/useTicketSync";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -23,6 +24,7 @@ Sentry.init({
 });
 
 function Layout() {
+  useAutomaticTicketSync();
   const { expoPushToken } = usePushNotifications();
   const { checkStatus } = useAuthStore();
   const [isAuthChecked, setIsAuthChecked] = React.useState(false);

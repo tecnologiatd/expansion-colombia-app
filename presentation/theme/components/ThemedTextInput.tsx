@@ -27,7 +27,6 @@ const ThemedTextInput = ({ icon, style, ...rest }: Props) => {
           ...styles.border,
           borderColor: isActive ? primaryColor : "#ccc",
         },
-        style,
       ]}
       onTouchStart={() => inputRef.current?.focus()}
     >
@@ -45,11 +44,14 @@ const ThemedTextInput = ({ icon, style, ...rest }: Props) => {
         placeholderTextColor="#5c5c5c"
         onFocus={() => setIsActive(true)}
         onBlur={() => setIsActive(false)}
-        style={{
-          color: textColor,
-          marginRight: 10,
-          flex: 1,
-        }}
+        style={[
+          {
+            color: textColor,
+            marginRight: 10,
+            flex: 1,
+          },
+          style,
+        ]}
         {...rest}
       />
     </View>

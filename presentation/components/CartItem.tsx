@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
+import { imageSource } from "@/helpers/image-source";
 import {
   useCartStore,
   CartItem as CartItemType,
@@ -30,7 +31,7 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
     <View className="flex-row items-center justify-between bg-gray-800 rounded-lg p-4 mb-4 text-purple-500 relative">
       <View className="flex-row items-center">
         <Image
-          source={{ uri: item.imageUrl }}
+          source={imageSource(item.imageUrl)}
           className="w-16 h-16 rounded-lg mr-4"
         />
         <View>
@@ -50,13 +51,12 @@ export const CartItem: React.FC<CartItemProps> = ({ item }) => {
               onPress={handleIncrement}
             >
               <Feather name="plus" size={16} color="white" />
-
             </TouchableOpacity>
           </View>
         </View>
       </View>
       <Text className="text-white text-lg font-bold absolute right-10 bottom-1/3">
-        ${(item.price * item.quantity).toLocaleString() }
+        ${(item.price * item.quantity).toLocaleString()}
       </Text>
     </View>
   );

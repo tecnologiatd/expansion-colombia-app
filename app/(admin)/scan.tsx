@@ -88,7 +88,7 @@ export default function ScanScreen() {
     qrData.eventId ?? undefined,
   );
 
-  // Sync automático del espejo offline mientras esta pantalla está montada
+  // El layout raíz actualiza el espejo; aquí solo se consulta su estado.
   const { pendingCount, lastSyncAt, isSyncing, syncError } = useTicketSync();
   const isOnline = useConnectivityStore((state) => state.isOnline);
 

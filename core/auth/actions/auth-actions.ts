@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { backendApi } from "../../api/wordpress-api";
 import { WordPressAuthResponse, User } from "../../interfaces/auth";
 
@@ -49,7 +50,6 @@ export const authRegister = async (
       },
     );
 
-
     return {
       success: true,
       data: returnUserToken(data),
@@ -62,12 +62,9 @@ export const authRegister = async (
     let errorMessage = "Error al registrar el usuario";
     let errorCode = "";
 
-    if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    }
-
-    if (error.response?.data?.code) {
-      errorCode = error.response.data.code;
+    if (isAxiosError<{ message?: string; code?: string }>(error)) {
+      errorMessage = error.response?.data?.message ?? errorMessage;
+      errorCode = error.response?.data?.code ?? errorCode;
     }
 
     // Mejorar los mensajes de error para el usuario final

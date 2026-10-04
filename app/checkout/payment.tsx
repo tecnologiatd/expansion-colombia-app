@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -19,21 +19,45 @@ import { CommonActions } from "expo-router/react-navigation";
 import { useCreateOrder } from "@/presentation/hooks/useOrders";
 import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
 import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
-import { MAINTENANCE_ERROR, getOrderByIdAction } from "@/core/actions/order.actions";
+import {
+  MAINTENANCE_ERROR,
+  getOrderByIdAction,
+  updateOrderCheckoutAction,
+} from "@/core/actions/order.actions";
 import { useCartStore } from "@/core/stores/cart-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { isPaidOrder, isPayableOrder } from "@/core/checkout/payment-policy";
 import { AuthBrowser } from "@/presentation/utils/auth-browser";
 
 export default function PaymentScreen() {
   const { billingData, sponsorshipLine } = useLocalSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
+  const processingRef = useRef(false);
   const { createOrderMutation, prepareOrderItems } = useCreateOrder();
-  const { calculateTotal, clearCart, getPendingOrderId, setPendingOrder } = useCartStore();
+  const {
+    calculateTotal,
+    clearCart,
+    getPendingOrderId,
+    setPendingOrder,
+    getCheckoutAttemptKey,
+  } = useCartStore();
   const { isMaintenance, maintenanceMessage } = useSiteStatus();
   const navigation = useNavigation();
 
+  const showOrder = (id: number) =>
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 1,
+        routes: [
+          { name: "(tabs)" },
+          { name: "order/[id]", params: { id: String(id) } },
+        ],
+      }),
+    );
+
   const handleContinueToPayment = async () => {
+    if (processingRef.current) return;
     if (isMaintenance) {
       Alert.alert(
         "Mantenimiento",
@@ -42,63 +66,63 @@ export default function PaymentScreen() {
       );
       return;
     }
+    processingRef.current = true;
     try {
       setIsProcessing(true);
       const parsedBilling = JSON.parse(billingData as string);
       const orderItems = prepareOrderItems();
 
-      // Crear la orden incluyendo la línea de auspicio como metadato personalizado
-      const pendingOrderId = getPendingOrderId();
-      let response = pendingOrderId ? await getOrderByIdAction(String(pendingOrderId), { fresh: true }) : null;
-      if (!response || response.status !== "pending") response = await createOrderMutation.mutateAsync({
+      const params = {
         billing: parsedBilling,
         line_items: orderItems,
         meta_data: [
-          {
-            key: "linea_de_auspicio",
-            value: sponsorshipLine as string,
-          },
+          { key: "linea_de_auspicio", value: String(sponsorshipLine ?? "") },
         ],
-      });
-      if (response?.id && response.status === "pending") setPendingOrder(response.id);
-
-      if (response?.payment_url) {
-        // Abre el pago y resuelve cuando el usuario vuelve a la app; la
-        // pantalla del pedido consulta el estado mientras siga pendiente.
-        const opened = await AuthBrowser.openPaymentUrl(
-          response.payment_url,
-          response.id.toString(),
-        );
-
-        if (opened) {
-          // Limpiar el carrito para evitar compras duplicadas
-          clearCart();
-
-          // Reset nav stack so back from order detail goes to home tab
-          // (not cart / billing / payment). User can browse orders from profile.
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 1,
-              routes: [
-                { name: "(tabs)" },
-                {
-                  name: "order/[id]",
-                  params: { id: response.id.toString() },
-                },
-              ],
-            }),
-          );
-        }
-      } else {
-        Alert.alert("Error", "No se recibió la URL de pago del servidor");
+        idempotencyKey: getCheckoutAttemptKey(
+          JSON.stringify([parsedBilling, sponsorshipLine ?? ""]),
+        ),
+      };
+      const pendingOrderId = getPendingOrderId();
+      let order = pendingOrderId
+        ? await getOrderByIdAction(String(pendingOrderId), { fresh: true })
+        : await createOrderMutation.mutateAsync(params);
+      setPendingOrder(order.id);
+      if (isPaidOrder(order.status)) {
+        clearCart();
+        showOrder(order.id);
+        return;
       }
+      if (!isPayableOrder(order.status)) {
+        // PSE/3DS puede estar esperando al banco. No abrir otro cargo ni crear
+        // otro pedido por el mismo carrito, aunque la app se haya reiniciado.
+        showOrder(order.id);
+        return;
+      }
+      if (pendingOrderId)
+        order = await updateOrderCheckoutAction(order.id, params);
+      if (!isPayableOrder(order.status)) {
+        showOrder(order.id);
+        return;
+      }
+      if (!order.payment_url)
+        throw new Error(
+          "No se recibió el enlace de pago. Actualiza el pedido para volver a intentarlo.",
+        );
+      const returned = await AuthBrowser.openPaymentUrl(
+        order.payment_url,
+        String(order.id),
+      );
+      // El carrito se completa únicamente cuando Woo confirma processing/completed.
+      if (returned) showOrder(order.id);
     } catch (error) {
       console.error("Error al procesar la orden:", error);
       const message =
         error instanceof Error && error.message.startsWith(MAINTENANCE_ERROR)
           ? error.message.split(":").slice(1).join(":").trim() ||
             "Las compras están pausadas por mantenimiento. Intenta de nuevo más tarde."
-          : "Hubo un problema procesando tu orden. Por favor intenta de nuevo.";
+          : error instanceof Error
+            ? error.message
+            : "Hubo un problema procesando tu orden. Por favor intenta de nuevo.";
       Alert.alert(
         error instanceof Error && error.message.startsWith(MAINTENANCE_ERROR)
           ? "Mantenimiento"
@@ -106,6 +130,7 @@ export default function PaymentScreen() {
         message,
       );
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
     }
   };

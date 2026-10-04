@@ -15,9 +15,8 @@ import {
   useConnectivityStore,
 } from "@/core/offline/connectivity";
 import {
-  enqueueValidation,
   getTicketByQr,
-  incrementLocalUsage,
+  recordOfflineValidation,
 } from "@/core/offline/ticket-db";
 import { useTicketSyncStore } from "@/presentation/hooks/useTicketSync";
 
@@ -96,7 +95,8 @@ export const useTicketValidation = (qrCode?: string, eventId?: string) => {
           "Ticket no encontrado (sin conexión). Sincroniza cuando vuelva la conexión.",
         );
       }
-      if (local.revoked) throw new Error("Entrada revocada. No se puede validar.");
+      if (local.revoked)
+        throw new Error("Entrada revocada. No se puede validar.");
       return local;
     },
     enabled: !!processedQrCode && !!eventId,
@@ -153,21 +153,20 @@ export const useTicketValidation = (qrCode?: string, eventId?: string) => {
         );
       }
 
-      enqueueValidation({
+      const updated = recordOfflineValidation({
         localId: Crypto.randomUUID(),
         qrCode: params.qrCode,
         eventId: params.eventId,
         validatedAt: new Date().toISOString(),
       });
-      incrementLocalUsage(params.qrCode);
       useTicketSyncStore.getState().refreshCounts();
 
       return {
         message: "Ticket validado sin conexión",
         orderId: local.orderId,
         eventId: local.eventId,
-        usageCount: local.usageCount + 1,
-        remainingUsages: local.maxUsages - (local.usageCount + 1),
+        usageCount: updated.usageCount,
+        remainingUsages: updated.maxUsages - updated.usageCount,
         offline: true,
       };
     },

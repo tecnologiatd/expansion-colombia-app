@@ -1,6 +1,7 @@
 // presentation/utils/auth-browser.ts
 import * as WebBrowser from "expo-web-browser";
 import { Alert } from "react-native";
+import { browserReturned } from "@/core/checkout/payment-policy";
 
 /**
  * Clase utilitaria para abrir el pago de WordPress en una sesión de navegador
@@ -12,7 +13,7 @@ export class AuthBrowser {
    * o a que la página redirija a `returnUrl`.
    * En iOS la sesión es efímera: no comparte cookies con Safari, así que una
    * sesión vieja de otra cuenta no puede bloquear el pago.
-   * @returns true si la sesión se mostró (el usuario pudo pagar o no)
+   * @returns true al retornar; nunca representa confirmación de pago.
    */
   static async openAuthUrl(
     url: string,
@@ -63,7 +64,7 @@ export class AuthBrowser {
             },
           );
           // "locked": ya hay otra sesión de navegador abierta
-          return result.type !== "locked";
+          return browserReturned(result.type);
         } catch (error) {
           console.error("Error opening URL:", error);
           Alert.alert(

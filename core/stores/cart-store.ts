@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Crypto from "expo-crypto";
 
 export interface Product {
   id: number;
@@ -18,6 +19,10 @@ interface CartStore {
   items: CartItem[];
   pendingOrderId: number | null;
   pendingCartKey: string | null;
+  checkoutAttemptKey: string | null;
+  checkoutFingerprint: string | null;
+  getCheckoutAttemptKey: (context: string) => string;
+  completePendingOrder: (orderId: number) => void;
   setPendingOrder: (orderId: number) => void;
   getPendingOrderId: () => number | null;
   addToCart: (product: Product) => void;
@@ -34,14 +39,51 @@ export const useCartStore = create<CartStore>()(
       items: [],
       pendingOrderId: null,
       pendingCartKey: null,
-      setPendingOrder: (orderId) => set((state) => ({
-        pendingOrderId: orderId,
-        pendingCartKey: JSON.stringify(state.items.map((item) => [item.id, item.quantity]).sort((a, b) => Number(a[0]) - Number(b[0]))),
-      })),
+      checkoutAttemptKey: null,
+      checkoutFingerprint: null,
+      getCheckoutAttemptKey: (context) => {
+        const state = get();
+        const fingerprint = JSON.stringify([
+          state.items
+            .map((item) => [item.id, item.quantity])
+            .sort((a, b) => a[0] - b[0]),
+          context,
+        ]);
+        if (
+          state.checkoutFingerprint === fingerprint &&
+          state.checkoutAttemptKey
+        )
+          return state.checkoutAttemptKey;
+        const key = Crypto.randomUUID();
+        set({ checkoutAttemptKey: key, checkoutFingerprint: fingerprint });
+        return key;
+      },
+      completePendingOrder: (orderId) => {
+        if (
+          get().pendingOrderId === orderId &&
+          get().getPendingOrderId() === orderId
+        )
+          get().clearCart();
+      },
+      setPendingOrder: (orderId) =>
+        set((state) => ({
+          pendingOrderId: orderId,
+          pendingCartKey: JSON.stringify(
+            state.items
+              .map((item) => [item.id, item.quantity])
+              .sort((a, b) => Number(a[0]) - Number(b[0])),
+          ),
+        })),
       getPendingOrderId: () => {
         const state = get();
-        const currentKey = JSON.stringify(state.items.map((item) => [item.id, item.quantity]).sort((a, b) => Number(a[0]) - Number(b[0])));
-        return currentKey === state.pendingCartKey ? state.pendingOrderId : null;
+        const currentKey = JSON.stringify(
+          state.items
+            .map((item) => [item.id, item.quantity])
+            .sort((a, b) => Number(a[0]) - Number(b[0])),
+        );
+        return currentKey === state.pendingCartKey
+          ? state.pendingOrderId
+          : null;
       },
 
       addToCart: (product) => {
@@ -86,7 +128,13 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [], pendingOrderId: null, pendingCartKey: null });
+        set({
+          items: [],
+          pendingOrderId: null,
+          pendingCartKey: null,
+          checkoutAttemptKey: null,
+          checkoutFingerprint: null,
+        });
       },
 
       calculateTotal: () => {
@@ -100,7 +148,13 @@ export const useCartStore = create<CartStore>()(
       name: "cart-storage", // unique name
       storage: createJSONStorage(() => AsyncStorage),
       // Optional: specify which parts of the state to persist
-      partialize: (state) => ({ items: state.items, pendingOrderId: state.pendingOrderId, pendingCartKey: state.pendingCartKey }),
+      partialize: (state) => ({
+        items: state.items,
+        pendingOrderId: state.pendingOrderId,
+        pendingCartKey: state.pendingCartKey,
+        checkoutAttemptKey: state.checkoutAttemptKey,
+        checkoutFingerprint: state.checkoutFingerprint,
+      }),
     },
   ),
 );

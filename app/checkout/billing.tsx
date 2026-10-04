@@ -72,7 +72,7 @@ export default function BillingScreen() {
       );
       return;
     }
-    const requiredFields = [
+    const requiredFields: (keyof BillingAddress)[] = [
       "first_name",
       "last_name",
       "address_1",
@@ -185,7 +185,7 @@ export default function BillingScreen() {
                   blurOnSubmit={false}
                 />
                 <FormField
-                  inputRef={lastNameRef}
+                  ref={lastNameRef}
                   title="Apellidos"
                   value={billingData.last_name}
                   onChangeText={(text) =>
@@ -207,7 +207,7 @@ export default function BillingScreen() {
                   </Text>
                 </View>
                 <FormField
-                  inputRef={emailRef}
+                  ref={emailRef}
                   title="Correo electrónico"
                   value={billingData.email}
                   onChangeText={(text) =>
@@ -221,7 +221,7 @@ export default function BillingScreen() {
                   blurOnSubmit={false}
                 />
                 <FormField
-                  inputRef={phoneRef}
+                  ref={phoneRef}
                   title="Teléfono"
                   value={billingData.phone}
                   onChangeText={(text) =>
@@ -244,7 +244,7 @@ export default function BillingScreen() {
                   </Text>
                 </View>
                 <FormField
-                  inputRef={addressRef}
+                  ref={addressRef}
                   title="Dirección"
                   value={billingData.address_1}
                   onChangeText={(text) =>
@@ -256,7 +256,7 @@ export default function BillingScreen() {
                   blurOnSubmit={false}
                 />
                 <FormField
-                  inputRef={cityRef}
+                  ref={cityRef}
                   title="Ciudad"
                   value={billingData.city}
                   onChangeText={(text) =>
@@ -268,7 +268,7 @@ export default function BillingScreen() {
                   blurOnSubmit={false}
                 />
                 <FormField
-                  inputRef={stateRef}
+                  ref={stateRef}
                   title="Departamento"
                   value={billingData.state}
                   onChangeText={(text) =>

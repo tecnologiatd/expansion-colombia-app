@@ -7,6 +7,7 @@ import { AxiosError } from "axios";
 export const MAINTENANCE_ERROR = "MAINTENANCE";
 
 export interface CreateOrderParams {
+  idempotencyKey?: string;
   billing: {
     first_name: string;
     last_name: string;
@@ -38,7 +39,13 @@ export const createOrderAction = async (
 ): Promise<Order> => {
   try {
     // Si no se proporciona payment_method, no lo incluimos en la petición
-    const { data } = await backendApi.post<Order>("/orders", params);
+    const { idempotencyKey, ...body } = params;
+    const { data } = await backendApi.post<Order>("/orders", body, {
+      timeout: 65000,
+      headers: idempotencyKey
+        ? { "X-Idempotency-Key": idempotencyKey }
+        : undefined,
+    });
     return data;
   } catch (error) {
     const axiosError = error as AxiosError<{ message?: string }>;
@@ -49,7 +56,10 @@ export const createOrderAction = async (
       );
     }
     console.error("Error creating order:", error);
-    throw new Error("Failed to create order");
+    throw new Error(
+      axiosError.response?.data?.message ??
+        "No se pudo confirmar el pedido. Toca continuar para consultar el mismo intento de compra.",
+    );
   }
 };
 
@@ -64,6 +74,18 @@ export const getOrderByIdAction = async (
     return data;
   } catch (error) {
     console.error("Error fetching order:", error);
-    throw new Error("Failed to fetch order details");
+    throw error;
   }
+};
+
+export const updateOrderCheckoutAction = async (
+  orderId: number,
+  params: CreateOrderParams,
+): Promise<Order> => {
+  const { idempotencyKey, ...body } = params;
+  const { data } = await backendApi.put<Order>(
+    `/orders/${orderId}/checkout`,
+    body,
+  );
+  return data;
 };

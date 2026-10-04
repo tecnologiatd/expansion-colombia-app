@@ -7,8 +7,11 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNotificationStore } from "@/core/stores/notification.store";
-import { router } from "expo-router";
+import {
+  useNotificationStore,
+  type Notification,
+} from "@/core/stores/notification.store";
+import { router, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 interface Props {
@@ -19,10 +22,10 @@ interface Props {
 export const NotificationModal: React.FC<Props> = ({ visible, onClose }) => {
   const { notifications, markAsRead, clearAll } = useNotificationStore();
 
-  const handleNotificationPress = (notification) => {
+  const handleNotificationPress = (notification: Notification) => {
     markAsRead(notification.id);
     if (notification.route) {
-      router.push(notification.route);
+      router.push(notification.route as Href);
     }
     onClose();
   };

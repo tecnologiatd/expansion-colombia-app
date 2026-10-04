@@ -1,4 +1,5 @@
 import React from "react";
+import { imageSource } from "@/helpers/image-source";
 import {
   View,
   Text,
@@ -72,7 +73,9 @@ const BlogList = () => {
       >
         {item._embedded?.["wp:featuredmedia"]?.[0]?.source_url && (
           <Image
-            source={{ uri: item._embedded["wp:featuredmedia"][0].source_url }}
+            source={imageSource(
+              item._embedded["wp:featuredmedia"][0].source_url,
+            )}
             className="w-full h-48"
             resizeMode="cover"
           />
