@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useProducts } from "@/presentation/hooks/useProducts";
 import { Ionicons } from "@expo/vector-icons";
+import { formatCOP } from "@/helpers/format";
 
 interface ProductSelectorProps {
   visible: boolean;
@@ -56,19 +57,19 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  className="bg-gray-700 p-4 rounded-lg mb-2 flex-row"
+                  className="bg-gray-700 p-4 rounded-xl mb-2 flex-row"
                   onPress={() => handleSelect(item.id, item.name)}
                 >
                   {item.images && item.images[0] && (
                     <Image
                       source={imageSource(item.images[0].src)}
-                      className="w-16 h-16 rounded-lg mr-3"
+                      className="w-16 h-16 rounded-xl mr-3"
                     />
                   )}
                   <View className="flex-1">
                     <Text className="text-white font-bold">{item.name}</Text>
                     <Text className="text-gray-400 mt-1">
-                      ${item.price.toLocaleString("es-CO")}
+                      {formatCOP(item.price)}
                     </Text>
                   </View>
                 </TouchableOpacity>

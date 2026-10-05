@@ -1,32 +1,27 @@
 // presentation/components/OrderDetails.tsx
 import React, { useRef, useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-} from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { useOrderDetails } from "@/presentation/hooks/useOrders";
 import { getOrderByIdAction } from "@/core/actions/order.actions";
 import { TicketQRSection } from "@/presentation/components/TicketQRSection";
-import { OfflineBanner } from "@/presentation/components/OfflineBanner";
+import { CachedDataNotice } from "./CachedDataNotice";
 import { useConnectivityStore } from "@/core/offline/connectivity";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthBrowser } from "@/presentation/utils/auth-browser";
 import { isPayableOrder } from "@/core/checkout/payment-policy";
+import { Button } from "@/presentation/components/ui/Button";
+import { StateView } from "@/presentation/components/ui/StateView";
+import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
+import { formatCOP, plainText } from "@/helpers/format";
 
 const OrderDetails = ({ orderId }: { orderId: string }) => {
   const openingRef = useRef(false);
   const [opening, setOpening] = useState(false);
   const {
     data: order,
-    isLoading,
+    isPending,
+    isRefetching,
     isError,
-    error,
-    refetch,
     forceRefetch,
     watchPayment,
     isPaused,
@@ -34,29 +29,24 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
   } = useOrderDetails(orderId);
   const isOnline = useConnectivityStore((state) => state.isOnline);
 
-  if (isLoading && !isPaused) {
-    return (
-      <View className="flex-1 bg-gray-900 justify-center items-center">
-        <ActivityIndicator size="large" color="#7B3DFF" />
-      </View>
-    );
+  // Al volver del navegador, la consulta puede esperar al foco de la pantalla.
+  // isLoading aún es false allí; isPending evita mostrar un error antes de consultar.
+  if (!order && isPending && isOnline && !isPaused) {
+    return <StateView loading />;
   }
 
-  if (isError || !order) {
+  if (!order) {
     return (
-      <View className="flex-1 bg-gray-900 justify-center items-center p-4">
-        <Text className="text-white text-lg text-center mb-4">
-          {isPaused
+      <StateView
+        icon={isPaused ? "cloud-offline-outline" : "alert-circle-outline"}
+        title={
+          !isOnline || isPaused
             ? "Sin conexión y sin datos guardados de este pedido"
-            : "Error al cargar los detalles del pedido"}
-        </Text>
-        <TouchableOpacity
-          className="bg-purple-500 px-6 py-3 rounded-lg"
-          onPress={forceRefetch}
-        >
-          <Text className="text-white font-bold">Reintentar</Text>
-        </TouchableOpacity>
-      </View>
+            : "Error al cargar los detalles del pedido"
+        }
+        actionLabel="Reintentar"
+        onAction={forceRefetch}
+      />
     );
   }
 
@@ -82,7 +72,7 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       }
 
       // Resuelve cuando el usuario vuelve del navegador de pago
-      const opened = await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
+      await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
       void watchPayment();
     } catch (error) {
       console.error("Error al abrir URL de pago:", error);
@@ -102,14 +92,6 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       month: "long",
       day: "numeric",
     });
-  };
-
-  const formatCurrency = (amount: string) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(parseFloat(amount));
   };
 
   const getStatusConfig = (
@@ -161,45 +143,59 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
 
   return (
     <ScrollView
-      className="flex-1 bg-gray-900"
+      className="flex-1 bg-background"
+      contentContainerStyle={{
+        width: "100%",
+        maxWidth: CONTENT_MAX_WIDTH,
+        alignSelf: "center",
+        paddingBottom: 24,
+      }}
       refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={forceRefetch} />
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={forceRefetch}
+          tintColor={Theme.accent}
+          colors={[Theme.accent]}
+        />
       }
     >
-      {(!isOnline || isPaused) && (
-        <View className="pt-4">
-          <OfflineBanner dataUpdatedAt={dataUpdatedAt || undefined} />
-        </View>
-      )}
+      <CachedDataNotice
+        offline={!isOnline || isPaused}
+        failed={isError}
+        dataUpdatedAt={dataUpdatedAt || undefined}
+        onRetry={() => {
+          void forceRefetch();
+        }}
+      />
 
       {/* Order Status and Info */}
-      <View className="p-4 bg-gray-800 rounded-lg m-4">
+      <View className="p-4 bg-gray-800 rounded-2xl border border-line m-4">
         <View className="flex-row justify-between items-center mb-4">
-          <View>
-            <Text className="text-gray-400">Estado del pedido</Text>
-            <Text className={`text-lg capitalize ${statusConfig.color}`}>
-              <Ionicons name={statusConfig.icon} size={18} />{" "}
+          <View className="flex-1 mr-3">
+            <Text className="text-muted text-sm mb-1">Estado del pedido</Text>
+            <Text className={`text-base font-semibold ${statusConfig.color}`}>
+              <Ionicons name={statusConfig.icon} size={16} />{" "}
               {statusConfig.text}
             </Text>
           </View>
-          <View>
-            <Text className="text-gray-400">Fecha</Text>
+          <View className="items-end">
+            <Text className="text-muted text-sm mb-1">Fecha</Text>
             <Text className="text-white">{formatDate(order.date_created)}</Text>
           </View>
         </View>
 
-        <View className="border-t border-gray-700 pt-4">
+        <View className="border-t border-line pt-4">
           <Text className="text-white text-lg font-bold mb-2">Resumen</Text>
           <View className="flex-row justify-between mb-2">
             <Text className="text-gray-400">Total</Text>
             <Text className="text-white text-lg font-bold">
-              {formatCurrency(order.total)}
+              {formatCOP(order.total)}
             </Text>
           </View>
           <View className="flex-row justify-between">
             <Text className="text-gray-400">Cantidad</Text>
             <Text className="text-white">
-              {totalItems} {totalItems === 1 ? "item" : "items"}
+              {totalItems} {totalItems === 1 ? "entrada" : "entradas"}
             </Text>
           </View>
         </View>
@@ -207,10 +203,15 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
 
       {/* Line Items with Tickets */}
       {order.line_items.map((item) => (
-        <View key={item.id} className="mx-4 mb-4 bg-gray-800 rounded-lg p-4">
-          <Text className="text-white font-bold text-lg">{item.name}</Text>
+        <View
+          key={item.id}
+          className="mx-4 mb-4 bg-gray-800 rounded-2xl border border-line p-4"
+        >
+          <Text className="text-white font-bold text-lg">
+            {plainText(item.name)}
+          </Text>
           <Text className="text-gray-400">Cantidad: {item.quantity}</Text>
-          <Text className="text-white mt-1">{formatCurrency(item.total)}</Text>
+          <Text className="text-white mt-1">{formatCOP(item.total)}</Text>
 
           <TicketQRSection
             orderId={orderId}
@@ -222,7 +223,7 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       ))}
 
       {/* Billing Info */}
-      <View className="m-4 bg-gray-800 rounded-lg p-4">
+      <View className="m-4 bg-gray-800 rounded-2xl border border-line p-4">
         <Text className="text-white text-lg font-bold mb-4">
           Detalles de facturación
         </Text>
@@ -248,16 +249,12 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       {/* Payment Action */}
       {["pending", "failed"].includes(order.status) && (
         <View className="m-4">
-          <TouchableOpacity
-            className="bg-purple-500 p-4 rounded-lg flex-row justify-center items-center"
+          <Button
+            title={opening ? "Abriendo pago..." : "Completar pago"}
+            icon="card-outline"
             onPress={handlePayment}
-            disabled={opening}
-          >
-            <Ionicons name="card-outline" size={20} color="white" />
-            <Text className="text-white font-bold text-lg ml-2">
-              {opening ? "Abriendo pago..." : "Completar pago"}
-            </Text>
-          </TouchableOpacity>
+            loading={opening}
+          />
         </View>
       )}
     </ScrollView>

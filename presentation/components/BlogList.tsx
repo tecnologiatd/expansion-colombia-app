@@ -1,17 +1,14 @@
 import React from "react";
 import { imageSource } from "@/helpers/image-source";
-import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, FlatList, Image } from "react-native";
 import { router } from "expo-router";
 import { useBlogPosts } from "@/presentation/hooks/useBlogPosts";
 import { BlogPost } from "@/core/interfaces/blog.interface";
 import { decode } from "html-entities";
+import { FadeInView } from "@/presentation/components/ui/FadeInView";
+import { PressableScale } from "@/presentation/components/ui/PressableScale";
+import { StateView } from "@/presentation/components/ui/StateView";
+import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
 
 // Función para decodificar entidades HTML
 const decodeHtmlEntities = (text: string): string => {
@@ -31,30 +28,21 @@ const BlogList = () => {
   const { blogPostsQuery } = useBlogPosts();
 
   if (blogPostsQuery.isLoading) {
-    return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#7B3DFF" />
-      </View>
-    );
+    return <StateView loading />;
   }
 
   if (blogPostsQuery.isError) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <Text className="text-white text-lg">
-          No se pudieron cargar las noticias
-        </Text>
-        <TouchableOpacity
-          className="mt-4 bg-purple-500 px-6 py-3 rounded-lg"
-          onPress={() => blogPostsQuery.refetch()}
-        >
-          <Text className="text-white font-medium">Reintentar</Text>
-        </TouchableOpacity>
-      </View>
+      <StateView
+        icon="cloud-offline-outline"
+        title="No se pudieron cargar las noticias"
+        actionLabel="Reintentar"
+        onAction={() => blogPostsQuery.refetch()}
+      />
     );
   }
 
-  const renderItem = ({ item }: { item: BlogPost }) => {
+  const renderItem = ({ item, index }: { item: BlogPost; index: number }) => {
     // Decodificar el título y el contenido
     const decodedTitle = decodeHtmlEntities(item.title.rendered);
     const decodedExcerpt = decodeHtmlEntities(stripHtml(item.excerpt.rendered));
@@ -67,46 +55,60 @@ const BlogList = () => {
     });
 
     return (
-      <TouchableOpacity
-        className="bg-gray-800 rounded-lg overflow-hidden mb-4 mx-4"
-        onPress={() => router.push(`/blog/${item.id}`)}
-      >
-        {item._embedded?.["wp:featuredmedia"]?.[0]?.source_url && (
-          <Image
-            source={imageSource(
-              item._embedded["wp:featuredmedia"][0].source_url,
-            )}
-            className="w-full h-48"
-            resizeMode="cover"
-          />
-        )}
-        <View className="p-4">
-          <Text className="text-white text-xl font-bold mb-2">
-            {decodedTitle}
-          </Text>
-          <Text className="text-gray-400 text-base mb-3" numberOfLines={2}>
-            {decodedExcerpt}
-          </Text>
-          <View className="flex-row justify-between items-center">
-            <Text className="text-purple-500">{formattedDate}</Text>
-            {item._embedded?.author?.[0]?.name && (
-              <Text className="text-gray-400">
-                Por {item._embedded.author[0].name}
-              </Text>
-            )}
+      <FadeInView index={index} style={{ marginBottom: 16 }}>
+        <PressableScale
+          className="bg-surface rounded-2xl border border-line overflow-hidden"
+          onPress={() => router.push(`/blog/${item.id}`)}
+        >
+          {item._embedded?.["wp:featuredmedia"]?.[0]?.source_url && (
+            <Image
+              source={imageSource(
+                item._embedded["wp:featuredmedia"][0].source_url,
+              )}
+              style={{
+                width: "100%",
+                aspectRatio: 16 / 9,
+                backgroundColor: Theme.surfaceRaised,
+              }}
+              resizeMode="cover"
+            />
+          )}
+          <View className="p-4">
+            <Text
+              className="text-white text-lg font-bold mb-2"
+              numberOfLines={3}
+            >
+              {decodedTitle}
+            </Text>
+            <Text className="text-muted text-sm mb-3" numberOfLines={2}>
+              {decodedExcerpt}
+            </Text>
+            <View className="flex-row justify-between items-center">
+              <Text className="text-purple-400 text-sm">{formattedDate}</Text>
+              {item._embedded?.author?.[0]?.name && (
+                <Text className="text-muted text-sm">
+                  Por {item._embedded.author[0].name}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </PressableScale>
+      </FadeInView>
     );
   };
 
   return (
-    <View className="flex-1 bg-gray-900">
+    <View className="flex-1 bg-background">
       <FlatList
+        style={{
+          width: "100%",
+          maxWidth: CONTENT_MAX_WIDTH,
+          alignSelf: "center",
+        }}
         data={blogPostsQuery.data}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingVertical: 16 }}
+        contentContainerStyle={{ padding: 16 }}
         refreshing={blogPostsQuery.isFetching}
         onRefresh={() => blogPostsQuery.refetch()}
       />

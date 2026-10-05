@@ -1,5 +1,4 @@
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Modal,
@@ -13,22 +12,33 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
-import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import RenderHtml from "react-native-render-html";
 // import Clipboard from "@react-native-clipboard/clipboard";
 import { useProduct } from "@/presentation/hooks/useProduct";
 import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
 import { useCartStore } from "@/core/stores/cart-store";
 import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
+import { Button } from "@/presentation/components/ui/Button";
+import { FadeInView } from "@/presentation/components/ui/FadeInView";
+import { StateView } from "@/presentation/components/ui/StateView";
+import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
+import { formatCOP, plainText } from "@/helpers/format";
 
+import { CachedDataNotice } from "@/presentation/components/CachedDataNotice";
+import { useConnectivityStore } from "@/core/offline/connectivity";
+
+const eventBaseStyle = { color: Theme.text, fontSize: 16, lineHeight: 24 };
 const eventTagsStyles = {
-  p: { color: "white" },
+  p: { color: Theme.text },
+  a: { color: "#C084FC" },
 };
 
 const DetailScreen = () => {
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams();
   const { productQuery } = useProduct(`${id}`);
+  const isOnline = useConnectivityStore((state) => state.isOnline);
   const { isMaintenance, maintenanceMessage } = useSiteStatus();
 
   const [showModal, setShowModal] = useState(false);
@@ -77,104 +87,110 @@ const DetailScreen = () => {
     setShowModal(true);
   };
 
-  const handleDownload = () => {
-    // TODO: Implement download functionality here
-  };
-
-  if (productQuery.isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size={30} />
-      </View>
-    );
+  if (productQuery.isLoading && !productQuery.data) {
+    return <StateView loading />;
   }
 
   if (!productQuery.data) {
-    return <Redirect href="/(tabs)/home" />;
+    return (
+      <StateView
+        icon="cloud-offline-outline"
+        title="No se pudo cargar el evento"
+        message="Revisa tu conexión e intenta de nuevo."
+        actionLabel="Reintentar"
+        onAction={onRefresh}
+      />
+    );
   }
 
   const product = productQuery.data;
 
-  const handleShare = async () => {
-    if (product?.permalink) {
-      // Clipboard.setString(product.permalink);
-      // Optional: Show feedback to user
-      Alert.alert(
-        "¡Enlace copiado!",
-        "El enlace ha sido copiado al portapapeles",
-      );
-    }
-  };
-
   const heroImageUri = product?.images?.[0]?.src?.trim();
+  const contentWidth = Math.min(width, CONTENT_MAX_WIDTH) - 32;
 
   return (
     <SafeAreaView
-      className="flex-1 bg-gray-900"
+      className="flex-1 bg-background"
       edges={["left", "right", "bottom"]}
     >
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={Theme.accent}
+            colors={[Theme.accent]}
+          />
         }
       >
-        <View className="relative">
+        <View
+          className="w-full self-center"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          <CachedDataNotice
+            offline={!isOnline || productQuery.isPaused}
+            failed={productQuery.isError}
+            dataUpdatedAt={productQuery.dataUpdatedAt || undefined}
+            onRetry={() => {
+              void onRefresh();
+            }}
+          />
           {heroImageUri ? (
-            <TouchableOpacity onPress={handleImagePress}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={handleImagePress}
+              accessibilityRole="imagebutton"
+              accessibilityLabel="Ampliar imagen del evento"
+            >
               <Image
                 source={{ uri: heroImageUri }}
-                style={{
-                  width: "100%",
-                  height: 300,
-                  resizeMode: "cover",
-                }}
+                style={styles.heroImage}
+                resizeMode="cover"
               />
             </TouchableOpacity>
           ) : (
-            <View
-              style={{
-                width: "100%",
-                height: 300,
-                backgroundColor: "#1f2937",
-              }}
-            />
+            <View style={styles.heroImage} />
           )}
-          <View className="absolute top-4 left-4 bg-purple-500 px-3 py-1 rounded-md">
-            <Text className="text-white font-medium">{product.name}</Text>
-          </View>
-        </View>
-        <View className="p-4">
-          {isMaintenance && <MaintenanceBanner message={maintenanceMessage} />}
-          <View className="flex-row items-center justify-between">
-            <Text className="text-white text-2xl font-bold">
-              {product.name}
+          <FadeInView style={{ padding: 16 }}>
+            {isMaintenance && (
+              <MaintenanceBanner message={maintenanceMessage} />
+            )}
+            <Text
+              className="text-white text-2xl font-bold"
+              maxFontSizeMultiplier={1.3}
+            >
+              {plainText(product.name)}
             </Text>
-            {/*<TouchableOpacity*/}
-            {/*  className="bg-gray-800 rounded-lg p-2"*/}
-            {/*  onPress={handleShare}*/}
-            {/*>*/}
-            {/*  <Feather name="share" size={24} color="white" />*/}
-            {/*</TouchableOpacity>*/}
-          </View>
-          <View className="flex-row items-center justify-between mt-4">
-            <Text className="text-gray-400 font-medium">
-              ${product.price.toLocaleString("es-CO")}
-            </Text>
-          </View>
-          <View className="mt-8 ">
-            <RenderHtml
-              tagsStyles={eventTagsStyles}
-              contentWidth={width}
-              source={{ html: product.description }}
-            />
-          </View>
+            <View className="bg-surface border border-line rounded-2xl p-4 mt-4 flex-row items-center justify-between">
+              <Text className="text-muted">Precio</Text>
+              <Text className="text-white text-lg font-bold">
+                {formatCOP(product.price)}
+              </Text>
+            </View>
+            <View className="mt-6">
+              <RenderHtml
+                tagsStyles={eventTagsStyles}
+                baseStyle={eventBaseStyle}
+                contentWidth={contentWidth}
+                source={{ html: product.description }}
+              />
+            </View>
+          </FadeInView>
         </View>
       </ScrollView>
-      <Modal visible={showModal} transparent>
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
         <View style={styles.modalContainer}>
           <TouchableOpacity
             style={styles.modalContent}
+            activeOpacity={1}
             onPress={() => setShowModal(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar imagen"
           >
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.modalImage} />
@@ -182,21 +198,21 @@ const DetailScreen = () => {
           </TouchableOpacity>
         </View>
       </Modal>
-      <TouchableOpacity
-        className={`rounded-lg py-4 mt-8 justify-center items-center ${
-          isMaintenance ? "bg-purple-400" : "bg-purple-500"
-        }`}
-        onPress={handleAddToCart}
-        disabled={!productQuery.data} // Disable if product is not loaded
-      >
-        <Text className="text-white font-bold text-lg">
-          {productQuery.isLoading
-            ? "Cargando..."
-            : isMaintenance
-              ? "No disponible por mantenimiento"
-              : "Comprar"}
-        </Text>
-      </TouchableOpacity>
+      <View className="border-t border-line bg-background px-4 pt-3 pb-3">
+        <View
+          className="w-full self-center"
+          style={{ maxWidth: CONTENT_MAX_WIDTH }}
+        >
+          <Button
+            title={
+              isMaintenance ? "No disponible por mantenimiento" : "Comprar"
+            }
+            icon={isMaintenance ? undefined : "ticket-outline"}
+            onPress={handleAddToCart}
+            disabled={isMaintenance}
+          />
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -204,30 +220,24 @@ const DetailScreen = () => {
 export default DetailScreen;
 
 const styles = StyleSheet.create({
+  heroImage: {
+    width: "100%",
+    aspectRatio: 16 / 10,
+    backgroundColor: Theme.surfaceRaised,
+  },
   modalContainer: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    backgroundColor: "rgba(0, 0, 0, 0.88)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
-    width: "90%",
-    height: "80%",
-    backgroundColor: "black",
-    borderRadius: 16,
-    overflow: "hidden",
+    width: "100%",
+    height: "100%",
   },
   modalImage: {
     width: "100%",
     height: "100%",
     resizeMode: "contain",
-  },
-  downloadButton: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    padding: 8,
-    borderRadius: 8,
   },
 });

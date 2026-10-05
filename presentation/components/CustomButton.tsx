@@ -1,26 +1,16 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TouchableOpacityProps,
-} from "react-native";
 import React from "react";
+import { Button } from "@/presentation/components/ui/Button";
 
-interface Props extends TouchableOpacityProps {
+interface Props {
   title: string;
   className?: string;
   onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
 }
 
-const CustomButton = ({ title, className, ...props }: Props) => {
-  return (
-    <TouchableOpacity
-      className={`bg-secondary rounded-xl min-h-16 justify-center items-center ${className}`}
-      {...props}
-    >
-      <Text className="font-bold text-lg">{title}</Text>
-    </TouchableOpacity>
-  );
+const CustomButton = ({ title, className = "", ...props }: Props) => {
+  return <Button title={title} className={className} {...props} />;
 };
 
 export default CustomButton;

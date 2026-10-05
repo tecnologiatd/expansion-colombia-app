@@ -85,7 +85,7 @@ const SponsorshipLineSelector: React.FC<SponsorshipLineSelectorProps> = ({
   return (
     <View>
       <TouchableOpacity
-        className="bg-gray-700 p-4 rounded-lg flex-row justify-between items-center"
+        className="bg-gray-700 p-4 rounded-xl flex-row justify-between items-center"
         onPress={() => setModalVisible(true)}
       >
         <Text className="text-white">{selectedOption}</Text>
@@ -113,7 +113,7 @@ const SponsorshipLineSelector: React.FC<SponsorshipLineSelectorProps> = ({
             </View>
 
             {/* Búsqueda */}
-            <View className="bg-gray-700 rounded-lg flex-row items-center px-3 mb-4">
+            <View className="bg-gray-700 rounded-xl flex-row items-center px-3 mb-4">
               <Ionicons name="search" size={20} color="gray" />
               <TextInput
                 className="flex-1 py-2 px-2 text-white"
@@ -137,7 +137,7 @@ const SponsorshipLineSelector: React.FC<SponsorshipLineSelectorProps> = ({
                   Error al cargar las líneas de auspicio
                 </Text>
                 <TouchableOpacity
-                  className="bg-gray-700 px-4 py-2 rounded-lg"
+                  className="bg-gray-700 px-4 py-2 rounded-xl"
                   onPress={() => refetch()}
                 >
                   <Text className="text-white">Reintentar</Text>
@@ -149,7 +149,7 @@ const SponsorshipLineSelector: React.FC<SponsorshipLineSelectorProps> = ({
                 keyExtractor={(item, index) => `${item.name}-${index}`}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    className={`p-4 rounded-lg mb-2 ${
+                    className={`p-4 rounded-xl mb-2 ${
                       value === item.name ? "bg-purple-500" : "bg-gray-700"
                     }`}
                     onPress={() => {

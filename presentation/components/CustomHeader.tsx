@@ -5,6 +5,7 @@ import { NotificationModal } from "./NotificationModal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, usePathname } from "expo-router";
 import { NotificationBell } from "./NotificationBell";
+import { Theme } from "@/presentation/theme/Colors";
 
 interface Props {
   title?: string;
@@ -15,6 +16,7 @@ interface Props {
 const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const pathname = usePathname();
+  const isTabRoot = ["/home", "/blog", "/cart", "/profile"].includes(pathname);
 
   // Función para obtener el título dinámico
   const getHeaderTitle = () => {
@@ -34,7 +36,8 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
 
     // Títulos predeterminados para otras rutas
     const routeTitles: { [key: string]: string } = {
-      "/blog": "Blog",
+      "/home": "Eventos",
+      "/blog": "Noticias",
       "/cart": "Carrito",
       "/profile": "Perfil",
       "/checkout/billing": "Facturación",
@@ -45,17 +48,44 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <View style={styles.headerContainer}>
-        <View className="flex-row items-center">
+        <View className="flex-row items-center flex-1 mr-3">
           {back && (
-            <TouchableOpacity onPress={() => router.back()} className="mr-4">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="mr-2 -ml-2 w-10 h-10 items-center justify-center"
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+              hitSlop={8}
+            >
               <Feather name="chevron-left" size={24} color="white" />
             </TouchableOpacity>
           )}
-          <Text className="text-white text-xl font-bold">
-            {getHeaderTitle()}
-          </Text>
+          {isTabRoot && !back ? (
+            <View accessible accessibilityLabel="Expansión Colombia">
+              <Text
+                className="font-fortuna text-white text-xl"
+                maxFontSizeMultiplier={1.3}
+              >
+                EXPANSION
+              </Text>
+              <Text
+                className="font-design-systemc text-muted text-xs tracking-widest"
+                maxFontSizeMultiplier={1.3}
+              >
+                COLOMBIA
+              </Text>
+            </View>
+          ) : (
+            <Text
+              className="text-white text-lg font-semibold flex-1"
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+            >
+              {getHeaderTitle()}
+            </Text>
+          )}
         </View>
 
         <NotificationBell onPress={() => setShowNotifications(true)} />
@@ -71,16 +101,18 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: "#1F2B43",
+    backgroundColor: Theme.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Theme.line,
   },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#1F2B43", // Use the same background color as SafeAreaView
-    borderBottomWidth: 0, // Ensure no border at the bottom
+    minHeight: 64,
+    paddingVertical: 8,
+    backgroundColor: Theme.background,
   },
 });
 

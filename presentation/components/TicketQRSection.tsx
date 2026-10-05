@@ -1,63 +1,69 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
-import QRCode from "react-native-qrcode-svg";
-import { useGenerateTicket } from "../hooks/useGenerateTicket";
-import { useTicketValidation } from "../hooks/useTicketValidation";
-import { useTicketCodesStore } from "@/core/stores/ticket-codes.store";
+import React from "react";
 import {
-  isServerUnreachableError,
-  useConnectivityStore,
-} from "@/core/offline/connectivity";
+  View,
+  Text,
+  ActivityIndicator,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+import QRCode from "react-native-qrcode-svg";
+import { useTicketCodes } from "../hooks/useTicketCodes";
+import { useTicketUsageStatuses } from "../hooks/useTicketUsageStatuses";
+import { TicketUsageStatus } from "@/core/actions/ticket-validation.actions";
+import { useConnectivityStore } from "@/core/offline/connectivity";
 import { OfflineBanner, formatTimeAgo } from "./OfflineBanner";
 
 const VALID_ORDER_STATUSES = ["processing", "completed"];
 
 export const TicketQRCard = ({
   qrCode,
-  eventId,
   index,
   total,
+  ticketStatus,
+  statusLoading,
+  statusTimeAgo,
 }: {
   qrCode: string;
-  eventId: string;
   index: number;
   total: number;
+  ticketStatus?: TicketUsageStatus;
+  statusLoading: boolean;
+  statusTimeAgo: string | null;
 }) => {
-  const { ticketStatusQuery } = useTicketValidation(qrCode, eventId);
-
-  if (ticketStatusQuery.isLoading && !ticketStatusQuery.isPaused) {
-    return (
-      <View className="bg-gray-800 rounded-lg p-4 mb-4">
-        <ActivityIndicator size="small" color="#7B3DFF" />
-      </View>
-    );
-  }
-
-  const ticketStatus = ticketStatusQuery.data;
-  const statusTimeAgo =
-    ticketStatusQuery.isError || ticketStatusQuery.isPaused
-      ? formatTimeAgo(ticketStatusQuery.dataUpdatedAt || undefined)
-      : null;
+  const { width } = useWindowDimensions();
+  // Cabe en pantallas angostas (320 px) sin perder tamaño en las grandes
+  const qrSize = Math.max(160, Math.min(220, width - 128));
 
   return (
-    <View className="bg-gray-800 rounded-lg p-6 mb-4">
-      <Text className="text-white text-center mb-4">
+    <View className="bg-gray-800 rounded-2xl border border-line p-6 mb-4">
+      <Text className="text-muted text-center mb-4">
         Ticket {index + 1} de {total}
       </Text>
 
-      <View className="items-center mb-4">
-        <QRCode
-          value={qrCode}
-          size={200}
-          color="white"
-          backgroundColor="transparent"
-        />
-      </View>
+      {/* QR oscuro sobre blanco con margen: es lo que mejor leen los lectores */}
+      <Animated.View
+        entering={FadeIn.duration(200)}
+        style={{ alignItems: "center", marginBottom: 16 }}
+      >
+        <View className="bg-white p-4 rounded-2xl">
+          <QRCode
+            value={qrCode}
+            size={qrSize}
+            color="#0F1422"
+            backgroundColor="#FFFFFF"
+          />
+        </View>
+      </Animated.View>
 
       <View className="mt-4">
-        {ticketStatus ? (
+        {statusLoading ? (
+          <View className="p-4 rounded-xl bg-gray-700/50">
+            <ActivityIndicator size="small" color="#7B3DFF" />
+          </View>
+        ) : ticketStatus ? (
           <View
-            className={`p-4 rounded-lg ${
+            className={`p-4 rounded-xl ${
               ticketStatus.revoked ||
               ticketStatus.usageCount >= ticketStatus.maxUsages
                 ? "bg-red-500/20"
@@ -85,9 +91,9 @@ export const TicketQRCard = ({
             )}
           </View>
         ) : (
-          <View className="p-4 rounded-lg bg-gray-700/50">
+          <View className="p-4 rounded-xl bg-gray-700/50">
             <Text className="text-gray-300 text-center">
-              Estado no disponible sin conexión
+              Estado no disponible
             </Text>
           </View>
         )}
@@ -96,7 +102,7 @@ export const TicketQRCard = ({
           <View className="mt-4">
             <Text className="text-white font-bold mb-2">Historial de uso:</Text>
             {ticketStatus.usageHistory.map((usage, i) => (
-              <View key={i} className="bg-gray-700/50 p-2 rounded-lg mb-2">
+              <View key={i} className="bg-gray-700/50 p-2 rounded-xl mb-2">
                 <Text className="text-gray-400">
                   Usado el: {new Date(usage.timestamp).toLocaleString("es-co")}
                 </Text>
@@ -122,68 +128,33 @@ export const TicketQRSection = ({
   quantity: number;
   eventName?: string;
 }) => {
-  const { generateTicketMutation } = useGenerateTicket();
   const isOnline = useConnectivityStore((state) => state.isOnline);
-  const cachedCodes = useTicketCodesStore((state) =>
-    state.getCodes(String(orderId), String(eventId)),
+  const {
+    codes: generatedCodes,
+    cachedCodes,
+    eventAvailable,
+    retry,
+    loading,
+    failed,
+  } = useTicketCodes(orderId, eventId, orderStatus, quantity);
+  const paid = VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase());
+  const ticketStatusesQuery = useTicketUsageStatuses(
+    paid ? generatedCodes : [],
   );
-  const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
-  const [isPackage, setIsPackage] = useState(false);
-  const [ticketsPerUnit, setTicketsPerUnit] = useState(1);
-  const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
-  const eventAvailable =
-    Number.isSafeInteger(Number(eventId)) && Number(eventId) > 0;
+  const statusesByCode = new Map(
+    ticketStatusesQuery.data?.map((status) => [status.qrCode, status]),
+  );
+  const statusTimeAgo =
+    !isOnline || ticketStatusesQuery.isError || ticketStatusesQuery.isPaused
+      ? formatTimeAgo(ticketStatusesQuery.dataUpdatedAt || undefined)
+      : null;
+  const isPackage = generatedCodes.length > quantity;
+  const ticketsPerUnit =
+    quantity > 0
+      ? Math.max(1, Math.round(generatedCodes.length / quantity))
+      : 1;
 
-  useEffect(() => {
-    // Sin conexión no tiene sentido pedir la generación; usamos el cache
-    if (
-      eventAvailable &&
-      isOnline &&
-      VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase())
-    ) {
-      generateTicketMutation.mutate({
-        orderId,
-        eventId,
-        quantity,
-        usagesPerTicket: 1,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId, orderStatus, eventId, quantity, isOnline, eventAvailable]);
-
-  // El backend no entregó códigos (offline o caído): usar los persistidos.
-  // La generación es idempotente, así que los códigos guardados son los mismos
-  // que devolvería el servidor.
-  const serverFailed =
-    !isOnline ||
-    (generateTicketMutation.isError &&
-      isServerUnreachableError(generateTicketMutation.error));
-  const usingCachedCodes =
-    serverFailed && !generateTicketMutation.data?.qrCodes && !!cachedCodes;
-
-  useEffect(() => {
-    const codes = generateTicketMutation.data?.qrCodes
-      ? generateTicketMutation.data.qrCodes
-      : usingCachedCodes
-        ? cachedCodes.qrCodes
-        : null;
-
-    if (codes) {
-      setGeneratedCodes(codes);
-
-      // Determinar si es un paquete basado en la cantidad de códigos generados
-      setIsPackage(codes.length > quantity);
-      setTicketsPerUnit(
-        quantity > 0 ? Math.max(1, Math.round(codes.length / quantity)) : 1,
-      );
-      setCurrentTicketIndex((index) =>
-        Math.min(index, Math.max(0, codes.length - 1)),
-      );
-    }
-  }, [generateTicketMutation.data, quantity, usingCachedCodes, cachedCodes]);
-
-  // Si la orden no está en un estado válido
-  if (!VALID_ORDER_STATUSES.includes(orderStatus?.toLowerCase())) {
+  if (!paid) {
     return (
       <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
         <Text className="text-yellow-500 text-center">
@@ -193,83 +164,56 @@ export const TicketQRSection = ({
     );
   }
 
-  if (!eventAvailable) {
-    return (
-      <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
-        <Text className="text-yellow-500 text-center">
-          El evento de esta compra ya no está disponible. No se pueden generar
-          nuevas entradas.
-        </Text>
-      </View>
-    );
-  }
-
-  if (generateTicketMutation.isPending && !usingCachedCodes) {
-    return (
-      <View className="m-4 bg-gray-800 p-4 rounded-xl items-center">
-        <ActivityIndicator size="large" color="#7B3DFF" />
-        <Text className="text-white mt-2">Generando códigos QR...</Text>
-      </View>
-    );
-  }
-
-  if (generateTicketMutation.isError && !usingCachedCodes) {
-    return (
-      <View className="m-4 bg-red-500/20 p-4 rounded-xl">
-        <Text className="text-red-500 text-center">
-          No se pudieron cargar las entradas. Toca reintentar.
-        </Text>
-        <TouchableOpacity
-          className="mt-3"
-          onPress={() =>
-            generateTicketMutation.mutate({
-              orderId,
-              eventId,
-              quantity,
-              usagesPerTicket: 1,
-            })
-          }
-        >
-          <Text className="text-white text-center font-bold">
-            Reintentar QR
+  // Los códigos existentes se muestran incluso si está cargando otra consulta.
+  if (!generatedCodes.length) {
+    if (loading) {
+      return (
+        <View className="m-4 bg-gray-800 p-4 rounded-xl items-center">
+          <ActivityIndicator size="large" color="#7B3DFF" />
+          <Text className="text-white mt-2">Cargando entradas...</Text>
+        </View>
+      );
+    }
+    if (!isOnline) {
+      return (
+        <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
+          <Text className="text-yellow-500 text-center">
+            Sin conexión. Abre esta pantalla con internet al menos una vez para
+            guardar tus entradas en el dispositivo.
           </Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // Sin conexión y sin códigos guardados de una sesión anterior
-  if (serverFailed && generatedCodes.length === 0) {
-    return (
-      <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
-        <Text className="text-yellow-500 text-center">
-          Sin conexión. Los códigos QR estarán disponibles cuando vuelva la
-          conexión. Abre esta pantalla con internet al menos una vez para
-          guardarlos en el dispositivo.
-        </Text>
-      </View>
-    );
-  }
-
-  // Mostrar un ticket a la vez en lugar de usar FlatList o ScrollView anidados
-  const currentTicket = generatedCodes[currentTicketIndex];
-
-  // Funciones para navegación entre tickets
-  const goToNextTicket = () => {
-    if (currentTicketIndex < generatedCodes.length - 1) {
-      setCurrentTicketIndex(currentTicketIndex + 1);
+        </View>
+      );
     }
-  };
-
-  const goToPrevTicket = () => {
-    if (currentTicketIndex > 0) {
-      setCurrentTicketIndex(currentTicketIndex - 1);
+    if (failed) {
+      return (
+        <View className="m-4 bg-red-500/20 p-4 rounded-xl">
+          <Text className="text-red-500 text-center">
+            No se pudieron cargar las entradas. Toca reintentar.
+          </Text>
+          <TouchableOpacity className="mt-3" onPress={retry}>
+            <Text className="text-white text-center font-bold">
+              Reintentar QR
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
     }
-  };
+    if (!eventAvailable) {
+      return (
+        <View className="m-4 bg-yellow-500/20 p-4 rounded-xl">
+          <Text className="text-yellow-500 text-center">
+            El evento de esta compra ya no está disponible. No se pueden generar
+            nuevas entradas.
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  }
 
   return (
     <View className="p-4">
-      {usingCachedCodes && (
+      {!isOnline && cachedCodes && (
         <OfflineBanner
           message="Mostrando tickets guardados — sin conexión"
           dataUpdatedAt={cachedCodes?.savedAt}
@@ -282,7 +226,7 @@ export const TicketQRSection = ({
         </Text>
 
         {isPackage && (
-          <View className="bg-purple-500/20 px-3 py-1 rounded-lg">
+          <View className="bg-purple-500/20 px-3 py-1 rounded-xl">
             <Text className="text-purple-300">
               Paquete: {quantity} × {ticketsPerUnit} entradas
             </Text>
@@ -290,42 +234,18 @@ export const TicketQRSection = ({
         )}
       </View>
 
-      {/* Mostrar el ticket actual */}
-      {currentTicket && (
-        <View>
-          <TicketQRCard
-            qrCode={currentTicket}
-            eventId={eventId}
-            index={currentTicketIndex}
-            total={generatedCodes.length}
-          />
-
-          {/* Controles de navegación para múltiples tickets */}
-          {generatedCodes.length > 1 && (
-            <View className="flex-row justify-between mt-2 mb-4">
-              <TouchableOpacity
-                onPress={goToPrevTicket}
-                disabled={currentTicketIndex === 0}
-                className={`bg-gray-800 py-2 px-4 rounded-lg ${currentTicketIndex === 0 ? "opacity-50" : ""}`}
-              >
-                <Text className="text-white">← Anterior</Text>
-              </TouchableOpacity>
-
-              <Text className="text-white text-center self-center">
-                {currentTicketIndex + 1} / {generatedCodes.length}
-              </Text>
-
-              <TouchableOpacity
-                onPress={goToNextTicket}
-                disabled={currentTicketIndex === generatedCodes.length - 1}
-                className={`bg-gray-800 py-2 px-4 rounded-lg ${currentTicketIndex === generatedCodes.length - 1 ? "opacity-50" : ""}`}
-              >
-                <Text className="text-white">Siguiente →</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
+      {/* Todas las entradas de la compra (o del paquete) quedan a la vista */}
+      {generatedCodes.map((code, index) => (
+        <TicketQRCard
+          key={code}
+          qrCode={code}
+          index={index}
+          total={generatedCodes.length}
+          ticketStatus={statusesByCode.get(code)}
+          statusLoading={ticketStatusesQuery.isLoading}
+          statusTimeAgo={statusTimeAgo}
+        />
+      ))}
     </View>
   );
 };

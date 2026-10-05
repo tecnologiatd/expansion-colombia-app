@@ -1,6 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs } from "expo-router";
 import TabBar from "@/presentation/components/TabBar";
+import { Theme } from "@/presentation/theme/Colors";
 
 export default function TabLayout() {
   return (
@@ -8,6 +9,8 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: "#7B3DFF",
         headerShown: false,
+        sceneStyle: { backgroundColor: Theme.background },
+        animation: "fade",
       }}
       tabBar={(props) => <TabBar {...props} />}
     >
@@ -16,7 +19,7 @@ export default function TabLayout() {
         options={{
           title: "Noticias",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={24} name="newspaper-o" color={color} />
+            <FontAwesome size={22} name="newspaper-o" color={color} />
           ),
         }}
       />
@@ -25,7 +28,7 @@ export default function TabLayout() {
         options={{
           title: "Carrito",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={24} name="shopping-cart" color={color} />
+            <FontAwesome size={22} name="shopping-cart" color={color} />
           ),
         }}
       />
@@ -34,7 +37,7 @@ export default function TabLayout() {
         options={{
           title: "Eventos",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={24} name="ticket" color={color} />
+            <FontAwesome size={22} name="ticket" color={color} />
           ),
         }}
       />
@@ -43,7 +46,7 @@ export default function TabLayout() {
         options={{
           title: "Perfil",
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={24} name="user" color={color} />
+            <FontAwesome size={22} name="user" color={color} />
           ),
         }}
       />

@@ -17,8 +17,10 @@ import { LogoutButton } from "@/presentation/auth/components/LogoutIconButton";
 import { CheckForUpdateButton } from "./CheckForUpdateButton";
 import PurchasedEventCard from "./PurchasedEventCard";
 import { AdminAccessButton } from "./AdminAccessButton";
-import { OfflineBanner } from "./OfflineBanner";
+import { CachedDataNotice } from "./CachedDataNotice";
 import { useConnectivityStore } from "@/core/offline/connectivity";
+import { StateView } from "@/presentation/components/ui/StateView";
+import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
 
 export default function ProfileScreen() {
   const { profileQuery, userData, orders } = useProfile();
@@ -38,26 +40,27 @@ export default function ProfileScreen() {
     }
   };
   if (profileQuery.isLoading && !profileQuery.isPaused)
-    return (
-      <View className="flex-1 bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#7B3DFF" />
-      </View>
-    );
+    return <StateView loading />;
   if (!userData)
     return (
-      <View className="flex-1 bg-gray-900 items-center justify-center p-4">
-        <Text className="text-white mb-4">No se pudo cargar el perfil</Text>
-        <TouchableOpacity onPress={refresh}>
-          <Text className="text-purple-400">Reintentar</Text>
-        </TouchableOpacity>
-      </View>
+      <StateView
+        icon="person-circle-outline"
+        title="No se pudo cargar el perfil"
+        actionLabel="Reintentar"
+        onAction={refresh}
+      />
     );
   const total = profileQuery.data?.pages[0]?.pagination?.totalOrders;
   return (
     <>
       <FlatList
-        className="flex-1 bg-gray-900"
-        contentContainerStyle={{ padding: 16 }}
+        className="flex-1 bg-background"
+        contentContainerStyle={{
+          padding: 16,
+          width: "100%",
+          maxWidth: CONTENT_MAX_WIDTH,
+          alignSelf: "center",
+        }}
         data={orders}
         keyExtractor={(order) => String(order.id)}
         initialNumToRender={12}
@@ -75,17 +78,18 @@ export default function ProfileScreen() {
         }
         ListHeaderComponent={
           <>
-            {(!isOnline || profileQuery.isPaused) && (
-              <OfflineBanner
-                dataUpdatedAt={profileQuery.dataUpdatedAt || undefined}
-              />
-            )}
-            <View className="flex-row items-center justify-between mb-8">
+            <CachedDataNotice
+              offline={!isOnline || profileQuery.isPaused}
+              failed={profileQuery.isError}
+              dataUpdatedAt={profileQuery.dataUpdatedAt || undefined}
+              onRetry={refresh}
+            />
+            <View className="flex-row items-center justify-between mb-6 mt-2">
               <View className="flex-row items-center flex-1">
                 {userData.avatar_url && (
                   <Image
                     source={imageSource(userData.avatar_url)}
-                    className="w-20 h-20 rounded-full"
+                    className="w-16 h-16 rounded-full bg-surface-raised"
                   />
                 )}
                 <View className="ml-4 flex-1">
@@ -96,24 +100,26 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <TouchableOpacity
-                className="bg-gray-800 p-2 rounded-lg"
+                className="bg-surface border border-line w-11 h-11 rounded-xl items-center justify-center"
                 onPress={() => setEditing(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Editar perfil"
               >
-                <Feather name="edit-2" size={20} color="white" />
+                <Feather name="edit-2" size={18} color="white" />
               </TouchableOpacity>
             </View>
             <AdminAccessButton />
-            <View className="bg-gray-800 p-4 rounded-lg items-center my-6">
-              <Text className="text-purple-500 text-xl font-bold">
-                {total ?? orders.length}
-              </Text>
-              <Text className="text-gray-400">
+            <View className="bg-surface p-4 rounded-2xl border border-line flex-row items-center justify-between my-6">
+              <Text className="text-muted">
                 {total === undefined && profileQuery.hasNextPage
                   ? "Compras cargadas"
                   : "Compras"}
               </Text>
+              <Text className="text-white text-xl font-bold">
+                {total ?? orders.length}
+              </Text>
             </View>
-            <Text className="text-white text-xl font-bold mb-4">
+            <Text className="text-white text-lg font-bold mb-3">
               Mis compras
             </Text>
           </>
@@ -135,8 +141,8 @@ export default function ProfileScreen() {
           />
         )}
         ListEmptyComponent={
-          <View className="bg-gray-800 p-6 rounded-lg items-center">
-            <Feather name="shopping-bag" size={48} color="#666" />
+          <View className="bg-gray-800 p-6 rounded-2xl border border-line items-center">
+            <Feather name="shopping-bag" size={40} color={Theme.muted} />
             <Text className="text-gray-400 mt-4">
               No hay compras registradas
             </Text>
@@ -163,7 +169,7 @@ export default function ProfileScreen() {
             {profileQuery.hasNextPage && !profileQuery.isFetchingNextPage && (
               <TouchableOpacity
                 disabled={!isOnline}
-                className="bg-gray-800 p-4 rounded-lg items-center"
+                className="bg-gray-800 p-4 rounded-2xl border border-line items-center"
                 onPress={() => {
                   void profileQuery.fetchNextPage();
                 }}
@@ -176,7 +182,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             )}
             <View className="mt-8 mb-6">
-              <Text className="text-white text-xl font-bold mb-4">Ajustes</Text>
+              <Text className="text-white text-lg font-bold mb-3">Ajustes</Text>
               <LogoutButton />
               <CheckForUpdateButton />
             </View>

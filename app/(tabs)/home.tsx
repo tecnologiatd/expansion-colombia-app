@@ -1,171 +1,130 @@
 import {
-  ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   Text,
-  TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import EventCard from "@/presentation/components/EventCard";
 import { useProducts } from "@/presentation/hooks/useProducts";
-import React, { useEffect, useState, useMemo } from "react";
-import debounce from "lodash.debounce";
-import * as SecureStore from "expo-secure-store";
-import { type Product } from "@/core/interfaces/product.interface";
+import React from "react";
+import { FadeInView } from "@/presentation/components/ui/FadeInView";
+import { Skeleton } from "@/presentation/components/ui/Skeleton";
+import { StateView } from "@/presentation/components/ui/StateView";
+import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
+
+import { CachedDataNotice } from "@/presentation/components/CachedDataNotice";
+import { useConnectivityStore } from "@/core/offline/connectivity";
+
+const TWO_COLUMN_MIN_WIDTH = 700;
+const GUTTER = 16;
 
 export default function Tab() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-
   const { productsQuery } = useProducts();
+  const isOnline = useConnectivityStore((state) => state.isOnline);
+  const { width } = useWindowDimensions();
 
-  // Debounced search handler
-  const onSearch = useMemo(
-    () =>
-      debounce((text: string) => {
-        setSearchTerm(text);
-      }, 500),
-    [],
-  );
+  const numColumns = width >= TWO_COLUMN_MIN_WIDTH ? 2 : 1;
+  const maxWidth = numColumns === 2 ? 960 : CONTENT_MAX_WIDTH;
 
-  useEffect(() => {
-    return () => {
-      onSearch.cancel();
-    };
-  }, [onSearch]);
-
-  // Filter products by search and category
-  useEffect(() => {
-    if (productsQuery.data) {
-      let products = productsQuery.data;
-
-      // if (searchTerm) {
-      //   products = products.filter((product) =>
-      //     product.name.toLowerCase().includes(searchTerm.toLowerCase()),
-      //   );
-      // }
-      //
-      // if (selectedCategory) {
-      //   products = products.filter(
-      //     (product) => product.category === selectedCategory,
-      //   );
-      // }
-
-      setFilteredProducts(products);
-    }
-  }, [productsQuery.data, searchTerm]);
-
-  // Handle refresh
   const onRefresh = () => {
     productsQuery.refetch();
   };
 
-  const toke = SecureStore.getItem("token");
-  console.log("HOME", toke);
-
-  // Loading state
-  if (productsQuery.isLoading) {
+  if (productsQuery.isLoading && productsQuery.data === undefined) {
     return (
-      <View className="justify-center items-center flex-1">
-        <ActivityIndicator color="purple" size={40} />
-      </View>
-    );
-  }
-
-  // Error state
-  if (productsQuery.isError) {
-    return (
-      <View>
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={productsQuery.isFetching}
-              onRefresh={onRefresh}
-            />
-          }
-        >
-          <View className="justify-center items-center flex-1">
-            <Text>
-              Hay un error, intente de nuevo
-            </Text>
-            <TouchableOpacity
-              className="bg-red-600 rounded-lg mt-4 px-4 py-2"
-              onPress={onRefresh}
-            >
-              <Text className="text-white">Reintentar</Text>
-            </TouchableOpacity>
+      <View
+        className="flex-1 bg-background self-center w-full p-4"
+        style={{ maxWidth }}
+      >
+        <Skeleton style={{ height: 32, width: "60%", marginTop: 16 }} />
+        {[0, 1].map((key) => (
+          <View key={key} className="mt-6">
+            <Skeleton style={{ aspectRatio: 16 / 9, borderRadius: 16 }} />
+            <Skeleton style={{ height: 18, width: "70%", marginTop: 14 }} />
+            <Skeleton style={{ height: 14, width: "45%", marginTop: 10 }} />
           </View>
-        </ScrollView>
+        ))}
       </View>
     );
   }
 
-  // No data state
-  if (!filteredProducts || filteredProducts.length === 0) {
+  if (productsQuery.data === undefined) {
     return (
-      <View className="justify-center items-center flex-1">
-        <Text className="text-white">No hay eventos disponibles</Text>
-      </View>
+      <StateView
+        icon="cloud-offline-outline"
+        title="No pudimos cargar los eventos"
+        message="Revisa tu conexión e intenta de nuevo."
+        actionLabel="Reintentar"
+        onAction={onRefresh}
+      />
     );
   }
+
+  const products = productsQuery.data ?? [];
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900" edges={["left", "right"]}>
-      <ScrollView
+    <SafeAreaView className="flex-1 bg-background" edges={["left", "right"]}>
+      <FlatList
+        // numColumns no puede cambiar en caliente: se remonta la lista
+        key={numColumns}
+        data={products}
+        numColumns={numColumns}
+        keyExtractor={(item) => String(item.id)}
+        style={{ alignSelf: "center", width: "100%", maxWidth }}
+        contentContainerStyle={{
+          paddingHorizontal: GUTTER,
+          paddingBottom: 24,
+          flexGrow: 1,
+        }}
+        columnWrapperStyle={numColumns > 1 ? { gap: GUTTER } : undefined}
         refreshControl={
           <RefreshControl
-            refreshing={productsQuery.isFetching}
+            refreshing={productsQuery.isRefetching}
             onRefresh={onRefresh}
+            tintColor={Theme.accent}
+            colors={[Theme.accent]}
           />
         }
-      >
-        <View className="mt-8 mb-4 mx-4">
-          <Text className="text-3xl font-bold text-white">
-            Eventos en <Text className="text-secondary">Colombia</Text>
-          </Text>
-        </View>
-
-        {/*/!* Search Bar *!/*/}
-        {/*<View className="mx-4 mb-8 flex-row justify-between items-center">*/}
-        {/*  <View className="flex-1 p-2 bg-gray-800 rounded-lg flex-row items-center">*/}
-        {/*    <Entypo name="magnifying-glass" size={24} color="gray" />*/}
-        {/*    <TextInput*/}
-        {/*      placeholder="Search any event..."*/}
-        {/*      placeholderTextColor="gray"*/}
-        {/*      className="flex-1 text-white ml-2"*/}
-        {/*      onChangeText={onSearch}*/}
-        {/*    />*/}
-        {/*  </View>*/}
-        {/*  <TouchableOpacity className="bg-gray-800 rounded-lg p-2 ml-4">*/}
-        {/*    <Feather name="filter" size={24} color="white" />*/}
-        {/*  </TouchableOpacity>*/}
-        {/*</View>*/}
-
-        {/*/!* Categories *!/*/}
-        {/*<View className="mx-4 mb-8 flex-row justify-between">*/}
-        {/*  {categories.map((category, idx) => (*/}
-        {/*    <TouchableOpacity*/}
-        {/*      key={idx}*/}
-        {/*      className={`py-3 px-4 flex-1 mx-1 rounded-lg ${*/}
-        {/*        selectedCategory === category ? "bg-secondary" : "bg-gray-800"*/}
-        {/*      }`}*/}
-        {/*      onPress={() =>*/}
-        {/*        setSelectedCategory(*/}
-        {/*          selectedCategory === category ? null : category,*/}
-        {/*        )*/}
-        {/*      }*/}
-        {/*    >*/}
-        {/*      <Text className="text-white font-medium">{category}</Text>*/}
-        {/*    </TouchableOpacity>*/}
-        {/*  ))}*/}
-        {/*</View>*/}
-
-        {/* Event Cards */}
-        {filteredProducts.map((item) => (
-          <EventCard product={item} key={item.id} />
-        ))}
-      </ScrollView>
+        ListHeaderComponent={
+          <View className="mt-6 mb-5">
+            <CachedDataNotice
+              offline={!isOnline || productsQuery.isPaused}
+              failed={productsQuery.isError}
+              dataUpdatedAt={productsQuery.dataUpdatedAt || undefined}
+              onRetry={onRefresh}
+            />
+            <Text
+              className="text-3xl font-bold text-white"
+              maxFontSizeMultiplier={1.3}
+            >
+              Eventos en <Text className="text-secondary">Colombia</Text>
+            </Text>
+            <Text className="text-muted mt-1">
+              Elige tu próximo evento y compra tus entradas
+            </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <StateView
+            icon="calendar-outline"
+            title="No hay eventos disponibles"
+            message="Desliza hacia abajo para actualizar."
+          />
+        }
+        renderItem={({ item, index }) => (
+          <FadeInView
+            index={index}
+            style={{
+              flex: numColumns > 1 ? 1 : undefined,
+              marginBottom: GUTTER,
+            }}
+          >
+            <EventCard product={item} />
+          </FadeInView>
+        )}
+      />
     </SafeAreaView>
   );
 }

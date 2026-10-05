@@ -22,7 +22,7 @@ export const AdminAccessButton = () => {
       <Text className="text-white text-xl font-bold mb-4">Administración</Text>
 
       <TouchableOpacity
-        className="bg-purple-500 p-4 rounded-lg flex-row justify-between items-center mb-3"
+        className="bg-purple-500 p-4 rounded-xl flex-row justify-between items-center mb-3"
         onPress={() => router.push("/(admin)/scan")}
       >
         <View className="flex-row items-center">
@@ -33,7 +33,7 @@ export const AdminAccessButton = () => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        className="bg-purple-500 p-4 rounded-lg flex-row justify-between items-center mb-3"
+        className="bg-purple-500 p-4 rounded-xl flex-row justify-between items-center mb-3"
         onPress={() => router.push("/(admin)/sponsorship-lines")}
       >
         <View className="flex-row items-center">
@@ -46,7 +46,7 @@ export const AdminAccessButton = () => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        className="bg-purple-500 p-4 rounded-lg flex-row justify-between items-center"
+        className="bg-purple-500 p-4 rounded-xl flex-row justify-between items-center"
         onPress={() => setShowNotificationSender(true)}
       >
         <View className="flex-row items-center">
