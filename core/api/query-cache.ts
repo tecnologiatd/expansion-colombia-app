@@ -4,7 +4,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 7;
 export const PERSISTED_QUERY_PREFIXES = [
-  "profile", "order", "ticket-status", "tickets", "products", "product",
+  "profile",
+  "order",
+  "ticket-status",
+  "tickets",
+  "products",
+  "product",
+  "events",
 ];
 
 export const queryClient = new QueryClient({

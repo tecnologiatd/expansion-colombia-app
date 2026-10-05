@@ -27,6 +27,27 @@ export interface TicketValidationResponse {
   offline?: boolean;
 }
 
+export interface TicketUsageStatus {
+  qrCode: string;
+  usageCount: number;
+  maxUsages: number;
+  remainingUsages: number;
+  revoked: boolean;
+  usageHistory: { timestamp: string }[];
+}
+
+export const getTicketUsageStatuses = async (
+  qrCodes: string[],
+  signal?: AbortSignal,
+): Promise<TicketUsageStatus[]> => {
+  const { data } = await backendApi.post<TicketUsageStatus[]>(
+    "/tickets/usage-status",
+    { qrCodes },
+    { signal, timeout: 4000 },
+  );
+  return data;
+};
+
 export const getTicketStatus = async (
   qrCode: string,
   eventId: string,

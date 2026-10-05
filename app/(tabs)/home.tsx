@@ -14,11 +14,15 @@ import { Skeleton } from "@/presentation/components/ui/Skeleton";
 import { StateView } from "@/presentation/components/ui/StateView";
 import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
 
+import { CachedDataNotice } from "@/presentation/components/CachedDataNotice";
+import { useConnectivityStore } from "@/core/offline/connectivity";
+
 const TWO_COLUMN_MIN_WIDTH = 700;
 const GUTTER = 16;
 
 export default function Tab() {
   const { productsQuery } = useProducts();
+  const isOnline = useConnectivityStore((state) => state.isOnline);
   const { width } = useWindowDimensions();
 
   const numColumns = width >= TWO_COLUMN_MIN_WIDTH ? 2 : 1;
@@ -28,7 +32,7 @@ export default function Tab() {
     productsQuery.refetch();
   };
 
-  if (productsQuery.isLoading) {
+  if (productsQuery.isLoading && productsQuery.data === undefined) {
     return (
       <View
         className="flex-1 bg-background self-center w-full p-4"
@@ -46,7 +50,7 @@ export default function Tab() {
     );
   }
 
-  if (productsQuery.isError) {
+  if (productsQuery.data === undefined) {
     return (
       <StateView
         icon="cloud-offline-outline"
@@ -85,6 +89,12 @@ export default function Tab() {
         }
         ListHeaderComponent={
           <View className="mt-6 mb-5">
+            <CachedDataNotice
+              offline={!isOnline || productsQuery.isPaused}
+              failed={productsQuery.isError}
+              dataUpdatedAt={productsQuery.dataUpdatedAt || undefined}
+              onRetry={onRefresh}
+            />
             <Text
               className="text-3xl font-bold text-white"
               maxFontSizeMultiplier={1.3}

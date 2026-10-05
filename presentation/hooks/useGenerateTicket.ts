@@ -2,13 +2,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { generateTicketQR } from "@/core/actions/generate-ticket.action";
 import { useTicketCodesStore } from "@/core/stores/ticket-codes.store";
+import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 
 export const useGenerateTicket = () => {
   const queryClient = useQueryClient();
 
   const generateTicketMutation = useMutation({
     mutationFn: generateTicketQR,
-    onSuccess: (data, variables) => {
+    onMutate: () => ({ username: useAuthStore.getState().user?.username }),
+    onSuccess: (data, variables, context) => {
+      if (
+        !context?.username ||
+        useAuthStore.getState().user?.username !== context.username
+      )
+        return;
       // Al generar tickets exitosamente, invalidamos la caché para forzar una recarga
       queryClient.invalidateQueries({
         queryKey: ["tickets", variables.orderId, variables.eventId],

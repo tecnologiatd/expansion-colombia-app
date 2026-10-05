@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
-import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import RenderHtml from "react-native-render-html";
 // import Clipboard from "@react-native-clipboard/clipboard";
 import { useProduct } from "@/presentation/hooks/useProduct";
@@ -25,6 +25,9 @@ import { StateView } from "@/presentation/components/ui/StateView";
 import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
 import { formatCOP, plainText } from "@/helpers/format";
 
+import { CachedDataNotice } from "@/presentation/components/CachedDataNotice";
+import { useConnectivityStore } from "@/core/offline/connectivity";
+
 const eventBaseStyle = { color: Theme.text, fontSize: 16, lineHeight: 24 };
 const eventTagsStyles = {
   p: { color: Theme.text },
@@ -35,6 +38,7 @@ const DetailScreen = () => {
   const { width } = useWindowDimensions();
   const { id } = useLocalSearchParams();
   const { productQuery } = useProduct(`${id}`);
+  const isOnline = useConnectivityStore((state) => state.isOnline);
   const { isMaintenance, maintenanceMessage } = useSiteStatus();
 
   const [showModal, setShowModal] = useState(false);
@@ -83,12 +87,20 @@ const DetailScreen = () => {
     setShowModal(true);
   };
 
-  if (productQuery.isLoading) {
+  if (productQuery.isLoading && !productQuery.data) {
     return <StateView loading />;
   }
 
   if (!productQuery.data) {
-    return <Redirect href="/(tabs)/home" />;
+    return (
+      <StateView
+        icon="cloud-offline-outline"
+        title="No se pudo cargar el evento"
+        message="Revisa tu conexión e intenta de nuevo."
+        actionLabel="Reintentar"
+        onAction={onRefresh}
+      />
+    );
   }
 
   const product = productQuery.data;
@@ -115,6 +127,14 @@ const DetailScreen = () => {
           className="w-full self-center"
           style={{ maxWidth: CONTENT_MAX_WIDTH }}
         >
+          <CachedDataNotice
+            offline={!isOnline || productQuery.isPaused}
+            failed={productQuery.isError}
+            dataUpdatedAt={productQuery.dataUpdatedAt || undefined}
+            onRetry={() => {
+              void onRefresh();
+            }}
+          />
           {heroImageUri ? (
             <TouchableOpacity
               activeOpacity={0.9}

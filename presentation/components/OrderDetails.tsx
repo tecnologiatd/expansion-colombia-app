@@ -4,7 +4,7 @@ import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { useOrderDetails } from "@/presentation/hooks/useOrders";
 import { getOrderByIdAction } from "@/core/actions/order.actions";
 import { TicketQRSection } from "@/presentation/components/TicketQRSection";
-import { OfflineBanner } from "@/presentation/components/OfflineBanner";
+import { CachedDataNotice } from "./CachedDataNotice";
 import { useConnectivityStore } from "@/core/offline/connectivity";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthBrowser } from "@/presentation/utils/auth-browser";
@@ -19,10 +19,9 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
   const [opening, setOpening] = useState(false);
   const {
     data: order,
-    isLoading,
+    isPending,
+    isRefetching,
     isError,
-    error,
-    refetch,
     forceRefetch,
     watchPayment,
     isPaused,
@@ -30,16 +29,18 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
   } = useOrderDetails(orderId);
   const isOnline = useConnectivityStore((state) => state.isOnline);
 
-  if (isLoading && !isPaused) {
+  // Al volver del navegador, la consulta puede esperar al foco de la pantalla.
+  // isLoading aún es false allí; isPending evita mostrar un error antes de consultar.
+  if (!order && isPending && isOnline && !isPaused) {
     return <StateView loading />;
   }
 
-  if (isError || !order) {
+  if (!order) {
     return (
       <StateView
         icon={isPaused ? "cloud-offline-outline" : "alert-circle-outline"}
         title={
-          isPaused
+          !isOnline || isPaused
             ? "Sin conexión y sin datos guardados de este pedido"
             : "Error al cargar los detalles del pedido"
         }
@@ -71,7 +72,7 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       }
 
       // Resuelve cuando el usuario vuelve del navegador de pago
-      const opened = await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
+      await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
       void watchPayment();
     } catch (error) {
       console.error("Error al abrir URL de pago:", error);
@@ -151,18 +152,21 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       }}
       refreshControl={
         <RefreshControl
-          refreshing={isLoading}
+          refreshing={isRefetching}
           onRefresh={forceRefetch}
           tintColor={Theme.accent}
           colors={[Theme.accent]}
         />
       }
     >
-      {(!isOnline || isPaused) && (
-        <View className="pt-4">
-          <OfflineBanner dataUpdatedAt={dataUpdatedAt || undefined} />
-        </View>
-      )}
+      <CachedDataNotice
+        offline={!isOnline || isPaused}
+        failed={isError}
+        dataUpdatedAt={dataUpdatedAt || undefined}
+        onRetry={() => {
+          void forceRefetch();
+        }}
+      />
 
       {/* Order Status and Info */}
       <View className="p-4 bg-gray-800 rounded-2xl border border-line m-4">

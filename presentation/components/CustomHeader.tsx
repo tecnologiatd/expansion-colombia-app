@@ -16,6 +16,7 @@ interface Props {
 const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const pathname = usePathname();
+  const isTabRoot = ["/home", "/blog", "/cart", "/profile"].includes(pathname);
 
   // Función para obtener el título dinámico
   const getHeaderTitle = () => {
@@ -61,13 +62,30 @@ const CustomHeader: React.FC<Props> = ({ title, navigation, back }) => {
               <Feather name="chevron-left" size={24} color="white" />
             </TouchableOpacity>
           )}
-          <Text
-            className="text-white text-lg font-semibold flex-1"
-            numberOfLines={1}
-            maxFontSizeMultiplier={1.3}
-          >
-            {getHeaderTitle()}
-          </Text>
+          {isTabRoot && !back ? (
+            <View accessible accessibilityLabel="Expansión Colombia">
+              <Text
+                className="font-fortuna text-white text-xl"
+                maxFontSizeMultiplier={1.3}
+              >
+                EXPANSION
+              </Text>
+              <Text
+                className="font-design-systemc text-muted text-xs tracking-widest"
+                maxFontSizeMultiplier={1.3}
+              >
+                COLOMBIA
+              </Text>
+            </View>
+          ) : (
+            <Text
+              className="text-white text-lg font-semibold flex-1"
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+            >
+              {getHeaderTitle()}
+            </Text>
+          )}
         </View>
 
         <NotificationBell onPress={() => setShowNotifications(true)} />
@@ -92,7 +110,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    minHeight: 52,
+    minHeight: 64,
+    paddingVertical: 8,
     backgroundColor: Theme.background,
   },
 });

@@ -83,7 +83,8 @@
           "url": "https://sentry.io/"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef } from "react";
-import { AppState } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useScreenActive } from "./useScreenActive";
+import { useConnectivityStore } from "@/core/offline/connectivity";
+import { getPaymentPollInterval } from "@/core/checkout/payment-polling";
 import {
   createOrderAction,
   getOrderByIdAction,
@@ -42,64 +44,88 @@ export const useCreateOrder = () => {
   };
 };
 
-// Tras volver del pago, consultar el pedido mientras siga pendiente. Las
-// consultas periódicas usan la caché breve del backend y el webhook firmado
-// invalida estados; WooCommerce se consulta al vencer la caché.
-const PAYMENT_WATCH_MS = 30 * 60 * 1000;
-const PAYMENT_POLL_MS = 10000;
-
+// El intervalo baja progresivamente; salir de pantalla/app no reinicia la ventana.
 export const useOrderDetails = (orderId: string) => {
-  // Ref flag: next queryFn call should hit backend with ?fresh=1
   const forceFreshRef = useRef(false);
-  const watchUntilRef = useRef(0);
+  const [watch, setWatch] = useState(() => ({
+    orderId,
+    startedAt: Date.now(),
+  }));
   const queryClient = useQueryClient();
+  const screenActive = useScreenActive();
+  const isOnline = useConnectivityStore((state) => state.isOnline);
+  const active = screenActive && isOnline;
+  const wasActive = useRef(false);
+
+  useEffect(() => {
+    setWatch({ orderId, startedAt: Date.now() });
+    forceFreshRef.current = false;
+    wasActive.current = false;
+  }, [orderId]);
 
   const query = useQuery({
     queryKey: ["order", orderId],
-    queryFn: async () => {
-      const fresh = forceFreshRef.current;
+    queryFn: async ({ signal }) => {
+      const resumingPending =
+        !wasActive.current &&
+        isWaitingOrder(
+          queryClient.getQueryData<{ status?: string }>(["order", orderId])
+            ?.status,
+        );
+      const fresh = forceFreshRef.current || resumingPending;
       forceFreshRef.current = false;
-      const order = await getOrderByIdAction(orderId, { fresh });
+      const order = await getOrderByIdAction(orderId, { fresh, signal });
       if (isPaidOrder(order.status))
         useCartStore.getState().completePendingOrder(order.id);
       return order;
     },
-    enabled: !!orderId,
-    staleTime: 1000 * 60, // Consider data fresh for 1 minute
+    enabled: !!orderId && active,
+    staleTime: 1000 * 60,
     retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     refetchInterval: (query) =>
-      isWaitingOrder(query.state.data?.status) &&
-      Date.now() < watchUntilRef.current
-        ? PAYMENT_POLL_MS
+      active && watch.orderId === orderId
+        ? getPaymentPollInterval(query.state.data?.status, watch.startedAt)
         : false,
+    refetchIntervalInBackground: false,
   });
 
-  // User-triggered refresh: bypass BOTH React Query staleTime AND backend cache.
-  // Also invalidates all ticket statuses so admin-validated tickets reflect as "used".
   const forceRefetch = useCallback(async () => {
+    setWatch({ orderId, startedAt: Date.now() });
     forceFreshRef.current = true;
     await queryClient.invalidateQueries({ queryKey: ["ticket-status"] });
     return query.refetch();
   }, [orderId, query, queryClient]);
 
-  // Llamar al volver del navegador de pago: lectura fresca y sondeo por unos minutos.
+  // Retorno explícito del navegador: comprobación inmediata y nueva ventana.
   const watchPayment = useCallback(() => {
-    watchUntilRef.current = Date.now() + PAYMENT_WATCH_MS;
+    setWatch({ orderId, startedAt: Date.now() });
     forceFreshRef.current = true;
-    return queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+    return queryClient.invalidateQueries(
+      { queryKey: ["order", orderId], exact: true },
+      { cancelRefetch: false },
+    );
   }, [orderId, queryClient]);
 
+  // Retorno a la pantalla o recuperación de conexión: una comprobación fresca
+  // de pedidos pendientes, manteniendo la antigüedad de la ventana existente.
   useEffect(() => {
-    watchUntilRef.current = Date.now() + PAYMENT_WATCH_MS;
-    const subscription = AppState.addEventListener("change", (state) => {
+    if (active && !wasActive.current) {
       const order = queryClient.getQueryData<{ status?: string }>([
         "order",
         orderId,
       ]);
-      if (state === "active" && isWaitingOrder(order?.status)) watchPayment();
-    });
-    return () => subscription.remove();
-  }, [orderId, queryClient, watchPayment]);
+      if (isWaitingOrder(order?.status)) {
+        forceFreshRef.current = true;
+        void queryClient.invalidateQueries(
+          { queryKey: ["order", orderId], exact: true },
+          { cancelRefetch: false },
+        );
+      }
+    }
+    wasActive.current = active;
+  }, [active, orderId, queryClient]);
 
   return { ...query, forceRefetch, watchPayment };
 };

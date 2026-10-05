@@ -17,7 +17,7 @@ import { LogoutButton } from "@/presentation/auth/components/LogoutIconButton";
 import { CheckForUpdateButton } from "./CheckForUpdateButton";
 import PurchasedEventCard from "./PurchasedEventCard";
 import { AdminAccessButton } from "./AdminAccessButton";
-import { OfflineBanner } from "./OfflineBanner";
+import { CachedDataNotice } from "./CachedDataNotice";
 import { useConnectivityStore } from "@/core/offline/connectivity";
 import { StateView } from "@/presentation/components/ui/StateView";
 import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
@@ -78,11 +78,12 @@ export default function ProfileScreen() {
         }
         ListHeaderComponent={
           <>
-            {(!isOnline || profileQuery.isPaused) && (
-              <OfflineBanner
-                dataUpdatedAt={profileQuery.dataUpdatedAt || undefined}
-              />
-            )}
+            <CachedDataNotice
+              offline={!isOnline || profileQuery.isPaused}
+              failed={profileQuery.isError}
+              dataUpdatedAt={profileQuery.dataUpdatedAt || undefined}
+              onRetry={refresh}
+            />
             <View className="flex-row items-center justify-between mb-6 mt-2">
               <View className="flex-row items-center flex-1">
                 {userData.avatar_url && (
