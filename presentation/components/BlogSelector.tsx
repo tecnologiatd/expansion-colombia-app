@@ -54,7 +54,7 @@ export const BlogSelector: React.FC<BlogSelectorProps> = ({
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  className="bg-gray-700 p-4 rounded-lg mb-2"
+                  className="bg-gray-700 p-4 rounded-xl mb-2"
                   onPress={() => handleSelect(item.id, item.title.rendered)}
                 >
                   <Text className="text-white font-bold">

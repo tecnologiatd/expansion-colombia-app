@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Theme } from "@/presentation/theme/Colors";
 
 interface Props extends TextInputProps {
   title: string;
@@ -30,21 +31,21 @@ const FormField = forwardRef<TextInput, Props>(
     const [isFocused, setIsFocused] = useState(false);
 
     return (
-      <View className="space-y-2 mt-7">
-        <Text className="text-white font-medium mb-3">{title}</Text>
+      <View className="mt-5">
+        <Text className="text-gray-300 text-sm font-medium mb-2">{title}</Text>
         <View className="relative flex-row items-center">
           <TextInput
             ref={ref}
-            className={`flex-1 w-full p-4 text-base font-semibold text-white border-2 rounded-2xl ${
+            className={`flex-1 w-full px-4 py-3.5 text-base text-white bg-surface-raised border rounded-xl ${secureTextEntry ? "pr-14" : ""} ${
               errorMessage
                 ? "border-red-500"
                 : isFocused
-                  ? "border-purple-500"
-                  : "border-gray-700"
+                  ? "border-brand"
+                  : "border-line"
             }`}
             value={value}
             secureTextEntry={secureTextEntry ? showPassword : false}
-            placeholderTextColor="#7b7b8b"
+            placeholderTextColor={Theme.placeholder}
             onChangeText={onChangeText}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
@@ -55,13 +56,17 @@ const FormField = forwardRef<TextInput, Props>(
           />
           {secureTextEntry && (
             <TouchableOpacity
-              className="absolute right-4 w-8 h-full justify-center items-center"
+              className="absolute right-1 w-12 h-full justify-center items-center"
+              accessibilityRole="button"
+              accessibilityLabel={
+                showPassword ? "Mostrar contraseña" : "Ocultar contraseña"
+              }
               onPress={() => setShowPassword(!showPassword)}
             >
               <Ionicons
                 name={showPassword ? "eye-off-outline" : "eye-outline"}
-                size={24}
-                color="#7b7b8b"
+                size={22}
+                color={Theme.muted}
               />
             </TouchableOpacity>
           )}

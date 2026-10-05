@@ -173,7 +173,7 @@ const EditProfileModal = ({ visible, onClose, userData, onSave }: Props) => {
                 <View>
                   <Text className="text-gray-400 mb-2">Nombres</Text>
                   <TextInput
-                    className={`bg-gray-700 p-4 rounded-lg text-white ${hasNames ? "opacity-50" : ""}`}
+                    className={`bg-gray-700 p-4 rounded-xl text-white ${hasNames ? "opacity-50" : ""}`}
                     value={editedData.billing.first_name}
                     onChangeText={(text) =>
                       !hasNames &&
@@ -194,7 +194,7 @@ const EditProfileModal = ({ visible, onClose, userData, onSave }: Props) => {
                   <Text className="text-gray-400 mb-2">Apellidos</Text>
                   <TextInput
                     ref={lastNameInputRef}
-                    className={`bg-gray-700 p-4 rounded-lg text-white ${hasNames ? "opacity-50" : ""}`}
+                    className={`bg-gray-700 p-4 rounded-xl text-white ${hasNames ? "opacity-50" : ""}`}
                     value={editedData.billing.last_name}
                     onChangeText={(text) =>
                       !hasNames &&
@@ -215,7 +215,7 @@ const EditProfileModal = ({ visible, onClose, userData, onSave }: Props) => {
                   <Text className="text-gray-400 mb-2">Correo electrónico</Text>
                   <TextInput
                     ref={emailInputRef}
-                    className="bg-gray-700 p-4 rounded-lg text-white"
+                    className="bg-gray-700 p-4 rounded-xl text-white"
                     value={editedData.email}
                     onChangeText={(text) =>
                       setEditedData({ ...editedData, email: text })
@@ -233,7 +233,7 @@ const EditProfileModal = ({ visible, onClose, userData, onSave }: Props) => {
                   <Text className="text-gray-400 mb-2">Teléfono</Text>
                   <TextInput
                     ref={phoneInputRef}
-                    className="bg-gray-700 p-4 rounded-lg text-white"
+                    className="bg-gray-700 p-4 rounded-xl text-white"
                     value={editedData.billing.phone}
                     onChangeText={(text) =>
                       setEditedData({
@@ -249,7 +249,7 @@ const EditProfileModal = ({ visible, onClose, userData, onSave }: Props) => {
                 </View>
 
                 <TouchableOpacity
-                  className={`bg-purple-500 p-4 rounded-lg mt-4 ${isSaving ? "opacity-50" : ""}`}
+                  className={`bg-purple-500 p-4 rounded-xl mt-4 ${isSaving ? "opacity-50" : ""}`}
                   onPress={handleSave}
                   disabled={isSaving}
                 >

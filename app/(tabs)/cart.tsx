@@ -9,6 +9,10 @@ import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
 import { useCustomer } from "@/presentation/hooks/useCustomer";
 import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
+import { Ionicons } from "@expo/vector-icons";
+import { Button } from "@/presentation/components/ui/Button";
+import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
+import { formatCOP } from "@/helpers/format";
 
 const CartScreen = () => {
   const { items, calculateTotal, clearCart } = useCartStore();
@@ -17,7 +21,6 @@ const CartScreen = () => {
   const { isMaintenance, maintenanceMessage } = useSiteStatus();
 
   const handleCheckout = async () => {
-    console.log("Checkout", status);
     if (isMaintenance) {
       Alert.alert(
         "Mantenimiento",
@@ -63,50 +66,74 @@ const CartScreen = () => {
     router.replace("/checkout/billing");
   };
 
+  const isEmpty = items.length === 0;
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
-      <View className="p-4">
+    <SafeAreaView className="flex-1 bg-background" edges={["left", "right"]}>
+      <View
+        className="flex-1 w-full self-center px-4 pt-4"
+        style={{ maxWidth: CONTENT_MAX_WIDTH }}
+      >
         {isMaintenance && <MaintenanceBanner message={maintenanceMessage} />}
         <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-white text-2xl font-bold">
-            Carrito de Compras
+          <Text
+            className="text-white text-2xl font-bold"
+            maxFontSizeMultiplier={1.3}
+          >
+            Tu carrito
           </Text>
-          {items.length > 0 && (
-            <TouchableOpacity onPress={clearCart}>
-              <Text className="text-red-500 text-lg">Eliminar Elementos</Text>
+          {!isEmpty && (
+            <TouchableOpacity
+              onPress={clearCart}
+              hitSlop={10}
+              accessibilityRole="button"
+            >
+              <Text className="text-red-400 font-medium">Vaciar</Text>
             </TouchableOpacity>
           )}
         </View>
         <FlatList
+          className="flex-1"
           data={items}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => <CartItem item={item} />}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          ListEmptyComponent={() => (
-            <Text className="text-white text-center mt-8">
-              No hay eventos agregados
-            </Text>
-          )}
+          contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }}
+          ListEmptyComponent={
+            <View className="flex-1 items-center justify-center py-12">
+              <Ionicons name="cart-outline" size={44} color={Theme.muted} />
+              <Text className="text-white text-lg font-semibold mt-4">
+                Tu carrito está vacío
+              </Text>
+              <Text className="text-muted text-center mt-2">
+                Agrega entradas desde la pestaña de eventos.
+              </Text>
+              <Button
+                title="Ver eventos"
+                variant="secondary"
+                onPress={() => router.push("/(tabs)/home")}
+                containerStyle={{ marginTop: 20, minWidth: 180 }}
+              />
+            </View>
+          }
         />
-        <View className="bg-gray-800 rounded-lg p-4 flex-row items-center justify-between">
-          <Text className="text-white text-lg font-bold">Total</Text>
-          <Text className="text-white text-lg font-bold">
-            ${calculateTotal().toLocaleString()}
-          </Text>
-        </View>
-        <TouchableOpacity
-          className={`rounded-lg py-4 mt-8 justify-center items-center ${
-            items.length === 0 || isMaintenance
-              ? "bg-purple-400"
-              : "bg-purple-500"
-          }`}
-          onPress={handleCheckout}
-          disabled={items.length === 0 || isMaintenance}
-        >
-          <Text className="text-white font-bold text-lg">
-            {isMaintenance ? "Compras en pausa" : "Continuar"}
-          </Text>
-        </TouchableOpacity>
+        {!isEmpty && (
+          <View className="border-t border-line pt-4 pb-4">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-muted text-base">Total</Text>
+              <Text
+                className="text-white text-2xl font-bold"
+                maxFontSizeMultiplier={1.3}
+              >
+                {formatCOP(calculateTotal())}
+              </Text>
+            </View>
+            <Button
+              title={isMaintenance ? "Compras en pausa" : "Continuar"}
+              onPress={handleCheckout}
+              disabled={isMaintenance}
+            />
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );

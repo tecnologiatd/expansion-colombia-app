@@ -15,11 +15,22 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <TouchableOpacity className="relative" onPress={onPress}>
+    <TouchableOpacity
+      className="relative w-10 h-10 items-center justify-center"
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Notificaciones"
+      hitSlop={8}
+    >
       <Ionicons name="notifications-outline" size={24} color="white" />
       {unreadCount > 0 && (
-        <View className="absolute -top-1 -right-1 bg-purple-500 rounded-full w-4 h-4 items-center justify-center">
-          <Text className="text-white text-xs">{unreadCount}</Text>
+        <View className="absolute top-0.5 right-0.5 bg-brand rounded-full min-w-[16px] h-4 px-1 items-center justify-center">
+          <Text
+            className="text-white text-[10px] font-bold"
+            allowFontScaling={false}
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </Text>
         </View>
       )}
     </TouchableOpacity>

@@ -3,7 +3,12 @@ import { Stack } from "expo-router/stack";
 import React, { useEffect } from "react";
 import { useFonts } from "expo-font";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { queryClient, asyncStoragePersister, CACHE_MAX_AGE, PERSISTED_QUERY_PREFIXES } from "@/core/api/query-cache";
+import {
+  queryClient,
+  asyncStoragePersister,
+  CACHE_MAX_AGE,
+  PERSISTED_QUERY_PREFIXES,
+} from "@/core/api/query-cache";
 import { StatusBar, Platform } from "react-native";
 import * as Sentry from "@sentry/react-native";
 import "./global.css";
@@ -13,6 +18,7 @@ import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 import AuthGuard from "@/presentation/auth/components/AuthGuard";
 import { initConnectivity } from "@/core/offline/connectivity";
 import { useAutomaticTicketSync } from "@/presentation/hooks/useTicketSync";
+import { Theme } from "@/presentation/theme/Colors";
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -65,18 +71,18 @@ function Layout() {
         },
       }}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#1F2B43" />
+      <StatusBar barStyle="light-content" backgroundColor={Theme.background} />
       <AuthGuard>
         <Stack
           screenOptions={{
             header: (props) => <CustomHeader {...props} />,
             headerStyle: {
-              backgroundColor: "#1F2B43",
+              backgroundColor: Theme.background,
             },
             headerTintColor: "white",
             headerShadowVisible: false, // Esto es clave para eliminar la sombra
             contentStyle: {
-              backgroundColor: "#1F2B43",
+              backgroundColor: Theme.background,
             },
             // Opciones específicas para iOS para asegurar que no haya línea
             ...(Platform.OS === "ios"
@@ -97,21 +103,21 @@ function Layout() {
             name="(tabs)"
             options={{
               headerShown: true,
-              headerTitle: "Events",
-              contentStyle: { backgroundColor: "#111827" },
+              headerTitle: "Eventos",
+              contentStyle: { backgroundColor: Theme.background },
             }}
           />
           <Stack.Screen
             name="event/[id]"
             options={{
-              headerTitle: "Event Details",
+              headerTitle: "Detalles del Evento",
             }}
           />
           <Stack.Screen
             name="order/[id]"
             options={{
-              headerTitle: "Order Details",
-              contentStyle: { backgroundColor: "#111827" },
+              headerTitle: "Detalle de la Orden",
+              contentStyle: { backgroundColor: Theme.background },
             }}
           />
         </Stack>

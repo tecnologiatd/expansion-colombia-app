@@ -47,7 +47,7 @@ export const CheckForUpdateButton = () => {
     <TouchableOpacity
       disabled={isChecking}
       onPress={handleCheckForUpdate}
-      className="bg-gray-800 p-4 rounded-lg flex-row justify-between items-center mt-2"
+      className="bg-gray-800 p-4 rounded-2xl border border-line flex-row justify-between items-center mt-2"
     >
       <Text className="text-white">Buscar actualización</Text>
       {isChecking ? (

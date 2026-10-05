@@ -2,11 +2,12 @@
   "expo": {
     "name": "Expansión Colombia",
     "slug": "expansion-colombia",
-    "version": "1.3",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "expansioncolombia",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0F1422",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.expansioncolombia",

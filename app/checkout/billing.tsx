@@ -21,6 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import SponsorshipLineSelector from "@/presentation/components/SponsorshipLineSelector";
 import MaintenanceBanner from "@/presentation/components/MaintenanceBanner";
 import { useSiteStatus } from "@/presentation/hooks/useSiteStatus";
+import { CONTENT_MAX_WIDTH } from "@/presentation/theme/Colors";
 
 export default function BillingScreen() {
   const { costumerQuery } = useCustomer();
@@ -134,7 +135,7 @@ export default function BillingScreen() {
   };
 
   return (
-    <ScrollView>
+    <ScrollView className="bg-background">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -143,33 +144,42 @@ export default function BillingScreen() {
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
           <ScrollView
             ref={scrollViewRef}
-            className="flex-1 bg-gray-900"
-            contentContainerStyle={{ paddingBottom: 120 }}
+            className="flex-1 bg-background"
+            contentContainerStyle={{ paddingBottom: 48 }}
             keyboardShouldPersistTaps="handled"
           >
             {/* Header Section */}
-            <View className="p-6 bg-gray-800 rounded-b-3xl shadow-lg mb-6">
-              <Text className="text-white text-2xl font-bold mb-2">
-                Información de Facturación
+            <View
+              className="w-full self-center px-4 pt-6 mb-6"
+              style={{ maxWidth: CONTENT_MAX_WIDTH }}
+            >
+              <Text
+                className="text-white text-2xl font-bold mb-1"
+                maxFontSizeMultiplier={1.3}
+              >
+                Datos de facturación
               </Text>
-              <Text className="text-gray-400">
-                Complete los detalles para continuar con su compra
+              <Text className="text-muted">
+                Completa los datos para continuar con tu compra
               </Text>
             </View>
 
-            <View className="px-6">
+            <View
+              className="w-full self-center px-4"
+              style={{ maxWidth: CONTENT_MAX_WIDTH }}
+            >
               {isMaintenance && (
                 <MaintenanceBanner message={maintenanceMessage} />
               )}
               {/* Personal Information Section */}
               <View className="mb-8">
-                <View className="flex-row items-center mb-4">
+                <View className="flex-row items-center">
                   <Ionicons
                     name="person-circle-outline"
-                    size={24}
+                    size={20}
                     color="#7B3DFF"
                   />
-                  <Text className="text-white text-lg font-bold ml-2">
+                  <Text className="text-white text-base font-semibold ml-2">
                     Información Personal
                   </Text>
                 </View>
@@ -200,9 +210,9 @@ export default function BillingScreen() {
 
               {/* Contact Information Section */}
               <View className="mb-8">
-                <View className="flex-row items-center mb-4">
-                  <Ionicons name="call-outline" size={24} color="#7B3DFF" />
-                  <Text className="text-white text-lg font-bold ml-2">
+                <View className="flex-row items-center">
+                  <Ionicons name="call-outline" size={20} color="#7B3DFF" />
+                  <Text className="text-white text-base font-semibold ml-2">
                     Información de Contacto
                   </Text>
                 </View>
@@ -237,9 +247,9 @@ export default function BillingScreen() {
 
               {/* Address Information Section */}
               <View className="mb-8">
-                <View className="flex-row items-center mb-4">
-                  <Ionicons name="location-outline" size={24} color="#7B3DFF" />
-                  <Text className="text-white text-lg font-bold ml-2">
+                <View className="flex-row items-center">
+                  <Ionicons name="location-outline" size={20} color="#7B3DFF" />
+                  <Text className="text-white text-base font-semibold ml-2">
                     Dirección de Facturación
                   </Text>
                 </View>
@@ -283,13 +293,13 @@ export default function BillingScreen() {
 
               {/* Sponsorship Line Section */}
               <View className="mb-8">
-                <View className="flex-row items-center mb-4">
-                  <Ionicons name="people-outline" size={24} color="#7B3DFF" />
-                  <Text className="text-white text-lg font-bold ml-2">
+                <View className="flex-row items-center">
+                  <Ionicons name="people-outline" size={20} color="#7B3DFF" />
+                  <Text className="text-white text-base font-semibold ml-2">
                     Línea de Auspicio
                   </Text>
                 </View>
-                <Text className="text-gray-400 mb-3">
+                <Text className="text-muted mt-2 mb-3">
                   Seleccione quién le referenció para comprar este evento
                 </Text>
                 <SponsorshipLineSelector
@@ -300,7 +310,7 @@ export default function BillingScreen() {
               </View>
 
               {/* Submit Button */}
-              <View className="mb-16">
+              <View className="mb-8">
                 <CustomButton
                   title={
                     updateCustomerMutation.isPending
@@ -310,7 +320,6 @@ export default function BillingScreen() {
                         : "Continuar al pago"
                   }
                   onPress={handleContinue}
-                  className="bg-purple-500"
                   disabled={updateCustomerMutation.isPending || isMaintenance}
                 />
               </View>

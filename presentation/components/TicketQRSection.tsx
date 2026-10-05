@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import QRCode from "react-native-qrcode-svg";
 import { useGenerateTicket } from "../hooks/useGenerateTicket";
 import { useTicketValidation } from "../hooks/useTicketValidation";
@@ -24,14 +31,12 @@ export const TicketQRCard = ({
   total: number;
 }) => {
   const { ticketStatusQuery } = useTicketValidation(qrCode, eventId);
+  const { width } = useWindowDimensions();
+  // Cabe en pantallas angostas (320 px) sin perder tamaño en las grandes
+  const qrSize = Math.max(160, Math.min(220, width - 128));
 
-  if (ticketStatusQuery.isLoading && !ticketStatusQuery.isPaused) {
-    return (
-      <View className="bg-gray-800 rounded-lg p-4 mb-4">
-        <ActivityIndicator size="small" color="#7B3DFF" />
-      </View>
-    );
-  }
+  const statusLoading =
+    ticketStatusQuery.isLoading && !ticketStatusQuery.isPaused;
 
   const ticketStatus = ticketStatusQuery.data;
   const statusTimeAgo =
@@ -40,24 +45,34 @@ export const TicketQRCard = ({
       : null;
 
   return (
-    <View className="bg-gray-800 rounded-lg p-6 mb-4">
-      <Text className="text-white text-center mb-4">
+    <View className="bg-gray-800 rounded-2xl border border-line p-6 mb-4">
+      <Text className="text-muted text-center mb-4">
         Ticket {index + 1} de {total}
       </Text>
 
-      <View className="items-center mb-4">
-        <QRCode
-          value={qrCode}
-          size={200}
-          color="white"
-          backgroundColor="transparent"
-        />
-      </View>
+      {/* QR oscuro sobre blanco con margen: es lo que mejor leen los lectores */}
+      <Animated.View
+        entering={FadeIn.duration(200)}
+        style={{ alignItems: "center", marginBottom: 16 }}
+      >
+        <View className="bg-white p-4 rounded-2xl">
+          <QRCode
+            value={qrCode}
+            size={qrSize}
+            color="#0F1422"
+            backgroundColor="#FFFFFF"
+          />
+        </View>
+      </Animated.View>
 
       <View className="mt-4">
-        {ticketStatus ? (
+        {statusLoading ? (
+          <View className="p-4 rounded-xl bg-gray-700/50">
+            <ActivityIndicator size="small" color="#7B3DFF" />
+          </View>
+        ) : ticketStatus ? (
           <View
-            className={`p-4 rounded-lg ${
+            className={`p-4 rounded-xl ${
               ticketStatus.revoked ||
               ticketStatus.usageCount >= ticketStatus.maxUsages
                 ? "bg-red-500/20"
@@ -85,7 +100,7 @@ export const TicketQRCard = ({
             )}
           </View>
         ) : (
-          <View className="p-4 rounded-lg bg-gray-700/50">
+          <View className="p-4 rounded-xl bg-gray-700/50">
             <Text className="text-gray-300 text-center">
               Estado no disponible sin conexión
             </Text>
@@ -96,7 +111,7 @@ export const TicketQRCard = ({
           <View className="mt-4">
             <Text className="text-white font-bold mb-2">Historial de uso:</Text>
             {ticketStatus.usageHistory.map((usage, i) => (
-              <View key={i} className="bg-gray-700/50 p-2 rounded-lg mb-2">
+              <View key={i} className="bg-gray-700/50 p-2 rounded-xl mb-2">
                 <Text className="text-gray-400">
                   Usado el: {new Date(usage.timestamp).toLocaleString("es-co")}
                 </Text>
@@ -130,7 +145,6 @@ export const TicketQRSection = ({
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
   const [isPackage, setIsPackage] = useState(false);
   const [ticketsPerUnit, setTicketsPerUnit] = useState(1);
-  const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
   const eventAvailable =
     Number.isSafeInteger(Number(eventId)) && Number(eventId) > 0;
 
@@ -175,9 +189,6 @@ export const TicketQRSection = ({
       setIsPackage(codes.length > quantity);
       setTicketsPerUnit(
         quantity > 0 ? Math.max(1, Math.round(codes.length / quantity)) : 1,
-      );
-      setCurrentTicketIndex((index) =>
-        Math.min(index, Math.max(0, codes.length - 1)),
       );
     }
   }, [generateTicketMutation.data, quantity, usingCachedCodes, cachedCodes]);
@@ -251,22 +262,6 @@ export const TicketQRSection = ({
     );
   }
 
-  // Mostrar un ticket a la vez en lugar de usar FlatList o ScrollView anidados
-  const currentTicket = generatedCodes[currentTicketIndex];
-
-  // Funciones para navegación entre tickets
-  const goToNextTicket = () => {
-    if (currentTicketIndex < generatedCodes.length - 1) {
-      setCurrentTicketIndex(currentTicketIndex + 1);
-    }
-  };
-
-  const goToPrevTicket = () => {
-    if (currentTicketIndex > 0) {
-      setCurrentTicketIndex(currentTicketIndex - 1);
-    }
-  };
-
   return (
     <View className="p-4">
       {usingCachedCodes && (
@@ -282,7 +277,7 @@ export const TicketQRSection = ({
         </Text>
 
         {isPackage && (
-          <View className="bg-purple-500/20 px-3 py-1 rounded-lg">
+          <View className="bg-purple-500/20 px-3 py-1 rounded-xl">
             <Text className="text-purple-300">
               Paquete: {quantity} × {ticketsPerUnit} entradas
             </Text>
@@ -290,42 +285,16 @@ export const TicketQRSection = ({
         )}
       </View>
 
-      {/* Mostrar el ticket actual */}
-      {currentTicket && (
-        <View>
-          <TicketQRCard
-            qrCode={currentTicket}
-            eventId={eventId}
-            index={currentTicketIndex}
-            total={generatedCodes.length}
-          />
-
-          {/* Controles de navegación para múltiples tickets */}
-          {generatedCodes.length > 1 && (
-            <View className="flex-row justify-between mt-2 mb-4">
-              <TouchableOpacity
-                onPress={goToPrevTicket}
-                disabled={currentTicketIndex === 0}
-                className={`bg-gray-800 py-2 px-4 rounded-lg ${currentTicketIndex === 0 ? "opacity-50" : ""}`}
-              >
-                <Text className="text-white">← Anterior</Text>
-              </TouchableOpacity>
-
-              <Text className="text-white text-center self-center">
-                {currentTicketIndex + 1} / {generatedCodes.length}
-              </Text>
-
-              <TouchableOpacity
-                onPress={goToNextTicket}
-                disabled={currentTicketIndex === generatedCodes.length - 1}
-                className={`bg-gray-800 py-2 px-4 rounded-lg ${currentTicketIndex === generatedCodes.length - 1 ? "opacity-50" : ""}`}
-              >
-                <Text className="text-white">Siguiente →</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
+      {/* Todas las entradas de la compra (o del paquete) quedan a la vista */}
+      {generatedCodes.map((code, index) => (
+        <TicketQRCard
+          key={code}
+          qrCode={code}
+          eventId={eventId}
+          index={index}
+          total={generatedCodes.length}
+        />
+      ))}
     </View>
   );
 };

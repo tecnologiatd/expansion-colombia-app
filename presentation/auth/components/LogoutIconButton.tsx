@@ -35,7 +35,7 @@ export const LogoutButton = () => {
 
   return (
     <TouchableOpacity
-      className="bg-gray-800 p-4 rounded-lg flex-row justify-between items-center"
+      className="bg-gray-800 p-4 rounded-2xl border border-line flex-row justify-between items-center"
       onPress={handleLogout}
     >
       <Text className="text-red-500 font-medium">Cerrar Sesión</Text>

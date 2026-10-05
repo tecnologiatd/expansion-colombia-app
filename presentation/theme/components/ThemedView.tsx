@@ -1,3 +1,4 @@
+import { Theme } from "@/presentation/theme/Colors";
 import { View, ViewProps } from "react-native";
 
 export type ThemedViewProps = ViewProps & {
@@ -10,7 +11,7 @@ export function ThemedView({
   ...otherProps
 }: ThemedViewProps) {
   // Siempre usamos fondo oscuro
-  const backgroundColor = darkMode ? "#111111" : "#1F1F1F";
+  const backgroundColor = darkMode ? Theme.background : Theme.surface;
 
   return <View style={[{ backgroundColor }, style]} {...otherProps} />;
 }
