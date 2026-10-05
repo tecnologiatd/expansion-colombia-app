@@ -33,6 +33,7 @@ import { Button } from "@/presentation/components/ui/Button";
 import { FadeInView } from "@/presentation/components/ui/FadeInView";
 import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
 import { formatCOP } from "@/helpers/format";
+import { reportAppError } from "@/core/monitoring/sentry";
 
 export default function PaymentScreen() {
   const { billingData, sponsorshipLine } = useLocalSearchParams();
@@ -119,6 +120,7 @@ export default function PaymentScreen() {
       // El carrito se completa únicamente cuando Woo confirma processing/completed.
       if (returned) showOrder(order.id);
     } catch (error) {
+      reportAppError(error, "checkout.payment");
       console.error("Error al procesar la orden:", error);
       const message =
         error instanceof Error && error.message.startsWith(MAINTENANCE_ERROR)

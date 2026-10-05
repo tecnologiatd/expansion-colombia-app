@@ -5,23 +5,28 @@
   },
   "build": {
     "development": {
+      "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development"
     },
     "preview": {
+      "environment": "preview",
       "distribution": "internal",
       "android": {
         "gradleCommand": ":app:assembleRelease -PreactNativeArchitectures=arm64-v8a"
       },
       "env": {
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "preview",
         "EXPO_PUBLIC_BACKEND_URL": "https://expansion-colombia-backend-production.up.railway.app"
       },
       "channel": "preview"
     },
     "production": {
+      "environment": "production",
       "autoIncrement": true,
       "env": {
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "production",
         "EXPO_PUBLIC_BACKEND_URL": "https://expansion-colombia-backend-production.up.railway.app"
       },
       "channel": "production"

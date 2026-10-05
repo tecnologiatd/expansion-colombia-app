@@ -22,6 +22,7 @@ import {
 import { useConnectivityStore } from "@/core/offline/connectivity";
 import { useAuthStore } from "@/presentation/auth/store/useAuthStore";
 import { ensureScannerOwner } from "@/core/offline/ticket-db";
+import { reportAppError } from "@/core/monitoring/sentry";
 import {
   canSyncTickets,
   nextSyncDelay,
@@ -80,6 +81,7 @@ const runSync = async (signal?: AbortSignal): Promise<boolean> => {
   automaticSchedule.lastAttemptAt = Date.now();
 
   useTicketSyncStore.setState({ isSyncing: true, syncError: null });
+  let stage: "prepare" | "push" | "pull" = "prepare";
 
   try {
     ensureScannerOwner(operator);
@@ -89,6 +91,7 @@ const runSync = async (signal?: AbortSignal): Promise<boolean> => {
     const deviceId = await getDeviceId();
     assertCurrent();
     let pending = getPendingValidations();
+    stage = "push";
     while (pending.length > 0) {
       const chunk = pending.slice(0, PUSH_CHUNK_SIZE);
       const response = await pushValidationBatch(deviceId, chunk, signal);
@@ -104,6 +107,7 @@ const runSync = async (signal?: AbortSignal): Promise<boolean> => {
 
     // 2. PULL incremental: cursor = serverTime devuelto por el servidor
     //    (nunca el reloj del dispositivo).
+    stage = "pull";
     const since = getLastSyncAt();
     let page = 1;
     let serverTime: string | null = null;
@@ -149,6 +153,7 @@ const runSync = async (signal?: AbortSignal): Promise<boolean> => {
       return false;
     }
     automaticSchedule.failures += 1;
+    reportAppError(error, "offline.sync", stage);
     const status = error?.response?.status;
     useTicketSyncStore.setState({
       syncError:

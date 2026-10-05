@@ -80,11 +80,10 @@
         {
           "organization": "atd-sas",
           "project": "expancol",
-          "url": "https://sentry.io/"
+          "url": "https://sentry.io"
         }
       ],
-      "expo-web-browser",
-      "@sentry/react-native"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

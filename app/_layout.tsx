@@ -11,6 +11,7 @@ import {
 } from "@/core/api/query-cache";
 import { StatusBar, Platform } from "react-native";
 import * as Sentry from "@sentry/react-native";
+import { initMonitoring } from "@/core/monitoring/sentry";
 import "./global.css";
 import { usePushNotifications } from "@/presentation/hooks/usePushNotifications";
 import CustomHeader from "@/presentation/components/CustomHeader";
@@ -20,14 +21,7 @@ import { initConnectivity } from "@/core/offline/connectivity";
 import { useAutomaticTicketSync } from "@/presentation/hooks/useTicketSync";
 import { Theme } from "@/presentation/theme/Colors";
 
-Sentry.init({
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  // Solo en produccion: sin DSN o en desarrollo Sentry queda desactivado
-  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN && !__DEV__,
-  // No enviar PII de los compradores en los eventos
-  sendDefaultPii: false,
-  tracesSampleRate: 0.2,
-});
+initMonitoring();
 
 function Layout() {
   useAutomaticTicketSync();
@@ -126,5 +120,5 @@ function Layout() {
   );
 }
 
-// Sentry.wrap captura errores de render/navegación del árbol completo
+// Instrumenta el árbol raíz; el SDK registra las excepciones no manejadas.
 export default Sentry.wrap(Layout);

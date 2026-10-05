@@ -50,6 +50,7 @@ test("retorno del pago: espera el foco/carga sin destello de error; conserva err
   const { default: OrderDetails } = load(
     "presentation/components/OrderDetails.tsx",
     {
+      "@/core/monitoring/sentry": { reportAppError() {} },
       "react-native": {
         View: "View",
         Text: "Text",

@@ -59,6 +59,7 @@ export const createOrderAction = async (
     throw new Error(
       axiosError.response?.data?.message ??
         "No se pudo confirmar el pedido. Toca continuar para consultar el mismo intento de compra.",
+      { cause: error },
     );
   }
 };

@@ -91,6 +91,7 @@ const harness = () => {
   const connectivity = (selector) => selector({ isOnline: online });
   connectivity.getState = () => ({ isOnline: online });
   const modules = {
+    "@/core/monitoring/sentry": { reportAppError() {} },
     react: {
       useCallback: (fn) => fn,
       useEffect: (fn) => {

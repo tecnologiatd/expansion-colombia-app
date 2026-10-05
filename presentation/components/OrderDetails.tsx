@@ -13,6 +13,7 @@ import { Button } from "@/presentation/components/ui/Button";
 import { StateView } from "@/presentation/components/ui/StateView";
 import { CONTENT_MAX_WIDTH, Theme } from "@/presentation/theme/Colors";
 import { formatCOP, plainText } from "@/helpers/format";
+import { reportAppError } from "@/core/monitoring/sentry";
 
 const OrderDetails = ({ orderId }: { orderId: string }) => {
   const openingRef = useRef(false);
@@ -67,6 +68,7 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       }
       const paymentUrl = currentOrder?.payment_url;
       if (!paymentUrl) {
+        reportAppError(new Error("Missing payment URL"), "checkout.payment");
         Alert.alert("Error", "No se pudo generar la URL de pago");
         return;
       }
@@ -75,6 +77,7 @@ const OrderDetails = ({ orderId }: { orderId: string }) => {
       await AuthBrowser.openPaymentUrl(paymentUrl, orderId);
       void watchPayment();
     } catch (error) {
+      reportAppError(error, "checkout.payment");
       console.error("Error al abrir URL de pago:", error);
       Alert.alert(
         "Error",

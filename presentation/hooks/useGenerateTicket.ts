@@ -8,6 +8,7 @@ export const useGenerateTicket = () => {
   const queryClient = useQueryClient();
 
   const generateTicketMutation = useMutation({
+    meta: { errorOperation: "tickets.generate" },
     mutationFn: generateTicketQR,
     onMutate: () => ({ username: useAuthStore.getState().user?.username }),
     onSuccess: (data, variables, context) => {

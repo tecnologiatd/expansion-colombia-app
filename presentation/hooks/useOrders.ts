@@ -15,6 +15,7 @@ export const useCreateOrder = () => {
   const { items } = useCartStore();
 
   const createOrderMutation = useMutation({
+    meta: { errorOperation: "orders.create" },
     mutationFn: createOrderAction,
     onSuccess: (data) => {
       // Invalidate relevant queries
